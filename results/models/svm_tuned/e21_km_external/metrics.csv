@@ -1,0 +1,2 @@
+auc,binary_sens,binary_spec,sens_at_spec_0.95,n_isolates,n_resistant,zero_training_overlap
+0.871994715984148,0.8,0.9326287978863936,0.7714285714285715,792,35,True

@@ -1,0 +1,6 @@
+lineage,n,n_resistant,cat_sens_firm_off,cat_spec_firm_off,cat_n_U_off,cat_sens_firm_on,cat_spec_firm_on,cat_n_U_on,n_flips,n_flips_resistant,n_flips_susceptible,n_true_R_to_S,all_flips_R_to_U
+lineage1,9,4,1.0,1.0,1,1.0,1.0,1,0,0,0,0,True
+lineage2,559,22,0.6428571428571429,0.9896907216494846,157,0.6428571428571429,0.9896907216494846,157,0,0,0,0,True
+lineage3,6,0,,1.0,0,,1.0,0,0,0,0,0,True
+lineage4,198,9,1.0,0.9887005649717514,14,1.0,0.9887005649717514,14,0,0,0,0,True
+mixed,20,0,,0.9285714285714286,6,,0.9285714285714286,6,0,0,0,0,True

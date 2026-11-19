@@ -1,0 +1,73 @@
+{
+  "model": "hybrid",
+  "test": "e09_hybrid",
+  "timestamp": "2026-11-18T19:05:39.182199+00:00",
+  "git_commit": "uncommitted",
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86",
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "catomatic": "0.2.3",
+    "piezo": "0.9.2",
+    "pyarrow": "26.0.1"
+  },
+  "observed": {
+    "n_U": 661,
+    "n_U_resistant": 206,
+    "auc_ml_within_U": 0.7442227675237384,
+    "resolved_S": 173,
+    "resolved_S_resistant": 17,
+    "resolved_R": 126,
+    "resolved_R_susceptible": 51,
+    "remain_U": 362,
+    "remain_U_resistant": 114
+  },
+  "expected": {
+    "auc_ml_within_U": 0.744,
+    "resolved_S": 173,
+    "resolved_S_resistant": 17,
+    "resolved_R": 126,
+    "resolved_R_susceptible": 51,
+    "remain_U": 362,
+    "remain_U_resistant": 114
+  },
+  "tolerance": {
+    "auc_ml_within_U": 0.03,
+    "resolved_S": 15,
+    "resolved_S_resistant": 15,
+    "resolved_R": 15,
+    "resolved_R_susceptible": 15,
+    "remain_U": 15,
+    "remain_U_resistant": 15
+  },
+  "diff": {
+    "auc_ml_within_U": 0.0002227675237383986,
+    "resolved_S": 0,
+    "resolved_S_resistant": 0,
+    "resolved_R": 0,
+    "resolved_R_susceptible": 0,
+    "remain_U": 0,
+    "remain_U_resistant": 0
+  },
+  "within_tol": {
+    "auc_ml_within_U": true,
+    "resolved_S": true,
+    "resolved_S_resistant": true,
+    "resolved_R": true,
+    "resolved_R_susceptible": true,
+    "remain_U": true,
+    "remain_U_resistant": true
+  },
+  "pass_all": true,
+  "method": "Among catalogue-U samples, apply per-fold model lo/hi to resolve some. ML AUC within U measures ranking value.",
+  "interpretation": "EXPLORATORY: model ranks U samples (AUC ~0.74) but resolving them is unsafe (resolved-S group ~9.8% resistant; resolved-R ~40% susceptible). NEVER auto-call.",
+  "caveats": "Used only to RANK the unresolved queue, not to change calls.",
+  "reproduce": "python eval/e09_hybrid.py",
+  "supports": "Queue ranking value; rejects unsafe auto-resolution (honest).",
+  "csv_files": [
+    "U_samples.csv"
+  ],
+  "extra": {}
+}

@@ -1,0 +1,2 @@
+n_isolates,n_resistant,expanded_model_auc,expanded_model_sens,expanded_model_spec,expanded_sens_at_spec_0.95,golden_production_km_auc,delta_auc_vs_golden_production
+792,35,0.8636157765616155,0.8571428571428571,0.7727873183619551,0.6571428571428571,0.8681826759765995,-0.004566899414984005

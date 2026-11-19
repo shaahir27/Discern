@@ -1,0 +1,7 @@
+metric,estimate,lower,upper,method
+S1 catalogue sensitivity,0.7924242424242425,0.7595889055676857,0.8242546553090333,S1 patient-group bootstrap of saved predictions
+S1 catalogue specificity,0.983502417749123,0.9809955695340432,0.9858092618919395,S1 patient-group bootstrap of saved predictions
+S1 model AUC,0.9085389366535497,0.8944043200207371,0.9229650442280821,S1 patient-group bootstrap of saved predictions
+S1 model AUPRC,0.6836352010125266,0.6470632235346253,0.7194392000948412,S1 patient-group bootstrap of saved predictions
+KM catalogue sensitivity,0.7916666666666666,0.5952954674681133,0.9075517464714814,Wilson interval among firm calls
+KM catalogue specificity,0.988135593220339,0.9757146078959423,0.9942412472305667,Wilson interval among firm calls

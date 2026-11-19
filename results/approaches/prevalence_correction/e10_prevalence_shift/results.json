@@ -1,0 +1,76 @@
+{
+  "model": "prevalence_correction",
+  "test": "e10_prevalence_shift",
+  "timestamp": "2026-11-18T19:05:41.528065+00:00",
+  "git_commit": "uncommitted",
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86",
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "catomatic": "0.2.3",
+    "piezo": "0.9.2",
+    "pyarrow": "26.0.1"
+  },
+  "observed": {
+    "CRyPTIC_to_NICD_ece_raw": 0.5684131836680266,
+    "CRyPTIC_to_NICD_ece_adj": 0.10120066429985355,
+    "CRyPTIC_to_NICD_brier_raw": 0.5009009962128409,
+    "CRyPTIC_to_NICD_brier_adj": 0.12376224807239711,
+    "NICD_to_CRyPTIC_ece_raw": 0.28816773432562826,
+    "NICD_to_CRyPTIC_ece_adj": 0.012789839603910978,
+    "NICD_to_CRyPTIC_brier_raw": 0.10203671807064739,
+    "NICD_to_CRyPTIC_brier_adj": 0.016917730721914482
+  },
+  "expected": {
+    "CRyPTIC_to_NICD_ece_raw": 0.568,
+    "CRyPTIC_to_NICD_ece_adj": 0.101,
+    "CRyPTIC_to_NICD_brier_raw": 0.501,
+    "CRyPTIC_to_NICD_brier_adj": 0.124,
+    "NICD_to_CRyPTIC_ece_raw": 0.288,
+    "NICD_to_CRyPTIC_ece_adj": 0.013,
+    "NICD_to_CRyPTIC_brier_raw": 0.102,
+    "NICD_to_CRyPTIC_brier_adj": 0.017
+  },
+  "tolerance": {
+    "CRyPTIC_to_NICD_ece_raw": 0.03,
+    "CRyPTIC_to_NICD_ece_adj": 0.03,
+    "CRyPTIC_to_NICD_brier_raw": 0.02,
+    "CRyPTIC_to_NICD_brier_adj": 0.02,
+    "NICD_to_CRyPTIC_ece_raw": 0.01,
+    "NICD_to_CRyPTIC_ece_adj": 0.01,
+    "NICD_to_CRyPTIC_brier_raw": 0.005,
+    "NICD_to_CRyPTIC_brier_adj": 0.005
+  },
+  "diff": {
+    "CRyPTIC_to_NICD_ece_raw": 0.00041318366802667317,
+    "CRyPTIC_to_NICD_ece_adj": 0.00020066429985354794,
+    "CRyPTIC_to_NICD_brier_raw": -9.900378715910207e-05,
+    "CRyPTIC_to_NICD_brier_adj": -0.00023775192760289166,
+    "NICD_to_CRyPTIC_ece_raw": 0.00016773432562827706,
+    "NICD_to_CRyPTIC_ece_adj": -0.00021016039608902186,
+    "NICD_to_CRyPTIC_brier_raw": 3.671807064739574e-05,
+    "NICD_to_CRyPTIC_brier_adj": -8.226927808551929e-05
+  },
+  "within_tol": {
+    "CRyPTIC_to_NICD_ece_raw": true,
+    "CRyPTIC_to_NICD_ece_adj": true,
+    "CRyPTIC_to_NICD_brier_raw": true,
+    "CRyPTIC_to_NICD_brier_adj": true,
+    "NICD_to_CRyPTIC_ece_raw": true,
+    "NICD_to_CRyPTIC_ece_adj": true,
+    "NICD_to_CRyPTIC_brier_raw": true,
+    "NICD_to_CRyPTIC_brier_adj": true
+  },
+  "pass_all": true,
+  "method": "Cross-source OOF probabilities; odds-ratio prevalence correction (section 10); ECE (10 quantile bins) + Brier raw vs adjusted.",
+  "interpretation": "Calibrated probabilities do NOT transfer across prevalence unless corrected. NICD->CRyPTIC ECE 0.288->0.013; reverse improves less (only 83 CRyPTIC R).",
+  "caveats": "At low prevalence the PPV-80% R threshold is rarely reached — correct behaviour.",
+  "reproduce": "python eval/e10_prevalence_shift.py",
+  "supports": "Prevalence correction validated across labs (math is Saerens 2002; application here).",
+  "csv_files": [
+    "prevalence_shift.csv"
+  ],
+  "extra": {}
+}

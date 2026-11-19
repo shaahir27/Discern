@@ -1,0 +1,12 @@
+site,n,emp_s_error,emp_r_error,violates_s,violates_r
+1,91,,,False,False
+2,750,,,False,False
+3,1235,,1.0,False,True
+4,950,,1.0,False,True
+5,3035,,,False,False
+6,1022,,0.3333333333333333,False,True
+8,1591,,1.0,False,True
+10,2673,,0.10126582278481013,False,False
+11,5,,,False,False
+14,194,,,False,False
+20,322,,1.0,False,True

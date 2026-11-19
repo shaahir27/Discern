@@ -1,0 +1,45 @@
+{
+  "model": "lr_expanded",
+  "test": "e18_expanded_cv",
+  "timestamp": "2026-11-19T05:05:30.127477+00:00",
+  "git_commit": "39dad3a",
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86",
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "catomatic": "0.2.3",
+    "piezo": "0.9.2",
+    "pyarrow": "26.0.1"
+  },
+  "observed": {
+    "n_samples": 23441,
+    "n_resistant": 1046,
+    "auc": 0.838130054125541,
+    "auprc": 0.5664602456715522,
+    "binary_sens": 0.7246653919694073,
+    "binary_spec": 0.9650368385800402,
+    "sens_at_spec_0.95": 0.7265774378585086,
+    "sens_at_spec_0.97": 0.7131931166347992,
+    "sens_at_spec_0.985": 0.6195028680688337,
+    "n_features": 137,
+    "golden_auc": 0.9085389366535497,
+    "delta_auc_vs_golden": -0.0704088825280087
+  },
+  "expected": {},
+  "tolerance": {},
+  "diff": {},
+  "within_tol": {},
+  "pass_all": null,
+  "method": "Expanded CRyPTIC v3.4 BDQ cohort (HIGH+MEDIUM, exclude KM): 23,441 isolates / 1,046 R. LR F2, S1 patient-grouped 5-fold nested Platt + thresholds (same protocol as golden E04).",
+  "interpretation": "Expanded training AUC 0.8381 vs golden 0.9085 (delta -0.0704); sens@spec0.985 0.6195. +182 new resistant isolates, CRyPTIC R 83->255.",
+  "caveats": "Different cohort than golden (not the published 11,868 reproduction). MEDIUM labels add noise. Descriptive; golden baseline + production untouched; no tuning. KM held out.",
+  "reproduce": "python eval/e18_expanded_training.py",
+  "supports": "Data-richness lever: more resistant isolates to improve generalization.",
+  "csv_files": [
+    "metrics.csv",
+    "thresholds_per_fold.csv"
+  ],
+  "extra": {}
+}

@@ -1,0 +1,88 @@
+{
+  "model": "lr_l2_tuned",
+  "test": "e21_tuned_cv",
+  "timestamp": "2026-11-19T05:27:15.875118+00:00",
+  "git_commit": "39dad3a",
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86",
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "catomatic": "0.2.3",
+    "piezo": "0.9.2",
+    "pyarrow": "26.0.1"
+  },
+  "observed": {
+    "auc": 0.9058801716924867,
+    "binary_sens": 0.8383371824480369,
+    "binary_spec": 0.9503726595164516,
+    "sens_at_spec_0.95": 0.8383371824480369,
+    "sens_at_spec_0.97": 0.7886836027713626,
+    "sens_at_spec_0.985": 0.6304849884526559,
+    "auprc": 0.6971430019924434,
+    "ternary_firm": 0.9512133468149646
+  },
+  "expected": {},
+  "tolerance": {},
+  "diff": {},
+  "within_tol": {},
+  "pass_all": null,
+  "method": "F2 with a vocabulary of variants carried by at least three training samples. Select by ROC AUC on three patient-grouped inner folds, then fit Platt scaling on raw out-of-fold scores from those folds and derive the golden thresholds from the calibrated scores. Evaluation uses the five saved S1 patient-grouped test folds.",
+  "interpretation": "",
+  "caveats": "Research use only. The selected settings and Platt calibration use the same inner folds. The outer and KM results are held-out evaluations.",
+  "reproduce": "C:/Users/shaah/miniconda3/envs/discern/python.exe eval/e21_tuned_comparison.py",
+  "supports": "",
+  "csv_files": [
+    "metrics.csv",
+    "best_params_per_fold.csv"
+  ],
+  "extra": {
+    "best_params_per_fold": [
+      {
+        "fold": 0,
+        "C": 1.0,
+        "t_bin": 0.0222,
+        "lo": 0.0493,
+        "hi": 0.7581
+      },
+      {
+        "fold": 1,
+        "C": 1.0,
+        "t_bin": 0.0205,
+        "lo": 0.0594,
+        "hi": 0.7426
+      },
+      {
+        "fold": 2,
+        "C": 3.0,
+        "t_bin": 0.0371,
+        "lo": 0.0519,
+        "hi": 0.5067
+      },
+      {
+        "fold": 3,
+        "C": 3.0,
+        "t_bin": 0.039,
+        "lo": 0.0536,
+        "hi": 0.5462
+      },
+      {
+        "fold": 4,
+        "C": 3.0,
+        "t_bin": 0.0362,
+        "lo": 0.0579,
+        "hi": 0.7178
+      }
+    ],
+    "grid": {
+      "C": [
+        0.03,
+        0.1,
+        0.3,
+        1.0,
+        3.0
+      ]
+    }
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "model": "lr_model",
+  "test": "e04_s1_patient_cv",
+  "timestamp": "2026-11-18T19:05:21.788844+00:00",
+  "git_commit": "uncommitted",
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86",
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "catomatic": "0.2.3",
+    "piezo": "0.9.2",
+    "pyarrow": "26.0.1"
+  },
+  "observed": {
+    "auc": 0.9085389366535497,
+    "auprc": 0.6836352010125266,
+    "binary_sens": 0.8348729792147807,
+    "binary_spec": 0.9481003453917469,
+    "ternary_firm": 0.9469160768452983,
+    "ternary_sens_among_firm": 0.7346938775510204,
+    "ternary_spec_among_firm": 0.9889201877934273,
+    "sens_at_spec_0.95": 0.8302540415704388,
+    "sens_at_spec_0.97": 0.7817551963048499,
+    "sens_at_spec_0.98": 0.6524249422632794,
+    "sens_at_spec_0.985": 0.6039260969976905,
+    "n_features_all_data": 120
+  },
+  "expected": {
+    "auc": 0.909,
+    "auprc": 0.684,
+    "binary_sens": 0.835,
+    "binary_spec": 0.948,
+    "ternary_firm": 0.947,
+    "sens_at_spec_0.95": 0.83,
+    "sens_at_spec_0.97": 0.782,
+    "sens_at_spec_0.98": 0.652,
+    "sens_at_spec_0.985": 0.604
+  },
+  "tolerance": {
+    "auc": 0.01,
+    "auprc": 0.02,
+    "binary_sens": 0.02,
+    "binary_spec": 0.01,
+    "ternary_firm": 0.01,
+    "sens_at_spec_0.95": 0.03,
+    "sens_at_spec_0.97": 0.03,
+    "sens_at_spec_0.98": 0.03,
+    "sens_at_spec_0.985": 0.03
+  },
+  "diff": {
+    "auc": -0.0004610633464503522,
+    "auprc": -0.00036479898747343587,
+    "binary_sens": -0.0001270207852193117,
+    "binary_spec": 0.00010034539174696988,
+    "ternary_firm": -8.392315470162615e-05,
+    "sens_at_spec_0.95": 0.00025404157043884545,
+    "sens_at_spec_0.97": -0.0002448036951501198,
+    "sens_at_spec_0.98": 0.000424942263279382,
+    "sens_at_spec_0.985": -7.390300230947222e-05
+  },
+  "within_tol": {
+    "auc": true,
+    "auprc": true,
+    "binary_sens": true,
+    "binary_spec": true,
+    "ternary_firm": true,
+    "sens_at_spec_0.95": true,
+    "sens_at_spec_0.97": true,
+    "sens_at_spec_0.98": true,
+    "sens_at_spec_0.985": true
+  },
+  "pass_all": true,
+  "method": "L2 LogisticRegression C=0.3; nested patient-grouped Platt calibration; thresholds from inner OOF (NPV>=0.985, PPV>=0.80, Youden binary); F2 features; vocabulary>=3 training carriers.",
+  "interpretation": "Calibrated LR matches the catalogue at matched operating points; it does not beat it. Adds ranking + calibrated probability.",
+  "caveats": "ternary sens/spec among firm (0.735/0.989) are descriptive (no tolerance). Model != better accuracy.",
+  "reproduce": "python eval/e03_catalogue_cv.py && python eval/e04_lr_f2.py",
+  "supports": "Baseline reproduction; model adds calibration/ranking, not superior accuracy.",
+  "csv_files": [
+    "metrics.csv",
+    "thresholds_per_fold.csv"
+  ],
+  "extra": {
+    "thresholds_per_fold": [
+      {
+        "t_bin": 0.0321,
+        "lo": 0.0507,
+        "hi": 0.7142
+      },
+      {
+        "t_bin": 0.0357,
+        "lo": 0.0586,
+        "hi": 0.7139
+      },
+      {
+        "t_bin": 0.0278,
+        "lo": 0.0441,
+        "hi": 0.6771
+      },
+      {
+        "t_bin": 0.038,
+        "lo": 0.0485,
+        "hi": 0.7348
+      },
+      {
+        "t_bin": 0.0229,
+        "lo": 0.0566,
+        "hi": 0.7346
+      }
+    ]
+  }
+}

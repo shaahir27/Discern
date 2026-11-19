@@ -1,0 +1,4 @@
+lineage,n,n_resistant,sens_firm,spec_firm,n_U
+lineage1,9,4,1.0,1.0,1
+lineage2,559,22,0.6428571428571429,0.9896907216494846,157
+lineage4,198,9,1.0,0.9887005649717514,14

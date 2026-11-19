@@ -1,0 +1,52 @@
+{
+  "model": "mic_audit",
+  "test": "e17_borderline_mic",
+  "timestamp": "2026-11-19T04:35:00.638613+00:00",
+  "git_commit": "39dad3a",
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86",
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "catomatic": "0.2.3",
+    "piezo": "0.9.2",
+    "pyarrow": "26.0.1"
+  },
+  "observed": {
+    "n_borderline": 454,
+    "n_borderline_resistant": 191,
+    "borderline_share_of_positives": 0.22055427251732102,
+    "n_cry_borderline": 236,
+    "n_nicd_borderline": 218,
+    "n_nicd_mic_available": 612,
+    "full_auc": 0.9085389366535497,
+    "full_binary_sens": 0.8348729792147807,
+    "full_binary_spec": 0.9481003453917469,
+    "full_sens_at_spec_0.985": 0.6039260969976905,
+    "full_n": 11868,
+    "full_n_resistant": 866,
+    "excl_borderline_auc": 0.9044757598645298,
+    "excl_borderline_binary_sens": 0.8237037037037037,
+    "excl_borderline_binary_spec": 0.9555824564670826,
+    "excl_borderline_sens_at_spec_0.985": 0.6577777777777778,
+    "excl_borderline_n": 11414,
+    "excl_borderline_n_resistant": 675,
+    "delta_auc_excl_minus_full": -0.004063176789019907
+  },
+  "expected": {},
+  "tolerance": {},
+  "diff": {},
+  "within_tol": {},
+  "pass_all": null,
+  "method": "Borderline = exact MIC within +/-1 two-fold dilution of source CC (CRyPTIC 0.25, MGIT 1.0). E04 OOF metrics recomputed excluding borderline samples, side-by-side. Production keeps ALL rows.",
+  "interpretation": "454 borderline samples (191 resistant, 0.221 of all positives). Excluding them shifts AUC 0.9085->0.9045 (delta -0.0041). Label noise near the cutoff is modest; sensitivity analysis only.",
+  "caveats": "SENSITIVITY ANALYSIS, not a model change; production keeps all rows. Censored MICs (<=,>) excluded from borderline. NICD MGIT MICs largely unavailable. Margin-weighted fit NOT promoted from this audit (pre-registered).",
+  "reproduce": "python eval/e17_mic_audit.py",
+  "supports": "Label-noise audit (P-E17): quantifies cutoff-adjacent uncertainty honestly.",
+  "csv_files": [
+    "borderline_by_mic.csv",
+    "full_vs_excluded.csv"
+  ],
+  "extra": {}
+}

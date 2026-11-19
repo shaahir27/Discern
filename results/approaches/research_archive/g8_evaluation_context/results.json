@@ -1,0 +1,82 @@
+{
+  "model": "research_archive",
+  "test": "g8_evaluation_context",
+  "timestamp": "2026-11-19T06:22:19.415498+00:00",
+  "git_commit": "39dad3a",
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86",
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "catomatic": "0.2.3",
+    "piezo": "0.9.2",
+    "pyarrow": "26.0.1"
+  },
+  "observed": {
+    "interval_level": 0.95,
+    "bootstrap_replicates": 500,
+    "n_resistant": 866,
+    "n_resistant_without_retained_core_variant": 137,
+    "fraction_without_retained_core_variant": 0.1581986143187067
+  },
+  "expected": {},
+  "tolerance": {},
+  "diff": {},
+  "within_tol": {},
+  "pass_all": null,
+  "method": "Patient resampling of the archived S1 predictions and Wilson intervals from saved KM firm-call totals.",
+  "interpretation": "",
+  "caveats": "Research use only. For evaluation and education. Clinical decisions require laboratory confirmation. Resampling fixed predictions measures sample uncertainty. Refitting variability is outside these intervals.",
+  "reproduce": "python eval/g8_context.py",
+  "supports": "",
+  "csv_files": [
+    "intervals.csv"
+  ],
+  "extra": {
+    "intervals": [
+      {
+        "metric": "S1 catalogue sensitivity",
+        "estimate": 0.7924242424242425,
+        "lower": 0.7595889055676857,
+        "upper": 0.8242546553090333,
+        "method": "S1 patient-group bootstrap of saved predictions"
+      },
+      {
+        "metric": "S1 catalogue specificity",
+        "estimate": 0.983502417749123,
+        "lower": 0.9809955695340432,
+        "upper": 0.9858092618919395,
+        "method": "S1 patient-group bootstrap of saved predictions"
+      },
+      {
+        "metric": "S1 model AUC",
+        "estimate": 0.9085389366535497,
+        "lower": 0.8944043200207371,
+        "upper": 0.9229650442280821,
+        "method": "S1 patient-group bootstrap of saved predictions"
+      },
+      {
+        "metric": "S1 model AUPRC",
+        "estimate": 0.6836352010125266,
+        "lower": 0.6470632235346253,
+        "upper": 0.7194392000948412,
+        "method": "S1 patient-group bootstrap of saved predictions"
+      },
+      {
+        "metric": "KM catalogue sensitivity",
+        "estimate": 0.7916666666666666,
+        "lower": 0.5952954674681133,
+        "upper": 0.9075517464714814,
+        "method": "Wilson interval among firm calls"
+      },
+      {
+        "metric": "KM catalogue specificity",
+        "estimate": 0.988135593220339,
+        "lower": 0.9757146078959423,
+        "upper": 0.9942412472305667,
+        "method": "Wilson interval among firm calls"
+      }
+    ]
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "model": "lr_model",
+  "test": "e07_loso",
+  "timestamp": "2026-11-18T19:05:34.579889+00:00",
+  "git_commit": "uncommitted",
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86",
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "catomatic": "0.2.3",
+    "piezo": "0.9.2",
+    "pyarrow": "26.0.1"
+  },
+  "observed": {
+    "pooled_sens": 0.7875288683602771,
+    "pooled_spec": 0.9537356844210143,
+    "per_site_spec_min_n300": 0.9440993788819876,
+    "per_site_spec_max_n300": 0.9785217940619078
+  },
+  "expected": {
+    "pooled_sens": 0.788,
+    "pooled_spec": 0.954
+  },
+  "tolerance": {
+    "pooled_sens": 0.02,
+    "pooled_spec": 0.01
+  },
+  "diff": {
+    "pooled_sens": -0.0004711316397228993,
+    "pooled_spec": -0.00026431557898565217
+  },
+  "within_tol": {
+    "pooled_sens": true,
+    "pooled_spec": true
+  },
+  "pass_all": true,
+  "method": "Leave-one-site-out (23 sites); nested calibration per training set; pooled binary sens/spec; per-site spec for n>=300; per-site sens only if nR>=25.",
+  "interpretation": "Pooled sens/spec across held-out sites. Per-site specificity stable; per-site sensitivity unreliable (most sites <25 R).",
+  "caveats": "Do NOT report pooled LOSO AUC (mixes 23 calibrations). Site 5 (inferred India, unverified) has ~5 R -> false-alarm audit only.",
+  "reproduce": "python eval/e07_loso.py",
+  "supports": "Cross-site generalization (honest).",
+  "csv_files": [
+    "per_site.csv"
+  ],
+  "extra": {}
+}

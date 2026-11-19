@@ -1,0 +1,1222 @@
+{
+  "approaches": {
+    "hgb_model": {
+      "name": "Tier B — histogram gradient boosting",
+      "type": "model",
+      "container": "models",
+      "summary_file": "MODEL_REPORT.md",
+      "tests": {
+        "e05b_model_cv": {
+          "path": "models/hgb_model/e05b_model_cv/results.json",
+          "pass_all": null,
+          "headline": "auc=0.9052",
+          "observed": {
+            "auc": 0.9052400403369869,
+            "auprc": 0.678652962897792,
+            "binary_sens": 0.8371824480369515,
+            "binary_spec": 0.9528267587711325,
+            "ternary_firm": 0.9549207954162454,
+            "sens_at_spec_0.95": 0.8394919168591224,
+            "sens_at_spec_0.97": 0.8140877598152425,
+            "sens_at_spec_0.98": 0.7193995381062356,
+            "sens_at_spec_0.985": 0.625866050808314
+          }
+        }
+      }
+    },
+    "hgb_tuned": {
+      "name": "Tier B — tuned histogram gradient boosting",
+      "type": "model",
+      "container": "models",
+      "summary_file": "MODEL_REPORT.md",
+      "tests": {
+        "e21_km_external": {
+          "path": "models/hgb_tuned/e21_km_external/results.json",
+          "pass_all": null,
+          "headline": "auc=0.8892",
+          "observed": {
+            "auc": 0.8892243819588602,
+            "binary_sens": 0.8571428571428571,
+            "binary_spec": 0.7793923381770145,
+            "sens_at_spec_0.95": 0.7714285714285715,
+            "n_isolates": 792,
+            "n_resistant": 35,
+            "zero_training_overlap": true
+          }
+        },
+        "e21_tuned_cv": {
+          "path": "models/hgb_tuned/e21_tuned_cv/results.json",
+          "pass_all": null,
+          "headline": "auc=0.9058",
+          "observed": {
+            "auc": 0.9057513897326247,
+            "binary_sens": 0.8325635103926097,
+            "binary_spec": 0.9536447918560261,
+            "sens_at_spec_0.95": 0.8383371824480369,
+            "sens_at_spec_0.97": 0.8140877598152425,
+            "sens_at_spec_0.985": 0.628175519630485,
+            "auprc": 0.6753630222453036,
+            "ternary_firm": 0.9590495449949444
+          }
+        }
+      }
+    },
+    "lr_expanded": {
+      "name": "Tier B — expanded-training (CRyPTIC v3.4)",
+      "type": "model",
+      "container": "models",
+      "summary_file": "MODEL_REPORT.md",
+      "tests": {
+        "e18_cross_source": {
+          "path": "models/lr_expanded/e18_cross_source/results.json",
+          "pass_all": null,
+          "headline": "CRyPTIC_to_NICD_auc=0.9020",
+          "observed": {
+            "CRyPTIC_to_NICD_auc": 0.9020478034216548,
+            "CRyPTIC_to_NICD_sens": 0.855683269476373,
+            "CRyPTIC_to_NICD_spec": 0.8707124010554089,
+            "CRyPTIC_to_NICD_golden_auc": 0.9104980172497594,
+            "NICD_to_CRyPTIC_auc": 0.6532820593313453,
+            "NICD_to_CRyPTIC_sens": 0.332,
+            "NICD_to_CRyPTIC_spec": 0.9666718987076859,
+            "NICD_to_CRyPTIC_golden_auc": 0.8277106164985712
+          }
+        },
+        "e18_expanded_cv": {
+          "path": "models/lr_expanded/e18_expanded_cv/results.json",
+          "pass_all": null,
+          "headline": "auc=0.8381",
+          "observed": {
+            "n_samples": 23441,
+            "n_resistant": 1046,
+            "auc": 0.838130054125541,
+            "auprc": 0.5664602456715522,
+            "binary_sens": 0.7246653919694073,
+            "binary_spec": 0.9650368385800402,
+            "sens_at_spec_0.95": 0.7265774378585086,
+            "sens_at_spec_0.97": 0.7131931166347992,
+            "sens_at_spec_0.985": 0.6195028680688337,
+            "n_features": 137,
+            "golden_auc": 0.9085389366535497,
+            "delta_auc_vs_golden": -0.0704088825280087
+          }
+        },
+        "e18_km_external": {
+          "path": "models/lr_expanded/e18_km_external/results.json",
+          "pass_all": null,
+          "headline": "n_isolates=792",
+          "observed": {
+            "n_isolates": 792,
+            "n_resistant": 35,
+            "expanded_model_auc": 0.8636157765616155,
+            "expanded_model_sens": 0.8571428571428571,
+            "expanded_model_spec": 0.7727873183619551,
+            "expanded_sens_at_spec_0.95": 0.6571428571428571,
+            "golden_production_km_auc": 0.8681826759765995,
+            "delta_auc_vs_golden_production": -0.004566899414984005
+          }
+        },
+        "e18b_high_only": {
+          "path": "models/lr_expanded/e18b_high_only/results.json",
+          "pass_all": null,
+          "headline": "auc=0.6668",
+          "observed": {
+            "n_samples": 16923,
+            "n_resistant": 201,
+            "auc": 0.6668331289373013,
+            "binary_sens": 0.40298507462686567,
+            "binary_spec": 0.9637005142925488,
+            "sens_at_spec_0.95": 0.4079601990049751,
+            "sens_at_spec_0.985": 0.26865671641791045,
+            "golden_auc": 0.908539,
+            "high_medium_auc": 0.8381,
+            "cross_source_note": "NICD is MEDIUM quality; absent from HIGH-only arm -> cross-source N/A",
+            "km_external_auc": 0.8633327042838272,
+            "golden_production_km_auc": 0.8681826759765995
+          }
+        }
+      }
+    },
+    "lr_l1": {
+      "name": "Tier B — L1 logistic regression",
+      "type": "model",
+      "container": "models",
+      "summary_file": "MODEL_REPORT.md",
+      "tests": {
+        "e05b_model_cv": {
+          "path": "models/lr_l1/e05b_model_cv/results.json",
+          "pass_all": null,
+          "headline": "auc=0.9053",
+          "observed": {
+            "auc": 0.9053351836512614,
+            "auprc": 0.6752893399877362,
+            "binary_sens": 0.8394919168591224,
+            "binary_spec": 0.9454644610070896,
+            "ternary_firm": 0.9413549039433772,
+            "sens_at_spec_0.95": 0.8267898383371824,
+            "sens_at_spec_0.97": 0.789838337182448,
+            "sens_at_spec_0.98": 0.6651270207852193,
+            "sens_at_spec_0.985": 0.5993071593533488
+          }
+        }
+      }
+    },
+    "lr_l1_tuned": {
+      "name": "Tier B — tuned L1 logistic regression",
+      "type": "model",
+      "container": "models",
+      "summary_file": "MODEL_REPORT.md",
+      "tests": {
+        "e21_km_external": {
+          "path": "models/lr_l1_tuned/e21_km_external/results.json",
+          "pass_all": null,
+          "headline": "auc=0.8690",
+          "observed": {
+            "auc": 0.8690130213247783,
+            "binary_sens": 0.8285714285714286,
+            "binary_spec": 0.7807133421400264,
+            "sens_at_spec_0.95": 0.6571428571428571,
+            "n_isolates": 792,
+            "n_resistant": 35,
+            "zero_training_overlap": true
+          }
+        },
+        "e21_tuned_cv": {
+          "path": "models/lr_l1_tuned/e21_tuned_cv/results.json",
+          "pass_all": null,
+          "headline": "auc=0.9086",
+          "observed": {
+            "auc": 0.9085739397371798,
+            "binary_sens": 0.8394919168591224,
+            "binary_spec": 0.9475549900018179,
+            "sens_at_spec_0.95": 0.836027713625866,
+            "sens_at_spec_0.97": 0.7863741339491916,
+            "sens_at_spec_0.985": 0.6293302540415704,
+            "auprc": 0.6959023331605724,
+            "ternary_firm": 0.9486012807549713
+          }
+        }
+      }
+    },
+    "lr_l2_tuned": {
+      "name": "Tier B — tuned L2 logistic regression",
+      "type": "model",
+      "container": "models",
+      "summary_file": "MODEL_REPORT.md",
+      "tests": {
+        "e21_km_external": {
+          "path": "models/lr_l2_tuned/e21_km_external/results.json",
+          "pass_all": null,
+          "headline": "auc=0.8681",
+          "observed": {
+            "auc": 0.8680694470654842,
+            "binary_sens": 0.8571428571428571,
+            "binary_spec": 0.7727873183619551,
+            "sens_at_spec_0.95": 0.6571428571428571,
+            "n_isolates": 792,
+            "n_resistant": 35,
+            "zero_training_overlap": true
+          }
+        },
+        "e21_tuned_cv": {
+          "path": "models/lr_l2_tuned/e21_tuned_cv/results.json",
+          "pass_all": null,
+          "headline": "auc=0.9059",
+          "observed": {
+            "auc": 0.9058801716924867,
+            "binary_sens": 0.8383371824480369,
+            "binary_spec": 0.9503726595164516,
+            "sens_at_spec_0.95": 0.8383371824480369,
+            "sens_at_spec_0.97": 0.7886836027713626,
+            "sens_at_spec_0.985": 0.6304849884526559,
+            "auprc": 0.6971430019924434,
+            "ternary_firm": 0.9512133468149646
+          }
+        }
+      }
+    },
+    "lr_mechanism": {
+      "name": "Tier B — mechanism-enhanced",
+      "type": "model",
+      "container": "models",
+      "summary_file": "MODEL_REPORT.md",
+      "tests": {
+        "e16_lof_ablation": {
+          "path": "models/lr_mechanism/e16_lof_ablation/results.json",
+          "pass_all": null,
+          "headline": "lr_f2_auc=0.9085",
+          "observed": {
+            "lr_f2_auc": 0.9085389366535497,
+            "lr_f2mech_auc": 0.9087876842043836,
+            "lr_delta_auc": 0.00024874755083392763,
+            "lr_f2_sens_at_spec_0.985": 0.6039260969976905,
+            "lr_f2mech_sens_at_spec_0.985": 0.6166281755196305,
+            "cat_s1_sens_firm_off": 0.7924242424242425,
+            "cat_s1_sens_firm_on": 0.7917933130699089,
+            "cat_s1_spec_firm_off": 0.983502417749123,
+            "cat_s1_spec_firm_on": 0.9871526456033498,
+            "cat_s1_n_U_off": 661,
+            "cat_s1_n_U_on": 702,
+            "s1_n_flips": 41,
+            "s1_n_flips_resistant": 2,
+            "s1_n_flips_susceptible": 39,
+            "cs_CRyPTIC_to_NICD_sens_firm_off": 0.6078431372549019,
+            "cs_CRyPTIC_to_NICD_sens_firm_on": 0.6078431372549019,
+            "cs_CRyPTIC_to_NICD_spec_firm_off": 0.991869918699187,
+            "cs_CRyPTIC_to_NICD_spec_firm_on": 0.991869918699187,
+            "cs_CRyPTIC_to_NICD_n_flips": 0,
+            "cs_CRyPTIC_to_NICD_n_flips_resistant": 0,
+            "cs_NICD_to_CRyPTIC_sens_firm_off": 0.5517241379310345,
+            "cs_NICD_to_CRyPTIC_sens_firm_on": 0.5517241379310345,
+            "cs_NICD_to_CRyPTIC_spec_firm_off": 0.9780872613946241,
+            "cs_NICD_to_CRyPTIC_spec_firm_on": 0.9818164043406002,
+            "cs_NICD_to_CRyPTIC_n_flips": 39,
+            "cs_NICD_to_CRyPTIC_n_flips_resistant": 0
+          }
+        },
+        "e16_lof_descriptive": {
+          "path": "models/lr_mechanism/e16_lof_descriptive/results.json",
+          "pass_all": null,
+          "headline": "snobre_frac_susceptible_frameshift=0.2504",
+          "observed": {
+            "snobre_frac_susceptible_frameshift": 0.250386398763524,
+            "snobre_reported": 0.248,
+            "n_frameshift_carriers": 647,
+            "n_frameshift_susceptible": 162,
+            "n_truncating_variants": 142,
+            "n_veto_fire_samples": 43,
+            "n_variants_DBD": 65,
+            "n_variants_mid": 32,
+            "n_variants_late": 43,
+            "n_variants_full_del": 2
+          }
+        }
+      }
+    },
+    "lr_model": {
+      "name": "Tier B — model (LR F2)",
+      "type": "model",
+      "container": "models",
+      "summary_file": "MODEL_REPORT.md",
+      "tests": {
+        "e04_s1_patient_cv": {
+          "path": "models/lr_model/e04_s1_patient_cv/results.json",
+          "pass_all": true,
+          "headline": "auc=0.9085",
+          "observed": {
+            "auc": 0.9085389366535497,
+            "auprc": 0.6836352010125266,
+            "binary_sens": 0.8348729792147807,
+            "binary_spec": 0.9481003453917469,
+            "ternary_firm": 0.9469160768452983,
+            "ternary_sens_among_firm": 0.7346938775510204,
+            "ternary_spec_among_firm": 0.9889201877934273,
+            "sens_at_spec_0.95": 0.8302540415704388,
+            "sens_at_spec_0.97": 0.7817551963048499,
+            "sens_at_spec_0.98": 0.6524249422632794,
+            "sens_at_spec_0.985": 0.6039260969976905,
+            "n_features_all_data": 120
+          }
+        },
+        "e05_ablation": {
+          "path": "models/lr_model/e05_ablation/results.json",
+          "pass_all": true,
+          "headline": "F0_frs0.1_auc=0.7910",
+          "observed": {
+            "F0_frs0.1_auc": 0.7910392525734351,
+            "F1_frs0.1_auc": 0.9045152613444627,
+            "F2_frs0.1_auc": 0.9085389366535497,
+            "F2_frs0.75_auc": 0.7986128283205279,
+            "F0_frs0.1_auprc": 0.5025603185843016,
+            "F1_frs0.1_auprc": 0.672147644479894,
+            "F2_frs0.1_auprc": 0.6836352010125266,
+            "F2_frs0.75_auprc": 0.5478810303005124
+          }
+        },
+        "e06_cross_source": {
+          "path": "models/lr_model/e06_cross_source/results.json",
+          "pass_all": true,
+          "headline": "CRyPTIC_to_NICD_auc=0.9105",
+          "observed": {
+            "CRyPTIC_to_NICD_auc": 0.9104980172497594,
+            "CRyPTIC_to_NICD_sens": 0.8441890166028098,
+            "CRyPTIC_to_NICD_spec": 0.963254593175853,
+            "NICD_to_CRyPTIC_auc": 0.8277106164985712,
+            "NICD_to_CRyPTIC_sens": 0.6746987951807228,
+            "NICD_to_CRyPTIC_spec": 0.953205912814236
+          }
+        },
+        "e07_loso": {
+          "path": "models/lr_model/e07_loso/results.json",
+          "pass_all": true,
+          "headline": "pooled_sens=0.7875",
+          "observed": {
+            "pooled_sens": 0.7875288683602771,
+            "pooled_spec": 0.9537356844210143,
+            "per_site_spec_min_n300": 0.9440993788819876,
+            "per_site_spec_max_n300": 0.9785217940619078
+          }
+        },
+        "e11_imbalance_learning_curve": {
+          "path": "models/lr_model/e11_imbalance_learning_curve/results.json",
+          "pass_all": true,
+          "headline": "lc_auc_0.1=0.8963",
+          "observed": {
+            "lc_auc_0.1": 0.8963497818788353,
+            "lc_auc_0.25": 0.9049963831896195,
+            "lc_auc_0.5": 0.9050051995585098,
+            "lc_auc_0.75": 0.9074998646057635,
+            "lc_auc_1.0": 0.9085389366535497,
+            "balanced_auc": 0.9050684884923296,
+            "balanced_auprc": 0.6586597345941371,
+            "balanced_sens_at_spec98": 0.6062355658198614
+          }
+        }
+      }
+    },
+    "lr_shrinkage": {
+      "name": "Tier B — shrinkage estimator",
+      "type": "model",
+      "container": "models",
+      "summary_file": "MODEL_REPORT.md",
+      "tests": {
+        "e14_shrinkage": {
+          "path": "models/lr_shrinkage/e14_shrinkage/results.json",
+          "pass_all": null,
+          "headline": "n_variants=1042",
+          "observed": {
+            "n_variants": 1042,
+            "mean_abs_shrinkage": 0.14319372374084754,
+            "max_abs_shrinkage": 0.9294249132357397,
+            "n_grade_flips_0.5": 48,
+            "n_mech_classes": 9
+          }
+        }
+      }
+    },
+    "rf_model": {
+      "name": "Tier B — random forest",
+      "type": "model",
+      "container": "models",
+      "summary_file": "MODEL_REPORT.md",
+      "tests": {
+        "e05b_model_cv": {
+          "path": "models/rf_model/e05b_model_cv/results.json",
+          "pass_all": null,
+          "headline": "auc=0.9094",
+          "observed": {
+            "auc": 0.9093575470006923,
+            "auprc": 0.6818038144317877,
+            "binary_sens": 0.8337182448036952,
+            "binary_spec": 0.9548263952008725,
+            "ternary_firm": 0.964273677114931,
+            "sens_at_spec_0.95": 0.8337182448036952,
+            "sens_at_spec_0.97": 0.8048498845265589,
+            "sens_at_spec_0.98": 0.7424942263279446,
+            "sens_at_spec_0.985": 0.6593533487297921
+          }
+        }
+      }
+    },
+    "rf_tuned": {
+      "name": "Tier B — tuned random forest",
+      "type": "model",
+      "container": "models",
+      "summary_file": "MODEL_REPORT.md",
+      "tests": {
+        "e21_km_external": {
+          "path": "models/rf_tuned/e21_km_external/results.json",
+          "pass_all": null,
+          "headline": "auc=0.8675",
+          "observed": {
+            "auc": 0.8674655595395359,
+            "binary_sens": 0.8285714285714286,
+            "binary_spec": 0.7859973579920739,
+            "sens_at_spec_0.95": 0.7714285714285715,
+            "n_isolates": 792,
+            "n_resistant": 35,
+            "zero_training_overlap": true
+          }
+        },
+        "e21_tuned_cv": {
+          "path": "models/rf_tuned/e21_tuned_cv/results.json",
+          "pass_all": null,
+          "headline": "auc=0.9103",
+          "observed": {
+            "auc": 0.9103450327947932,
+            "binary_sens": 0.8314087759815243,
+            "binary_spec": 0.958007634975459,
+            "sens_at_spec_0.95": 0.8406466512702079,
+            "sens_at_spec_0.97": 0.815242494226328,
+            "sens_at_spec_0.985": 0.6939953810623557,
+            "auprc": 0.7010731255343863,
+            "ternary_firm": 0.9736265588136165
+          }
+        }
+      }
+    },
+    "structure_test": {
+      "name": "Structure novel-variant test",
+      "type": "model",
+      "container": "models",
+      "summary_file": "MODEL_REPORT.md",
+      "tests": {
+        "e08_novel_variant": {
+          "path": "models/structure_test/e08_novel_variant/results.json",
+          "pass_all": true,
+          "headline": "n_samples=312",
+          "observed": {
+            "n_samples": 312,
+            "n_distinct_sets": 143,
+            "n_resistant": 169,
+            "auc_region_count": 0.5451442049075186,
+            "auc_plus_structure": 0.5932469896966939,
+            "auc_plus_biophysics": 0.6876318947324864,
+            "auc_full_novel": 0.6693631811975007
+          }
+        }
+      }
+    },
+    "svm_model": {
+      "name": "Tier B — linear SVM",
+      "type": "model",
+      "container": "models",
+      "summary_file": "MODEL_REPORT.md",
+      "tests": {
+        "e05b_model_cv": {
+          "path": "models/svm_model/e05b_model_cv/results.json",
+          "pass_all": null,
+          "headline": "auc=0.8953",
+          "observed": {
+            "auc": 0.8953331181019786,
+            "auprc": 0.6828598661710699,
+            "binary_sens": 0.7979214780600462,
+            "binary_spec": 0.9765497182330486,
+            "ternary_firm": 0.07086282440175261,
+            "sens_at_spec_0.95": 0.8013856812933026,
+            "sens_at_spec_0.97": 0.8013856812933026,
+            "sens_at_spec_0.98": 0.7551963048498845,
+            "sens_at_spec_0.985": 0.6732101616628176
+          }
+        }
+      }
+    },
+    "svm_tuned": {
+      "name": "Tier B — tuned SVM",
+      "type": "model",
+      "container": "models",
+      "summary_file": "MODEL_REPORT.md",
+      "tests": {
+        "e21_km_external": {
+          "path": "models/svm_tuned/e21_km_external/results.json",
+          "pass_all": null,
+          "headline": "auc=0.8720",
+          "observed": {
+            "auc": 0.871994715984148,
+            "binary_sens": 0.8,
+            "binary_spec": 0.9326287978863936,
+            "sens_at_spec_0.95": 0.7714285714285715,
+            "n_isolates": 792,
+            "n_resistant": 35,
+            "zero_training_overlap": true
+          }
+        },
+        "e21_tuned_cv": {
+          "path": "models/svm_tuned/e21_tuned_cv/results.json",
+          "pass_all": null,
+          "headline": "auc=0.8985",
+          "observed": {
+            "auc": 0.8984782002684374,
+            "binary_sens": 0.815242494226328,
+            "binary_spec": 0.9670059989092892,
+            "sens_at_spec_0.95": 0.8210161662817552,
+            "sens_at_spec_0.97": 0.8013856812933026,
+            "sens_at_spec_0.985": 0.6859122401847575,
+            "auprc": 0.6652478869507001,
+            "ternary_firm": 0.7944893832153691
+          }
+        }
+      }
+    },
+    "catalogue": {
+      "name": "Tier A — catalogue",
+      "type": "baseline",
+      "container": "approaches",
+      "summary_file": "SUMMARY.md",
+      "tests": {
+        "e03_s1_catalogue_cv": {
+          "path": "approaches/catalogue/e03_s1_catalogue_cv/results.json",
+          "pass_all": true,
+          "headline": "sens_firm=0.7924",
+          "observed": {
+            "firm": 0.944304010785305,
+            "sens_firm": 0.7924242424242425,
+            "spec_firm": 0.983502417749123,
+            "sens_U_as_S": 0.6039260969976905,
+            "spec_U_as_S": 0.984184693692056,
+            "sens_U_as_R": 0.8418013856812933,
+            "spec_U_as_R": 0.9428285766224322,
+            "n_U": 661,
+            "n_U_resistant": 206
+          }
+        }
+      }
+    },
+    "conformal": {
+      "name": "Conformal certificates",
+      "type": "method",
+      "container": "approaches",
+      "summary_file": "SUMMARY.md",
+      "tests": {
+        "e14_certificate_audit": {
+          "path": "approaches/conformal/e14_certificate_audit/results.json",
+          "pass_all": null,
+          "headline": "alpha=0.0150",
+          "observed": {
+            "alpha": 0.015,
+            "beta": 0.2,
+            "delta": 0.05,
+            "pi_train": 0.07296932928884395,
+            "baseline_emp_s_error": 0.014595808383233533,
+            "baseline_emp_r_error": 0.21454545454545454,
+            "baseline_n_S": 10688,
+            "baseline_n_R": 550,
+            "baseline_n_U": 630,
+            "baseline_n_U_resistant": 278,
+            "certified_t_S": null,
+            "certified_t_R": 0.8766,
+            "certified_bound_s": 1.0,
+            "certified_bound_r": 0.19630691917422763,
+            "certified_s_certified": false,
+            "certified_r_certified": true,
+            "certified_emp_s_error": null,
+            "certified_emp_r_error": 0.14342629482071714,
+            "certified_n_S": 0,
+            "certified_n_R": 251,
+            "certified_n_U": 11617,
+            "certified_n_U_resistant": 651,
+            "fold_tS_min": null,
+            "fold_tS_max": null,
+            "fold_n_tS_certified": 0,
+            "fold_emp_s_min": null,
+            "fold_emp_s_max": null,
+            "fold_emp_r_min": 0.16363636363636364,
+            "fold_emp_r_max": 0.21311475409836064,
+            "s_best_achievable_bound": 0.01551592944072069,
+            "s_best_achievable_t": 0.022,
+            "out_of_site_n_sites": 11,
+            "out_of_site_violations_s": 0,
+            "out_of_site_violations_r": 5,
+            "cs_CRyPTIC_to_NICD_bound_s": 0.00972879828658099,
+            "cs_CRyPTIC_to_NICD_bound_r": 1.0,
+            "cs_CRyPTIC_to_NICD_emp_s_error": 0.671280276816609,
+            "cs_CRyPTIC_to_NICD_emp_r_error": null,
+            "cs_CRyPTIC_to_NICD_violates_s": true,
+            "cs_CRyPTIC_to_NICD_violates_r": false,
+            "cs_NICD_to_CRyPTIC_bound_s": 1.0,
+            "cs_NICD_to_CRyPTIC_bound_r": 0.17913304251203174,
+            "cs_NICD_to_CRyPTIC_emp_s_error": null,
+            "cs_NICD_to_CRyPTIC_emp_r_error": 0.9772288691624855,
+            "cs_NICD_to_CRyPTIC_violates_s": false,
+            "cs_NICD_to_CRyPTIC_violates_r": true,
+            "weighted_emp_s_error_pi002": null,
+            "weighted_emp_r_error_pi002": 0.39239733124688225,
+            "weighted_emp_s_error_pi005": null,
+            "weighted_emp_r_error_pi005": 0.20026682227918696
+          }
+        }
+      }
+    },
+    "data_prep": {
+      "name": "Data preparation",
+      "type": "data",
+      "container": "approaches",
+      "summary_file": "SUMMARY.md",
+      "tests": {
+        "e01_prep": {
+          "path": "approaches/data_prep/e01_prep/results.json",
+          "pass_all": true,
+          "headline": "n_samples=11868",
+          "observed": {
+            "n_samples": 11868,
+            "n_resistant": 866,
+            "cryptic_n": 10704,
+            "cryptic_R": 83,
+            "nicd_n": 1164,
+            "nicd_R": 783,
+            "unique_subjid": 11611,
+            "mutation_rows": 25554,
+            "minor_allele_rows": 1115,
+            "median_FRSf_minor": 0.375,
+            "null_rows": 11,
+            "null_rows_samples": 4
+          }
+        }
+      }
+    },
+    "external_choi": {
+      "name": "External — Choi validation",
+      "type": "validation",
+      "container": "approaches",
+      "summary_file": "SUMMARY.md",
+      "tests": {
+        "e_choi_inventory": {
+          "path": "approaches/external_choi/e_choi_inventory/results.json",
+          "pass_all": null,
+          "headline": "n_accessions=49",
+          "observed": {
+            "n_accessions": 49,
+            "country": "South Korea",
+            "breakpoint_caveat": "paper breakpoint >=0.5 != WHO CC; reclassify at 1.0 / 0.25 first",
+            "genotype_pipeline_blocked": true
+          }
+        }
+      }
+    },
+    "external_km": {
+      "name": "External — KM validation",
+      "type": "validation",
+      "container": "approaches",
+      "summary_file": "SUMMARY.md",
+      "tests": {
+        "e_km_cohort": {
+          "path": "approaches/external_km/e_km_cohort/results.json",
+          "pass_all": null,
+          "headline": "n_isolates=792",
+          "observed": {
+            "n_isolates": 792,
+            "n_resistant": 35,
+            "n_susceptible": 757,
+            "prevalence": 0.04419191919191919,
+            "quality": "MEDIUM",
+            "assay_cc_undocumented": true,
+            "zero_training_overlap": true,
+            "n_overlap": 0,
+            "genotype_pipeline_blocked": true,
+            "n_lineage2": 559,
+            "n_lineage4": 198,
+            "n_mixed": 20,
+            "n_lineage1": 9,
+            "n_lineage3": 6,
+            "nR_lineage2": 22,
+            "nR_lineage4": 9,
+            "nR_lineage1": 4
+          }
+        },
+        "e_km_validation": {
+          "path": "approaches/external_km/e_km_validation/results.json",
+          "pass_all": null,
+          "headline": "n_isolates=792",
+          "observed": {
+            "n_isolates": 792,
+            "n_resistant": 35,
+            "zero_training_overlap": true,
+            "n_with_variants": 790,
+            "cat_firm": 0.7752525252525253,
+            "cat_sens_firm": 0.7916666666666666,
+            "cat_spec_firm": 0.988135593220339,
+            "cat_sens_U_as_S": 0.5428571428571428,
+            "cat_spec_U_as_S": 0.9907529722589168,
+            "cat_sens_U_as_R": 0.8571428571428571,
+            "cat_spec_U_as_R": 0.7701453104359313,
+            "cat_n_U": 178,
+            "cat_n_U_resistant": 11,
+            "model_auc": 0.8681826759765995,
+            "model_binary_sens": 0.8571428571428571,
+            "model_binary_spec": 0.7727873183619551,
+            "model_sens_at_spec_0.95": 0.6857142857142857,
+            "model_sens_at_spec_0.97": 0.45714285714285713,
+            "lin_lineage1_sens_firm": 1.0,
+            "lin_lineage1_spec_firm": 1.0,
+            "lin_lineage2_sens_firm": 0.6428571428571429,
+            "lin_lineage2_spec_firm": 0.9896907216494846,
+            "lin_lineage4_sens_firm": 1.0,
+            "lin_lineage4_spec_firm": 0.9887005649717514
+          }
+        }
+      }
+    },
+    "external_sobol": {
+      "name": "External — Sobol validation",
+      "type": "validation",
+      "container": "approaches",
+      "summary_file": "SUMMARY.md",
+      "tests": {
+        "e_sobol_inventory": {
+          "path": "approaches/external_sobol/e_sobol_inventory/results.json",
+          "pass_all": null,
+          "headline": "n_accessions=744",
+          "observed": {
+            "n_accessions": 744,
+            "country": "South Africa",
+            "claimed_bdst_pdst_n": 423,
+            "claimed_pdst_n_verified": false,
+            "assay": "MGIT 1.0 (per paper; assay-matched to NICD)",
+            "exact_pdst_R_count": null,
+            "paper_89_is_genotypic": true,
+            "genotype_pipeline_blocked": true
+          }
+        }
+      }
+    },
+    "head_to_head": {
+      "name": "Head-to-head comparisons",
+      "type": "comparison",
+      "container": "approaches",
+      "summary_file": "SUMMARY.md",
+      "tests": {
+        "e05b_comparison": {
+          "path": "approaches/head_to_head/e05b_comparison/results.json",
+          "pass_all": null,
+          "headline": "lr_model_auc=0.9085",
+          "observed": {
+            "lr_model_auc": 0.9085389366535497,
+            "lr_model_auprc": 0.6836352010125266,
+            "lr_model_binary_sens": 0.8348729792147807,
+            "lr_model_binary_spec": 0.9481003453917469,
+            "lr_model_sens_at_spec_0.97": 0.7817551963048499,
+            "lr_model_sens_at_spec_0.985": 0.6039260969976905,
+            "lr_l1_auc": 0.9053351836512614,
+            "lr_l1_auprc": 0.6752893399877362,
+            "lr_l1_binary_sens": 0.8394919168591224,
+            "lr_l1_binary_spec": 0.9454644610070896,
+            "lr_l1_sens_at_spec_0.97": 0.789838337182448,
+            "lr_l1_sens_at_spec_0.985": 0.5993071593533488,
+            "rf_model_auc": 0.9093575470006923,
+            "rf_model_auprc": 0.6818038144317877,
+            "rf_model_binary_sens": 0.8337182448036952,
+            "rf_model_binary_spec": 0.9548263952008725,
+            "rf_model_sens_at_spec_0.97": 0.8048498845265589,
+            "rf_model_sens_at_spec_0.985": 0.6593533487297921,
+            "hgb_model_auc": 0.9052400403369869,
+            "hgb_model_auprc": 0.678652962897792,
+            "hgb_model_binary_sens": 0.8371824480369515,
+            "hgb_model_binary_spec": 0.9528267587711325,
+            "hgb_model_sens_at_spec_0.97": 0.8140877598152425,
+            "hgb_model_sens_at_spec_0.985": 0.625866050808314,
+            "svm_model_auc": 0.8953331181019786,
+            "svm_model_auprc": 0.6828598661710699,
+            "svm_model_binary_sens": 0.7979214780600462,
+            "svm_model_binary_spec": 0.9765497182330486,
+            "svm_model_sens_at_spec_0.97": 0.8013856812933026,
+            "svm_model_sens_at_spec_0.985": 0.6732101616628176
+          }
+        },
+        "e21_comparison": {
+          "path": "approaches/head_to_head/e21_comparison/results.json",
+          "pass_all": null,
+          "headline": "",
+          "observed": {
+            "S1_leader": "rf_tuned",
+            "KM_leader": [
+              "hgb_tuned"
+            ]
+          }
+        },
+        "g7_adlard": {
+          "path": "approaches/head_to_head/g7_adlard/results.json",
+          "pass_all": null,
+          "headline": "shuffled_firm=0.9449",
+          "observed": {
+            "shuffled_firm": 0.9448938321536906,
+            "shuffled_sens_firm": 0.7955223880597015,
+            "shuffled_spec_firm": 0.9837822458270106,
+            "shuffled_n_U": 654,
+            "grouped_firm": 0.944304010785305,
+            "grouped_sens_firm": 0.7924242424242425,
+            "grouped_spec_firm": 0.983502417749123,
+            "grouped_n_U": 661,
+            "sens_firm_shuffled_minus_grouped": 0.003098145635459071,
+            "ghosh_reconstructable": false
+          }
+        },
+        "g7_who_v2": {
+          "path": "approaches/head_to_head/g7_who_v2/results.json",
+          "pass_all": null,
+          "headline": "who_frs0.1_firm=0.9607",
+          "observed": {
+            "who_frs0.1_firm": 0.9607347489046174,
+            "who_frs0.1_sens_firm": 0.8010899182561307,
+            "who_frs0.1_spec_firm": 0.9811586051743532,
+            "who_frs0.1_sens_U_as_S": 0.6789838337182448,
+            "who_frs0.1_sens_U_as_R": 0.8314087759815243,
+            "who_frs0.25_firm": 0.961071789686552,
+            "who_frs0.25_sens_firm": 0.7679558011049724,
+            "who_frs0.25_spec_firm": 0.9827747612806591,
+            "who_frs0.25_sens_U_as_S": 0.6420323325635104,
+            "who_frs0.25_sens_U_as_R": 0.8060046189376443,
+            "who_frs0.75_firm": 0.9679811257162116,
+            "who_frs0.75_sens_firm": 0.560625814863103,
+            "who_frs0.75_spec_firm": 0.9868482417684917,
+            "who_frs0.75_sens_U_as_S": 0.49653579676674364,
+            "who_frs0.75_sens_U_as_R": 0.6108545034642032,
+            "our_catalogue_grouped_sens_firm": 0.7924242424242425,
+            "our_catalogue_grouped_spec_firm": 0.983502417749123,
+            "our_model_ternary_sens_among_firm": 0.7346938775510204,
+            "our_model_ternary_spec_among_firm": 0.9889201877934273
+          }
+        }
+      }
+    },
+    "hybrid": {
+      "name": "Hybrid (exploratory)",
+      "type": "analysis",
+      "container": "approaches",
+      "summary_file": "SUMMARY.md",
+      "tests": {
+        "e09_hybrid": {
+          "path": "approaches/hybrid/e09_hybrid/results.json",
+          "pass_all": true,
+          "headline": "auc_ml_within_U=0.7442",
+          "observed": {
+            "n_U": 661,
+            "n_U_resistant": 206,
+            "auc_ml_within_U": 0.7442227675237384,
+            "resolved_S": 173,
+            "resolved_S_resistant": 17,
+            "resolved_R": 126,
+            "resolved_R_susceptible": 51,
+            "remain_U": 362,
+            "remain_U_resistant": 114
+          }
+        }
+      }
+    },
+    "mic_audit": {
+      "name": "MIC label-noise audit",
+      "type": "analysis",
+      "container": "approaches",
+      "summary_file": "SUMMARY.md",
+      "tests": {
+        "e17_borderline_mic": {
+          "path": "approaches/mic_audit/e17_borderline_mic/results.json",
+          "pass_all": null,
+          "headline": "n_borderline=454",
+          "observed": {
+            "n_borderline": 454,
+            "n_borderline_resistant": 191,
+            "borderline_share_of_positives": 0.22055427251732102,
+            "n_cry_borderline": 236,
+            "n_nicd_borderline": 218,
+            "n_nicd_mic_available": 612,
+            "full_auc": 0.9085389366535497,
+            "full_binary_sens": 0.8348729792147807,
+            "full_binary_spec": 0.9481003453917469,
+            "full_sens_at_spec_0.985": 0.6039260969976905,
+            "full_n": 11868,
+            "full_n_resistant": 866,
+            "excl_borderline_auc": 0.9044757598645298,
+            "excl_borderline_binary_sens": 0.8237037037037037,
+            "excl_borderline_binary_spec": 0.9555824564670826,
+            "excl_borderline_sens_at_spec_0.985": 0.6577777777777778,
+            "excl_borderline_n": 11414,
+            "excl_borderline_n_resistant": 675,
+            "delta_auc_excl_minus_full": -0.004063176789019907
+          }
+        }
+      }
+    },
+    "predictive_values": {
+      "name": "Predictive values (PPV/NPV)",
+      "type": "analysis",
+      "container": "approaches",
+      "summary_file": "SUMMARY.md",
+      "tests": {
+        "e13_ppv_npv": {
+          "path": "approaches/predictive_values/e13_ppv_npv/results.json",
+          "pass_all": true,
+          "headline": "model_ppv_0.01=0.1436",
+          "observed": {
+            "model_ppv_0.01": 0.1435986159169549,
+            "model_npv_0.01": 0.9981957121630227,
+            "cat_ppv_0.01": 0.33277169334456597,
+            "cat_npv_0.01": 0.9978489336856985,
+            "model_ppv_0.02": 0.2530487804878047,
+            "model_npv_0.02": 0.996361301369863,
+            "cat_ppv_0.02": 0.5019059720457432,
+            "cat_npv_0.02": 0.9956634865568084,
+            "model_ppv_0.05": 0.4662921348314604,
+            "model_npv_0.05": 0.990669593852909,
+            "cat_ppv_0.05": 0.7221206581352833,
+            "cat_npv_0.05": 0.9888924151063155,
+            "model_ppv_0.1": 0.6484374999999998,
+            "model_npv_0.1": 0.9805045871559633,
+            "cat_ppv_0.1": 0.8458244111349036,
+            "cat_npv_0.1": 0.9768365320979484
+          }
+        }
+      }
+    },
+    "prevalence_correction": {
+      "name": "Prevalence correction",
+      "type": "analysis",
+      "container": "approaches",
+      "summary_file": "SUMMARY.md",
+      "tests": {
+        "e10_prevalence_shift": {
+          "path": "approaches/prevalence_correction/e10_prevalence_shift/results.json",
+          "pass_all": true,
+          "headline": "CRyPTIC_to_NICD_ece_raw=0.5684",
+          "observed": {
+            "CRyPTIC_to_NICD_ece_raw": 0.5684131836680266,
+            "CRyPTIC_to_NICD_ece_adj": 0.10120066429985355,
+            "CRyPTIC_to_NICD_brier_raw": 0.5009009962128409,
+            "CRyPTIC_to_NICD_brier_adj": 0.12376224807239711,
+            "NICD_to_CRyPTIC_ece_raw": 0.28816773432562826,
+            "NICD_to_CRyPTIC_ece_adj": 0.012789839603910978,
+            "NICD_to_CRyPTIC_brier_raw": 0.10203671807064739,
+            "NICD_to_CRyPTIC_brier_adj": 0.016917730721914482
+          }
+        }
+      }
+    },
+    "priority_list": {
+      "name": "Variant priority list",
+      "type": "analysis",
+      "container": "approaches",
+      "summary_file": "SUMMARY.md",
+      "tests": {
+        "e12_variant_priority": {
+          "path": "approaches/priority_list/e12_variant_priority/results.json",
+          "pass_all": true,
+          "headline": "n_distinct_sets=332",
+          "observed": {
+            "n_U": 661,
+            "n_distinct_sets": 332,
+            "top5_coverage": 0.27685325264750377,
+            "top10_coverage": 0.3434190620272315,
+            "top20_coverage": 0.3978819969742814,
+            "top50_coverage": 0.4962178517397882,
+            "largest_set": "Rv0678@c-11a",
+            "largest_set_n": 102,
+            "largest_set_pctR": 0.08823529411764706
+          }
+        }
+      }
+    },
+    "research_archive": {
+      "name": "Research Archive",
+      "type": "analysis",
+      "container": "approaches",
+      "summary_file": "SUMMARY.md",
+      "tests": {
+        "g8_evaluation_context": {
+          "path": "approaches/research_archive/g8_evaluation_context/results.json",
+          "pass_all": null,
+          "headline": "interval_level=0.9500",
+          "observed": {
+            "interval_level": 0.95,
+            "bootstrap_replicates": 500,
+            "n_resistant": 866,
+            "n_resistant_without_retained_core_variant": 137,
+            "fraction_without_retained_core_variant": 0.1581986143187067
+          }
+        }
+      }
+    },
+    "ship_decision": {
+      "name": "Production ship decision",
+      "type": "analysis",
+      "container": "approaches",
+      "summary_file": "SUMMARY.md",
+      "tests": {
+        "e19_km_veto": {
+          "path": "approaches/ship_decision/e19_km_veto/results.json",
+          "pass_all": null,
+          "headline": "cat_sens_firm_off=0.7917",
+          "observed": {
+            "cat_sens_firm_off": 0.7916666666666666,
+            "cat_spec_firm_off": 0.988135593220339,
+            "cat_n_U_off": 178,
+            "cat_sens_firm_on": 0.7916666666666666,
+            "cat_spec_firm_on": 0.988135593220339,
+            "cat_n_U_on": 178,
+            "n_flips": 0,
+            "n_flips_resistant": 0,
+            "n_flips_susceptible": 0,
+            "n_true_R_to_S": 0,
+            "all_flips_R_to_U": true,
+            "n_isolates": 792,
+            "n_resistant": 35,
+            "zero_training_overlap": true,
+            "model_auc": 0.8681826759765995,
+            "per_lineage": {
+              "lineage1": {
+                "n": 9,
+                "n_resistant": 4,
+                "cat_sens_firm_off": 1.0,
+                "cat_spec_firm_off": 1.0,
+                "cat_n_U_off": 1,
+                "cat_sens_firm_on": 1.0,
+                "cat_spec_firm_on": 1.0,
+                "cat_n_U_on": 1,
+                "n_flips": 0,
+                "n_flips_resistant": 0,
+                "n_flips_susceptible": 0,
+                "n_true_R_to_S": 0,
+                "all_flips_R_to_U": true
+              },
+              "lineage2": {
+                "n": 559,
+                "n_resistant": 22,
+                "cat_sens_firm_off": 0.6428571428571429,
+                "cat_spec_firm_off": 0.9896907216494846,
+                "cat_n_U_off": 157,
+                "cat_sens_firm_on": 0.6428571428571429,
+                "cat_spec_firm_on": 0.9896907216494846,
+                "cat_n_U_on": 157,
+                "n_flips": 0,
+                "n_flips_resistant": 0,
+                "n_flips_susceptible": 0,
+                "n_true_R_to_S": 0,
+                "all_flips_R_to_U": true
+              },
+              "lineage3": {
+                "n": 6,
+                "n_resistant": 0,
+                "cat_sens_firm_off": null,
+                "cat_spec_firm_off": 1.0,
+                "cat_n_U_off": 0,
+                "cat_sens_firm_on": null,
+                "cat_spec_firm_on": 1.0,
+                "cat_n_U_on": 0,
+                "n_flips": 0,
+                "n_flips_resistant": 0,
+                "n_flips_susceptible": 0,
+                "n_true_R_to_S": 0,
+                "all_flips_R_to_U": true
+              },
+              "lineage4": {
+                "n": 198,
+                "n_resistant": 9,
+                "cat_sens_firm_off": 1.0,
+                "cat_spec_firm_off": 0.9887005649717514,
+                "cat_n_U_off": 14,
+                "cat_sens_firm_on": 1.0,
+                "cat_spec_firm_on": 0.9887005649717514,
+                "cat_n_U_on": 14,
+                "n_flips": 0,
+                "n_flips_resistant": 0,
+                "n_flips_susceptible": 0,
+                "n_true_R_to_S": 0,
+                "all_flips_R_to_U": true
+              },
+              "mixed": {
+                "n": 20,
+                "n_resistant": 0,
+                "cat_sens_firm_off": null,
+                "cat_spec_firm_off": 0.9285714285714286,
+                "cat_n_U_off": 6,
+                "cat_sens_firm_on": null,
+                "cat_spec_firm_on": 0.9285714285714286,
+                "cat_n_U_on": 6,
+                "n_flips": 0,
+                "n_flips_resistant": 0,
+                "n_flips_susceptible": 0,
+                "n_true_R_to_S": 0,
+                "all_flips_R_to_U": true
+              }
+            }
+          }
+        },
+        "e19_ladder_summary": {
+          "path": "approaches/ship_decision/e19_ladder_summary/results.json",
+          "pass_all": null,
+          "headline": "",
+          "observed": {
+            "model": "models/lr_model",
+            "epistatic_veto": true
+          }
+        }
+      }
+    },
+    "voi_queue": {
+      "name": "Value-of-information queue",
+      "type": "analysis",
+      "container": "approaches",
+      "summary_file": "SUMMARY.md",
+      "tests": {
+        "e15_label_reveal_sim": {
+          "path": "approaches/voi_queue/e15_label_reveal_sim/results.json",
+          "pass_all": null,
+          "headline": "n_distinct_sets=332",
+          "observed": {
+            "info_gain_pct_K1": 0.2405446293494705,
+            "info_gain_pct_K2": 0.2405446293494705,
+            "info_gain_pct_K5": 0.3146747352496218,
+            "info_gain_pct_K10": 0.3812405446293495,
+            "info_gain_pct_K20": 0.4372163388804841,
+            "info_gain_pct_K50": 0.5370650529500757,
+            "count_pct_K1": 0.19213313161875945,
+            "count_pct_K2": 0.2405446293494705,
+            "count_pct_K5": 0.3146747352496218,
+            "count_pct_K10": 0.3812405446293495,
+            "count_pct_K20": 0.4372163388804841,
+            "count_pct_K50": 0.5264750378214826,
+            "random_pct_K1": 0.19364599092284418,
+            "random_pct_K2": 0.21482602118003025,
+            "random_pct_K5": 0.22087745839636913,
+            "random_pct_K10": 0.2314674735249622,
+            "random_pct_K20": 0.24659606656580937,
+            "random_pct_K50": 0.29954614220877457,
+            "total_U": 661,
+            "n_distinct_sets": 332,
+            "info_gain_minus_count_K10": 0.0,
+            "info_gain_minus_count_K50": 0.010590015128593033
+          }
+        }
+      }
+    },
+    "who_baseline": {
+      "name": "WHO v2 baseline",
+      "type": "baseline",
+      "container": "approaches",
+      "summary_file": "SUMMARY.md",
+      "tests": {
+        "e02_who_as_is_frs0.1": {
+          "path": "approaches/who_baseline/e02_who_as_is_frs0.1/results.json",
+          "pass_all": true,
+          "headline": "sens_firm=0.8011",
+          "observed": {
+            "firm": 0.9607347489046174,
+            "sens_firm": 0.8010899182561307,
+            "spec_firm": 0.9811586051743532,
+            "sens_U_as_S": 0.6789838337182448,
+            "spec_U_as_S": 0.981730594437375,
+            "sens_U_as_R": 0.8314087759815243,
+            "spec_U_as_R": 0.9513724777313216,
+            "n_U": 466,
+            "n_U_resistant": 132,
+            "variant_call_counts": {
+              "U": 467,
+              "S": 346,
+              "R": 229
+            }
+          }
+        },
+        "e02_who_as_is_frs0.75": {
+          "path": "approaches/who_baseline/e02_who_as_is_frs0.75/results.json",
+          "pass_all": true,
+          "headline": "sens_firm=0.5606",
+          "observed": {
+            "firm": 0.9679811257162116,
+            "sens_firm": 0.560625814863103,
+            "spec_firm": 0.9868482417684917,
+            "sens_U_as_S": 0.49653579676674364,
+            "spec_U_as_S": 0.987184148336666,
+            "sens_U_as_R": 0.6108545034642032,
+            "spec_U_as_R": 0.9616433375749863,
+            "n_U": 380,
+            "n_U_resistant": 99,
+            "variant_call_counts": {
+              "U": 340,
+              "S": 311,
+              "R": 159
+            }
+          }
+        }
+      }
+    }
+  },
+  "generated": "2026-11-19T17:18:58.364694+00:00"
+}

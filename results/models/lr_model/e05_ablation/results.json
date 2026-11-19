@@ -1,0 +1,76 @@
+{
+  "model": "lr_model",
+  "test": "e05_ablation",
+  "timestamp": "2026-11-18T19:05:27.640111+00:00",
+  "git_commit": "uncommitted",
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86",
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "catomatic": "0.2.3",
+    "piezo": "0.9.2",
+    "pyarrow": "26.0.1"
+  },
+  "observed": {
+    "F0_frs0.1_auc": 0.7910392525734351,
+    "F1_frs0.1_auc": 0.9045152613444627,
+    "F2_frs0.1_auc": 0.9085389366535497,
+    "F2_frs0.75_auc": 0.7986128283205279,
+    "F0_frs0.1_auprc": 0.5025603185843016,
+    "F1_frs0.1_auprc": 0.672147644479894,
+    "F2_frs0.1_auprc": 0.6836352010125266,
+    "F2_frs0.75_auprc": 0.5478810303005124
+  },
+  "expected": {
+    "F0_frs0.1_auc": 0.791,
+    "F1_frs0.1_auc": 0.905,
+    "F2_frs0.1_auc": 0.909,
+    "F2_frs0.75_auc": 0.799,
+    "F0_frs0.1_auprc": 0.503,
+    "F1_frs0.1_auprc": 0.672,
+    "F2_frs0.1_auprc": 0.684,
+    "F2_frs0.75_auprc": 0.548
+  },
+  "tolerance": {
+    "F0_frs0.1_auc": 0.015,
+    "F1_frs0.1_auc": 0.015,
+    "F2_frs0.1_auc": 0.015,
+    "F2_frs0.75_auc": 0.015,
+    "F0_frs0.1_auprc": 0.015,
+    "F1_frs0.1_auprc": 0.015,
+    "F2_frs0.1_auprc": 0.015,
+    "F2_frs0.75_auprc": 0.015
+  },
+  "diff": {
+    "F0_frs0.1_auc": 3.925257343506683e-05,
+    "F1_frs0.1_auc": -0.0004847386555373312,
+    "F2_frs0.1_auc": -0.0004610633464503522,
+    "F2_frs0.75_auc": -0.0003871716794721092,
+    "F0_frs0.1_auprc": -0.0004396814156983897,
+    "F1_frs0.1_auprc": 0.00014764447989390472,
+    "F2_frs0.1_auprc": -0.00036479898747343587,
+    "F2_frs0.75_auprc": -0.00011896969948765879
+  },
+  "within_tol": {
+    "F0_frs0.1_auc": true,
+    "F1_frs0.1_auc": true,
+    "F2_frs0.1_auc": true,
+    "F2_frs0.75_auc": true,
+    "F0_frs0.1_auprc": true,
+    "F1_frs0.1_auprc": true,
+    "F2_frs0.1_auprc": true,
+    "F2_frs0.75_auprc": true
+  },
+  "pass_all": true,
+  "method": "S1 nested CV; F0 vocab only, F1 +type/region, F2 +mmpL5/interaction; F2 frs_min 0.75 ignores minor alleles.",
+  "interpretation": "Type/region features ~+0.11 AUC; minor alleles ~+0.11 AUC; mmpL5 interaction ~+0.004 AUC.",
+  "caveats": "Ablation, not tuning. frs 0.75 drops minor-allele signal.",
+  "reproduce": "python eval/e05_ablation.py",
+  "supports": "Quantifies feature value (minor alleles published by Fowler lab).",
+  "csv_files": [
+    "ablation.csv"
+  ],
+  "extra": {}
+}

@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "discern"
+version = "0.1.0"
+description = "Offline research explorer for archived bedaquiline evaluations"
+requires-python = ">=3.12"
+
+[project.scripts]
+discern = "discern.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+discern = ["ui/templates/*.html", "ui/static/*.css", "ui/static/*.js"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

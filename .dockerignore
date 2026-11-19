@@ -1,0 +1,11 @@
+.git
+.venv
+**/__pycache__
+.pytest_cache
+.ruff_cache
+data/
+models/**
+!models/lr_model/
+!models/lr_model/evidence_store.csv
+!models/lr_model/metadata.json
+**/*.joblib

@@ -1,0 +1,39 @@
+seeds:
+  bootstrap: 1
+  catalogue_bootstrap: 2
+  learning_curve: 0
+cv:
+  n_splits: 5
+  group_column: SUBJID
+features:
+  frs_min: 0.1
+  vocab_min_count: 3
+  dbd_range: [34, 99]
+model:
+  C: 0.3
+  max_iter: 4000
+thresholds:
+  npv_target: 0.985
+  ppv_target: 0.80
+  min_rows: 20
+catalogue:
+  frs: 0.1
+  background: 0.1
+  tails: two
+  test: Binomial
+  strict_unlock: true
+  wildcards: wildcards/bdq_wildcards_no_mmpL5.json
+ui:
+  default_prevalence: 0.05
+  prevalence_is_placeholder: true
+paths:
+  raw: data/raw/tb-bdq-cat-main
+  processed: data/processed
+  results: results
+  models: models
+enhanced:
+  lof_policy: off
+  mechanism_features: false
+  epistatic_veto: true
+  shrinkage: false
+  conformal: false

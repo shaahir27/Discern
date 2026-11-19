@@ -1,0 +1,5 @@
+region,n_carriers,n_resistant,frac_resistant
+DBD,570,421,0.7385964912280701
+full_del,4,1,0.25
+late,92,77,0.8369565217391305
+mid,79,68,0.8607594936708861

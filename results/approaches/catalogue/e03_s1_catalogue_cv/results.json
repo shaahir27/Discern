@@ -1,0 +1,81 @@
+{
+  "model": "catalogue",
+  "test": "e03_s1_catalogue_cv",
+  "timestamp": "2026-11-18T19:05:18.291750+00:00",
+  "git_commit": "uncommitted",
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86",
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "catomatic": "0.2.3",
+    "piezo": "0.9.2",
+    "pyarrow": "26.0.1"
+  },
+  "observed": {
+    "firm": 0.944304010785305,
+    "sens_firm": 0.7924242424242425,
+    "spec_firm": 0.983502417749123,
+    "sens_U_as_S": 0.6039260969976905,
+    "spec_U_as_S": 0.984184693692056,
+    "sens_U_as_R": 0.8418013856812933,
+    "spec_U_as_R": 0.9428285766224322,
+    "n_U": 661,
+    "n_U_resistant": 206
+  },
+  "expected": {
+    "firm": 0.944,
+    "sens_firm": 0.792,
+    "spec_firm": 0.984,
+    "sens_U_as_S": 0.604,
+    "spec_U_as_S": 0.984,
+    "sens_U_as_R": 0.842,
+    "spec_U_as_R": 0.943,
+    "n_U": 661,
+    "n_U_resistant": 206
+  },
+  "tolerance": {
+    "firm": 0.01,
+    "sens_firm": 0.015,
+    "spec_firm": 0.004,
+    "sens_U_as_S": 0.015,
+    "spec_U_as_S": 0.004,
+    "sens_U_as_R": 0.015,
+    "spec_U_as_R": 0.01,
+    "n_U": 15,
+    "n_U_resistant": 15
+  },
+  "diff": {
+    "firm": 0.0003040107853050644,
+    "sens_firm": 0.0004242424242424381,
+    "spec_firm": -0.0004975822508770378,
+    "sens_U_as_S": -7.390300230947222e-05,
+    "spec_U_as_S": 0.00018469369205598163,
+    "sens_U_as_R": -0.00019861431870671353,
+    "spec_U_as_R": -0.0001714233775677032,
+    "n_U": 0,
+    "n_U_resistant": 0
+  },
+  "within_tol": {
+    "firm": true,
+    "sens_firm": true,
+    "spec_firm": true,
+    "sens_U_as_S": true,
+    "spec_U_as_S": true,
+    "sens_U_as_R": true,
+    "spec_U_as_R": true,
+    "n_U": true,
+    "n_U_resistant": true
+  },
+  "pass_all": true,
+  "method": "catomatic BinaryBuilder per training fold (Binomial, background 0.1, two tails, strict_unlock, frs 0.1, no_mmpL5 wildcards); piezo predict on test; patient-grouped 5-fold.",
+  "interpretation": "Rebuilt catalogue under patient-grouped CV (stricter than the paper's shuffled CV).",
+  "caveats": "In-sample (built on all data) would be optimistic; this is out-of-fold.",
+  "reproduce": "python eval/e03_catalogue_cv.py",
+  "supports": "Baseline reproduction of Adlard 2025 catalogue performance.",
+  "csv_files": [
+    "metrics.csv"
+  ],
+  "extra": {}
+}

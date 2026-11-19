@@ -1,0 +1,3 @@
+direction,bound_s,bound_r,emp_s_error,emp_r_error,violates_s,violates_r,n_U
+CRyPTIC_to_NICD,0.00972879828658099,1.0,0.671280276816609,,True,False,8
+NICD_to_CRyPTIC,1.0,0.17913304251203174,,0.9772288691624855,False,True,8113

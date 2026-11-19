@@ -1,0 +1,51 @@
+{
+  "model": "head_to_head",
+  "test": "g7_who_v2",
+  "timestamp": "2026-11-19T04:35:58.406100+00:00",
+  "git_commit": "39dad3a",
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86",
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "catomatic": "0.2.3",
+    "piezo": "0.9.2",
+    "pyarrow": "26.0.1"
+  },
+  "observed": {
+    "who_frs0.1_firm": 0.9607347489046174,
+    "who_frs0.1_sens_firm": 0.8010899182561307,
+    "who_frs0.1_spec_firm": 0.9811586051743532,
+    "who_frs0.1_sens_U_as_S": 0.6789838337182448,
+    "who_frs0.1_sens_U_as_R": 0.8314087759815243,
+    "who_frs0.25_firm": 0.961071789686552,
+    "who_frs0.25_sens_firm": 0.7679558011049724,
+    "who_frs0.25_spec_firm": 0.9827747612806591,
+    "who_frs0.25_sens_U_as_S": 0.6420323325635104,
+    "who_frs0.25_sens_U_as_R": 0.8060046189376443,
+    "who_frs0.75_firm": 0.9679811257162116,
+    "who_frs0.75_sens_firm": 0.560625814863103,
+    "who_frs0.75_spec_firm": 0.9868482417684917,
+    "who_frs0.75_sens_U_as_S": 0.49653579676674364,
+    "who_frs0.75_sens_U_as_R": 0.6108545034642032,
+    "our_catalogue_grouped_sens_firm": 0.7924242424242425,
+    "our_catalogue_grouped_spec_firm": 0.983502417749123,
+    "our_model_ternary_sens_among_firm": 0.7346938775510204,
+    "our_model_ternary_spec_among_firm": 0.9889201877934273
+  },
+  "expected": {},
+  "tolerance": {},
+  "diff": {},
+  "within_tol": {},
+  "pass_all": null,
+  "method": "WHO v2 GARC catalogue as-is via piezo at FRS 0.1/0.25/0.75 on identical 11,868; ternary R>U>S. Compared to our patient-grouped catalogue (E03) and model ternary (E04).",
+  "interpretation": "WHO v2 ternary sens_firm at FRS0.25 = 0.7680; our model ternary sens among firm = 0.7347. Our ternary does NOT beat WHO at matched FRS (honest). Binary U-as-S sensitivities reported at each FRS convention.",
+  "caveats": "Same-data comparison only; NEVER compare AUC across cohorts. Ternary sens among firm is descriptive. WHO FRS convention matters (0.25 vs 0.1 vs 0.75). match != beat.",
+  "reproduce": "python eval/e18_head_to_head.py",
+  "supports": "Same-data head-to-head vs WHO v2 (P-G7), honest matched-FC comparison.",
+  "csv_files": [
+    "who_vs_ours.csv"
+  ],
+  "extra": {}
+}

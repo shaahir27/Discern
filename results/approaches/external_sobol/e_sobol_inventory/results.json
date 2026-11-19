@@ -1,0 +1,40 @@
+{
+  "model": "external_sobol",
+  "test": "e_sobol_inventory",
+  "timestamp": "2026-11-19T04:32:30.807804+00:00",
+  "git_commit": "39dad3a",
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86",
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "catomatic": "0.2.3",
+    "piezo": "0.9.2",
+    "pyarrow": "26.0.1"
+  },
+  "observed": {
+    "n_accessions": 744,
+    "country": "South Africa",
+    "claimed_bdst_pdst_n": 423,
+    "claimed_pdst_n_verified": false,
+    "assay": "MGIT 1.0 (per paper; assay-matched to NICD)",
+    "exact_pdst_R_count": null,
+    "paper_89_is_genotypic": true,
+    "genotype_pipeline_blocked": true
+  },
+  "expected": {},
+  "tolerance": {},
+  "diff": {},
+  "within_tol": {},
+  "pass_all": null,
+  "method": "Sobol 2026 KZN run-accession inventory (data/sobol_runs.tsv). pDST subset count and exact resistant count require the paper supplement; raw reads require ENA PRJNA1257273.",
+  "interpretation": "744 South African run accessions inventoried. The 423 BDQ-pDST subset and exact pDST-R count are NOT verifiable locally (paper's '89' is genotypic, not pDST). Strongest external anchor (MGIT 1.0, assay-matched to NICD) once genotypes acquired.",
+  "caveats": "BLOCKED: needs ENA raw reads -> variant calling, plus supplement pDST counts. No accuracy fabricated. MGIT 1.0 matches NICD training assay (favourable for transfer).",
+  "reproduce": "python eval/ext_validate.py",
+  "supports": "External validation anchor (Sobol KZN), pending genotype acquisition.",
+  "csv_files": [
+    "accessions.csv"
+  ],
+  "extra": {}
+}

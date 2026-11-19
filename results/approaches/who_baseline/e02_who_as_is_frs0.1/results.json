@@ -1,0 +1,66 @@
+{
+  "model": "who_baseline",
+  "test": "e02_who_as_is_frs0.1",
+  "timestamp": "2026-11-18T19:04:42.674378+00:00",
+  "git_commit": "uncommitted",
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86",
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "catomatic": "0.2.3",
+    "piezo": "0.9.2",
+    "pyarrow": "26.0.1"
+  },
+  "observed": {
+    "firm": 0.9607347489046174,
+    "sens_firm": 0.8010899182561307,
+    "spec_firm": 0.9811586051743532,
+    "sens_U_as_S": 0.6789838337182448,
+    "spec_U_as_S": 0.981730594437375,
+    "sens_U_as_R": 0.8314087759815243,
+    "spec_U_as_R": 0.9513724777313216,
+    "n_U": 466,
+    "n_U_resistant": 132,
+    "variant_call_counts": {
+      "U": 467,
+      "S": 346,
+      "R": 229
+    }
+  },
+  "expected": {
+    "firm": 0.961,
+    "sens_firm": 0.801,
+    "spec_firm": 0.981,
+    "sens_U_as_S": 0.679
+  },
+  "tolerance": {
+    "firm": 0.005,
+    "sens_firm": 0.005,
+    "spec_firm": 0.005,
+    "sens_U_as_S": 0.005
+  },
+  "diff": {
+    "firm": -0.0002652510953825571,
+    "sens_firm": 8.991825613069437e-05,
+    "spec_firm": 0.0001586051743531769,
+    "sens_U_as_S": -1.6166281755269907e-05
+  },
+  "within_tol": {
+    "firm": true,
+    "sens_firm": true,
+    "spec_firm": true,
+    "sens_U_as_S": true
+  },
+  "pass_all": true,
+  "method": "WHO v2 GARC catalogue via piezo; non-syn/non-null variants FRSf>=0.1; exception->S; aggregate R>U>S.",
+  "interpretation": "WHO v2 as-is at FRS>=0.1, pooled. Anchor sens_U_as_S must match published.",
+  "caveats": "U counted as S for the anchor sensitivity. NICD enriches resistance; read per-source.",
+  "reproduce": "python eval/e02_who.py",
+  "supports": "Baseline reproduction (published WHO v2 performance).",
+  "csv_files": [
+    "metrics.csv"
+  ],
+  "extra": {}
+}

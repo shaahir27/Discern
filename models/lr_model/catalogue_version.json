@@ -1,0 +1,16 @@
+{
+  "name": "BDQ-production",
+  "version": "1.0",
+  "reference": "NC_000962.3",
+  "built_utc": "2026-11-19T04:40:13.136163+00:00",
+  "n_samples": 11868,
+  "settings": {
+    "frs": 0.1,
+    "background": 0.1,
+    "tails": "two",
+    "test": "Binomial",
+    "strict_unlock": true,
+    "wildcards": "wildcards/bdq_wildcards_no_mmpL5.json"
+  },
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86"
+}

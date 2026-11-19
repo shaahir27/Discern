@@ -1,0 +1,71 @@
+{
+  "model": "hgb_model",
+  "test": "e05b_model_cv",
+  "timestamp": "2026-11-19T04:05:14.046246+00:00",
+  "git_commit": "39dad3a",
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86",
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "catomatic": "0.2.3",
+    "piezo": "0.9.2",
+    "pyarrow": "26.0.1"
+  },
+  "observed": {
+    "auc": 0.9052400403369869,
+    "auprc": 0.678652962897792,
+    "binary_sens": 0.8371824480369515,
+    "binary_spec": 0.9528267587711325,
+    "ternary_firm": 0.9549207954162454,
+    "sens_at_spec_0.95": 0.8394919168591224,
+    "sens_at_spec_0.97": 0.8140877598152425,
+    "sens_at_spec_0.98": 0.7193995381062356,
+    "sens_at_spec_0.985": 0.625866050808314
+  },
+  "expected": {},
+  "tolerance": {},
+  "diff": {},
+  "within_tol": {},
+  "pass_all": null,
+  "method": "HistGradientBoosting 200 iters, lr=0.1, 15 leaves, l2=1.0. Identical F2 features, S1 patient-grouped 5-fold, nested patient-grouped Platt calibration + thresholds (NPV>=0.985, PPV>=0.8, Youden).",
+  "interpretation": "Exploratory model-class candidate. AUC 0.9052, sens@spec0.985 0.6259 vs golden LR 0.9085/0.6039.",
+  "caveats": "No pre-registered acceptance numbers; hyperparameters fixed a priori (D007), not tuned. Descriptive comparison only.",
+  "reproduce": "python eval/e05b_model_comparison.py",
+  "supports": "Model-class ablation: does a non-linear model beat calibrated LR on identical features/splits?",
+  "csv_files": [
+    "metrics.csv",
+    "thresholds_per_fold.csv"
+  ],
+  "extra": {
+    "thresholds_per_fold": [
+      {
+        "t_bin": 0.0568,
+        "lo": 0.1006,
+        "hi": 0.6073
+      },
+      {
+        "t_bin": 0.0602,
+        "lo": 0.103,
+        "hi": 0.6503
+      },
+      {
+        "t_bin": 0.0504,
+        "lo": 0.0631,
+        "hi": 0.5528
+      },
+      {
+        "t_bin": 0.017,
+        "lo": 0.0859,
+        "hi": 0.7727
+      },
+      {
+        "t_bin": 0.0389,
+        "lo": 0.1049,
+        "hi": 0.5096
+      }
+    ],
+    "config": "HistGradientBoosting 200 iters, lr=0.1, 15 leaves, l2=1.0"
+  }
+}

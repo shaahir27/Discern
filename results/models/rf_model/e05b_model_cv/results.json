@@ -1,0 +1,71 @@
+{
+  "model": "rf_model",
+  "test": "e05b_model_cv",
+  "timestamp": "2026-11-19T04:04:55.834256+00:00",
+  "git_commit": "39dad3a",
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86",
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "catomatic": "0.2.3",
+    "piezo": "0.9.2",
+    "pyarrow": "26.0.1"
+  },
+  "observed": {
+    "auc": 0.9093575470006923,
+    "auprc": 0.6818038144317877,
+    "binary_sens": 0.8337182448036952,
+    "binary_spec": 0.9548263952008725,
+    "ternary_firm": 0.964273677114931,
+    "sens_at_spec_0.95": 0.8337182448036952,
+    "sens_at_spec_0.97": 0.8048498845265589,
+    "sens_at_spec_0.98": 0.7424942263279446,
+    "sens_at_spec_0.985": 0.6593533487297921
+  },
+  "expected": {},
+  "tolerance": {},
+  "diff": {},
+  "within_tol": {},
+  "pass_all": null,
+  "method": "RandomForest 300 trees, min_samples_leaf=5, max_features=sqrt. Identical F2 features, S1 patient-grouped 5-fold, nested patient-grouped Platt calibration + thresholds (NPV>=0.985, PPV>=0.8, Youden).",
+  "interpretation": "Exploratory model-class candidate. AUC 0.9094, sens@spec0.985 0.6594 vs golden LR 0.9085/0.6039.",
+  "caveats": "No pre-registered acceptance numbers; hyperparameters fixed a priori (D007), not tuned. Descriptive comparison only.",
+  "reproduce": "python eval/e05b_model_comparison.py",
+  "supports": "Model-class ablation: does a non-linear model beat calibrated LR on identical features/splits?",
+  "csv_files": [
+    "metrics.csv",
+    "thresholds_per_fold.csv"
+  ],
+  "extra": {
+    "thresholds_per_fold": [
+      {
+        "t_bin": 0.0235,
+        "lo": 0.087,
+        "hi": 0.792
+      },
+      {
+        "t_bin": 0.0258,
+        "lo": 0.1295,
+        "hi": 0.7326
+      },
+      {
+        "t_bin": 0.028,
+        "lo": 0.0492,
+        "hi": 0.6446
+      },
+      {
+        "t_bin": 0.0179,
+        "lo": 0.141,
+        "hi": 0.6729
+      },
+      {
+        "t_bin": 0.0271,
+        "lo": 0.061,
+        "hi": 0.6704
+      }
+    ],
+    "config": "RandomForest 300 trees, min_samples_leaf=5, max_features=sqrt"
+  }
+}

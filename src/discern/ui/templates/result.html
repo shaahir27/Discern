@@ -107,14 +107,14 @@
           <strong>⚡ Epistatic Pump Inactivation Veto</strong>
           <p style="margin: 0.25rem 0 0; font-size: 0.9rem;">
             This isolate carries an <em>Rv0678</em> mutation, but the efflux pump gene <em>mmpL5</em> contains an inactivating frameshift or nonsense mutation. 
-            Because the MmpS5-MmpL5 efflux pump protein cannot assemble, bedaquiline cannot be extruded. In clinical studies, <strong>97.6% (41/42)</strong> of such strains test phenotypically susceptible.
+            Because the MmpS5-MmpL5 efflux pump protein cannot assemble, bedaquiline cannot be extruded. In locked S1 cross-validation (E16 audit), <strong>95.1% (39/41)</strong> of vetoed isolates were phenotypically susceptible, while 2 resistant isolates were safely referred for phenotypic testing.
           </p>
         </div>
       {% elif w == "HETERORESISTANCE_SUBCLONAL" %}
         <div class="alert alert-warning" style="background: rgba(255, 165, 0, 0.1); border-left: 4px solid #ffa500; padding: 0.75rem 1rem; border-radius: 4px;">
           <strong>⚠️ Subclonal Heteroresistance Detected (0.10 ≤ FRS &lt; 0.75)</strong>
           <p style="margin: 0.25rem 0 0; font-size: 0.9rem;">
-            Contributing variant is present as a minority allele. Heteroresistant sub-clones often test susceptible on 14-day microtiter plates (UKMYC, ECOFF 0.25 mg/L) but grow out as resistant in 42-day liquid culture (MGIT960). Liquid culture DST confirmation is advised.
+            Contributing variant is present as a minority allele. Heteroresistant sub-clones often test susceptible on 14-day microtiter plates (UKMYC, ECOFF 0.25 mg/L) but grow out as resistant during extended liquid culture (MGIT960) (Nimmo et al., <em>Lancet Microbe</em> 2020; Snobre et al., <em>AAC</em> 2024). Phenotypic DST confirmation in liquid culture is advised.
           </p>
         </div>
       {% elif w == "PUMP_DAMAGE_MODIFIER" and not (record.tier_a and record.tier_a.epistatic_veto_applied) and "EPISTATIC_PUMP_INACTIVATION" not in record.warnings %}

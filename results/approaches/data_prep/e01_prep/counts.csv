@@ -1,0 +1,2 @@
+n_samples,n_resistant,cryptic_n,cryptic_R,nicd_n,nicd_R,unique_subjid,mutation_rows,minor_allele_rows,median_FRSf_minor,null_rows,null_rows_samples
+11868,866,10704,83,1164,783,11611,25554,1115,0.375,11,4

@@ -1,0 +1,66 @@
+{
+  "model": "lr_model",
+  "test": "e06_cross_source",
+  "timestamp": "2026-11-18T19:05:30.083030+00:00",
+  "git_commit": "uncommitted",
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86",
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "catomatic": "0.2.3",
+    "piezo": "0.9.2",
+    "pyarrow": "26.0.1"
+  },
+  "observed": {
+    "CRyPTIC_to_NICD_auc": 0.9104980172497594,
+    "CRyPTIC_to_NICD_sens": 0.8441890166028098,
+    "CRyPTIC_to_NICD_spec": 0.963254593175853,
+    "NICD_to_CRyPTIC_auc": 0.8277106164985712,
+    "NICD_to_CRyPTIC_sens": 0.6746987951807228,
+    "NICD_to_CRyPTIC_spec": 0.953205912814236
+  },
+  "expected": {
+    "CRyPTIC_to_NICD_auc": 0.91,
+    "CRyPTIC_to_NICD_sens": 0.844,
+    "CRyPTIC_to_NICD_spec": 0.963,
+    "NICD_to_CRyPTIC_auc": 0.83,
+    "NICD_to_CRyPTIC_sens": 0.675,
+    "NICD_to_CRyPTIC_spec": 0.953
+  },
+  "tolerance": {
+    "CRyPTIC_to_NICD_auc": 0.03,
+    "CRyPTIC_to_NICD_sens": 0.03,
+    "CRyPTIC_to_NICD_spec": 0.03,
+    "NICD_to_CRyPTIC_auc": 0.03,
+    "NICD_to_CRyPTIC_sens": 0.03,
+    "NICD_to_CRyPTIC_spec": 0.03
+  },
+  "diff": {
+    "CRyPTIC_to_NICD_auc": 0.0004980172497593971,
+    "CRyPTIC_to_NICD_sens": 0.00018901660280978838,
+    "CRyPTIC_to_NICD_spec": 0.0002545931758530795,
+    "NICD_to_CRyPTIC_auc": -0.00228938350142871,
+    "NICD_to_CRyPTIC_sens": -0.000301204819277201,
+    "NICD_to_CRyPTIC_spec": 0.00020591281423598673
+  },
+  "within_tol": {
+    "CRyPTIC_to_NICD_auc": true,
+    "CRyPTIC_to_NICD_sens": true,
+    "CRyPTIC_to_NICD_spec": true,
+    "NICD_to_CRyPTIC_auc": true,
+    "NICD_to_CRyPTIC_sens": true,
+    "NICD_to_CRyPTIC_spec": true
+  },
+  "pass_all": true,
+  "method": "Train on one SRC, test on the other; nested calibration inside training source; binary at per-fold Youden cut.",
+  "interpretation": "Accuracy depends on lab/source: NICD->CRyPTIC drops (few CRyPTIC resistant training germs, lineage/prevalence shift).",
+  "caveats": "NICD test has 783 R; CRyPTIC test only 83 R (wide CI).",
+  "reproduce": "python eval/e06_cross_source.py",
+  "supports": "Cross-lab generalization limit (honest).",
+  "csv_files": [
+    "cross_source.csv"
+  ],
+  "extra": {}
+}

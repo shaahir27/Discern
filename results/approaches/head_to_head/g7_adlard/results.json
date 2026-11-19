@@ -1,0 +1,42 @@
+{
+  "model": "head_to_head",
+  "test": "g7_adlard",
+  "timestamp": "2026-11-19T04:37:36.940617+00:00",
+  "git_commit": "39dad3a",
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86",
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "catomatic": "0.2.3",
+    "piezo": "0.9.2",
+    "pyarrow": "26.0.1"
+  },
+  "observed": {
+    "shuffled_firm": 0.9448938321536906,
+    "shuffled_sens_firm": 0.7955223880597015,
+    "shuffled_spec_firm": 0.9837822458270106,
+    "shuffled_n_U": 654,
+    "grouped_firm": 0.944304010785305,
+    "grouped_sens_firm": 0.7924242424242425,
+    "grouped_spec_firm": 0.983502417749123,
+    "grouped_n_U": 661,
+    "sens_firm_shuffled_minus_grouped": 0.003098145635459071,
+    "ghosh_reconstructable": false
+  },
+  "expected": {},
+  "tolerance": {},
+  "diff": {},
+  "within_tol": {},
+  "pass_all": null,
+  "method": "Adlard-style catalogue rebuilt under shuffled 5-fold (their protocol) vs patient-grouped 5-fold (ours, E03), identical 11,868 samples. Ghosh 632 isolates NOT reconstructable from local data (Tables S9/S10 absent) -> not compared.",
+  "interpretation": "Shuffled sens_firm 0.7955 vs patient-grouped 0.7924 (delta +0.0031). Patient grouping is the stricter, leakage-controlled protocol. Ghosh comparison infeasible (data not local).",
+  "caveats": "Shuffled CV can leak related germs across folds (optimistic). Grouped controls patient duplicates but not clones/outbreaks fully. Ghosh omitted honestly; NEVER cross-cohort AUC.",
+  "reproduce": "python eval/e18_head_to_head.py",
+  "supports": "Same-data head-to-head vs Adlard under both protocols (P-G7).",
+  "csv_files": [
+    "shuffled_vs_grouped.csv"
+  ],
+  "extra": {}
+}

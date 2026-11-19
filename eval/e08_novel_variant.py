@@ -72,15 +72,17 @@ obs = {
     "n_resistant": int(y.sum()), "auc_region_count": auc_base, "auc_plus_structure": auc_struct,
     "auc_plus_biophysics": auc_bio, "auc_full_novel": auc_full_novel,
 }
-out = write_result("structure_novel_variant", "e08_novel_variant", obs,
+out = write_result("structure_test", "e08_novel_variant", obs,
                    expected={"auc_plus_structure": 0.57}, tolerance={"auc_plus_structure": 0.08},
                    tables={"subset": pd.DataFrame({"UNIQUEID": sub.UNIQUEID, "y": y, "key": keys})},
-                   method="Subset: Rv0678 all-missense, no atpE/pepQ. GroupKFold(5) by variant-set key. "
-                          "StandardScaler + LR(C=0.5, balanced). Baseline structure vs novel biophysical "
+                   method="Subset: Rv0678 all-missense, no atpE/pepQ (n=312, 143 clusters). GroupKFold(5) by variant-set key. "
+                          "StandardScaler + LR(C=0.5, balanced). Baseline structure vs exploratory biophysical "
                           "(Grantham distance, recognition helix alpha4, helix breakers).",
-                   interpretation="Original structure achieves AUC ~0.56-0.57. Incorporating physicochemical "
-                                  "Grantham distance + recognition helix jumps AUC to ~0.688.",
-                   caveats="DNA chains are a modeled complex. Grantham matrix captures radical vs conservative substitutions.",
+                   interpretation="Original structure achieves AUC ~0.56-0.57 (pre-registered negative baseline). "
+                                  "Exploratory biophysical features show an unvalidated subset signal (AUC ~0.688). "
+                                  "These features are NOT in the production model and have not been validated externally.",
+                   caveats="DNA chains are a modeled complex. Grantham matrix captures radical vs conservative substitutions. "
+                           "Exploratory subset only (n=312); balanced class weighting deviates from production calibration.",
                    reproduce="python eval/e08_novel_variant.py",
-                   supports="Demonstrates both original negative baseline and novel biophysical breakthrough.")
+                   supports="Reproduces the pre-registered E08 negative baseline; documents an exploratory subset hypothesis.")
 print(json.dumps(obs, indent=1))

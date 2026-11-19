@@ -4,6 +4,7 @@ __pycache__/
 data/raw/
 data/processed/
 data/external_cryptic_v34/
+data/*.tsv
 .pytest_cache/
 .ruff_cache/
 *.tar.gz

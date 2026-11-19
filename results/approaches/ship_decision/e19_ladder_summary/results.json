@@ -1,0 +1,202 @@
+{
+  "model": "ship_decision",
+  "test": "e19_ladder_summary",
+  "timestamp": "2026-11-19T06:00:12.636531+00:00",
+  "git_commit": "39dad3a",
+  "data_manifest_sha256": "40a4ac904529c836e1f37fda4a03ea6a310dcbed0680f7d865c61b6a8a26bb86",
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "catomatic": "0.2.3",
+    "piezo": "0.9.2",
+    "pyarrow": "26.0.1"
+  },
+  "observed": {
+    "model": "models/lr_model",
+    "epistatic_veto": true
+  },
+  "expected": {},
+  "tolerance": {},
+  "diff": {},
+  "within_tol": {},
+  "pass_all": null,
+  "method": "Apply D011 to the saved E16, shrinkage, conformal, and E21 records and the KM veto audit.",
+  "interpretation": "Keep golden L2 LR (F2). Adopt the audited Tier A veto modifier.",
+  "caveats": "Research use only. KM sensitivity analysis with 35 resistant isolates, undocumented assay and critical concentration, and medium-quality phenotypes. Report the certificate bounds with their confidence level and lab-shift results.",
+  "reproduce": "C:/Users/shaah/miniconda3/envs/discern/python.exe eval/e19_ship_decision.py",
+  "supports": "",
+  "csv_files": [
+    "ladder.csv"
+  ],
+  "extra": {
+    "ladder": [
+      {
+        "rung": "M0",
+        "name": "Golden L2 LR (F2)",
+        "S1": {
+          "auc": 0.9085389366535497,
+          "sens_at_spec_0.985": 0.6039260969976905,
+          "cat_sens_firm": 0.7924242424242425,
+          "cat_spec_firm": 0.983502417749123
+        },
+        "KM": {
+          "model_auc": 0.8681826759765995,
+          "cat_sens_firm": 0.7916666666666666,
+          "cat_spec_firm": 0.988135593220339
+        },
+        "qualifies": true,
+        "reason": "E21 retained the golden model class under D013.",
+        "final_pick": true
+      },
+      {
+        "rung": "M1",
+        "name": "Mechanism features",
+        "S1": {
+          "lr_f2_auc": 0.9085389366535497,
+          "lr_f2mech_auc": 0.9087876842043836,
+          "lr_delta_auc": 0.00024874755083392763,
+          "lr_f2_sens_at_spec_0.985": 0.6039260969976905,
+          "lr_f2mech_sens_at_spec_0.985": 0.6166281755196305
+        },
+        "KM": null,
+        "qualifies": false,
+        "reason": "The S1 AUC gain was below the predeclared margin.",
+        "final_pick": false
+      },
+      {
+        "rung": "M2",
+        "name": "Epistatic veto",
+        "S1": {
+          "cat_s1_sens_firm_off": 0.7924242424242425,
+          "cat_s1_sens_firm_on": 0.7917933130699089,
+          "cat_s1_spec_firm_off": 0.983502417749123,
+          "cat_s1_spec_firm_on": 0.9871526456033498,
+          "cat_s1_n_U_off": 661,
+          "cat_s1_n_U_on": 702,
+          "s1_n_flips": 41,
+          "s1_n_flips_resistant": 2,
+          "s1_n_flips_susceptible": 39,
+          "cs_CRyPTIC_to_NICD_sens_firm_off": 0.6078431372549019,
+          "cs_CRyPTIC_to_NICD_sens_firm_on": 0.6078431372549019,
+          "cs_CRyPTIC_to_NICD_spec_firm_off": 0.991869918699187,
+          "cs_CRyPTIC_to_NICD_spec_firm_on": 0.991869918699187,
+          "cs_CRyPTIC_to_NICD_n_flips": 0,
+          "cs_CRyPTIC_to_NICD_n_flips_resistant": 0,
+          "cs_NICD_to_CRyPTIC_sens_firm_off": 0.5517241379310345,
+          "cs_NICD_to_CRyPTIC_sens_firm_on": 0.5517241379310345,
+          "cs_NICD_to_CRyPTIC_spec_firm_off": 0.9780872613946241,
+          "cs_NICD_to_CRyPTIC_spec_firm_on": 0.9818164043406002,
+          "cs_NICD_to_CRyPTIC_n_flips": 39,
+          "cs_NICD_to_CRyPTIC_n_flips_resistant": 0
+        },
+        "KM": {
+          "cat_sens_firm_off": 0.7916666666666666,
+          "cat_spec_firm_off": 0.988135593220339,
+          "cat_n_U_off": 178,
+          "cat_sens_firm_on": 0.7916666666666666,
+          "cat_spec_firm_on": 0.988135593220339,
+          "cat_n_U_on": 178,
+          "n_flips": 0,
+          "n_flips_resistant": 0,
+          "n_flips_susceptible": 0,
+          "n_true_R_to_S": 0,
+          "all_flips_R_to_U": true,
+          "n_isolates": 792,
+          "n_resistant": 35,
+          "zero_training_overlap": true,
+          "model_auc": 0.8681826759765995
+        },
+        "qualifies": true,
+        "reason": "Adopt the audited Tier A veto modifier.",
+        "final_pick": true
+      },
+      {
+        "rung": "M3",
+        "name": "Shrinkage",
+        "S1": null,
+        "KM": null,
+        "qualifies": false,
+        "reason": "Descriptive evidence-card estimator.",
+        "evidence": {
+          "n_variants": 1042,
+          "mean_abs_shrinkage": 0.14319372374084754,
+          "max_abs_shrinkage": 0.9294249132357397,
+          "n_grade_flips_0.5": 48,
+          "n_mech_classes": 9
+        },
+        "final_pick": false
+      },
+      {
+        "rung": "M4",
+        "name": "Conformal abstention",
+        "S1": {
+          "alpha": 0.015,
+          "beta": 0.2,
+          "delta": 0.05,
+          "pi_train": 0.07296932928884395,
+          "baseline_emp_s_error": 0.014595808383233533,
+          "baseline_emp_r_error": 0.21454545454545454,
+          "baseline_n_S": 10688,
+          "baseline_n_R": 550,
+          "baseline_n_U": 630,
+          "baseline_n_U_resistant": 278,
+          "certified_t_S": null,
+          "certified_t_R": 0.8766,
+          "certified_bound_s": 1.0,
+          "certified_bound_r": 0.19630691917422763,
+          "certified_s_certified": false,
+          "certified_r_certified": true,
+          "certified_emp_s_error": null,
+          "certified_emp_r_error": 0.14342629482071714,
+          "certified_n_S": 0,
+          "certified_n_R": 251,
+          "certified_n_U": 11617,
+          "certified_n_U_resistant": 651,
+          "fold_tS_min": null,
+          "fold_tS_max": null,
+          "fold_n_tS_certified": 0,
+          "fold_emp_s_min": null,
+          "fold_emp_s_max": null,
+          "fold_emp_r_min": 0.16363636363636364,
+          "fold_emp_r_max": 0.21311475409836064,
+          "s_best_achievable_bound": 0.01551592944072069,
+          "s_best_achievable_t": 0.022,
+          "out_of_site_n_sites": 11,
+          "out_of_site_violations_s": 0,
+          "out_of_site_violations_r": 5,
+          "cs_CRyPTIC_to_NICD_bound_s": 0.00972879828658099,
+          "cs_CRyPTIC_to_NICD_bound_r": 1.0,
+          "cs_CRyPTIC_to_NICD_emp_s_error": 0.671280276816609,
+          "cs_CRyPTIC_to_NICD_emp_r_error": null,
+          "cs_CRyPTIC_to_NICD_violates_s": true,
+          "cs_CRyPTIC_to_NICD_violates_r": false,
+          "cs_NICD_to_CRyPTIC_bound_s": 1.0,
+          "cs_NICD_to_CRyPTIC_bound_r": 0.17913304251203174,
+          "cs_NICD_to_CRyPTIC_emp_s_error": null,
+          "cs_NICD_to_CRyPTIC_emp_r_error": 0.9772288691624855,
+          "cs_NICD_to_CRyPTIC_violates_s": false,
+          "cs_NICD_to_CRyPTIC_violates_r": true,
+          "weighted_emp_s_error_pi002": null,
+          "weighted_emp_r_error_pi002": 0.39239733124688225,
+          "weighted_emp_s_error_pi005": null,
+          "weighted_emp_r_error_pi005": 0.20026682227918696
+        },
+        "KM": null,
+        "qualifies": false,
+        "reason": "The R-zone certified. The S-zone missed its target and certificates failed under lab shift.",
+        "final_pick": false
+      }
+    ],
+    "final_pick": {
+      "model_folder": "models/lr_model",
+      "epistatic_veto": true
+    },
+    "d011_checks": {
+      "km_specificity_preserved": true,
+      "km_safety": true,
+      "s1_sensitivity_reduction_within_margin": true
+    }
+  }
+}

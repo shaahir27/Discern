@@ -1,0 +1,2 @@
+n_samples,n_resistant,auc,binary_sens,binary_spec,sens_at_spec_0.95,sens_at_spec_0.985,golden_auc,high_medium_auc,cross_source_note,km_external_auc,golden_production_km_auc
+16923,201,0.6668331289373013,0.40298507462686567,0.9637005142925488,0.4079601990049751,0.26865671641791045,0.908539,0.8381,NICD is MEDIUM quality; absent from HIGH-only arm -> cross-source N/A,0.8633327042838272,0.8681826759765995
