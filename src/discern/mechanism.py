@@ -157,16 +157,33 @@ def variant_effects(m: pd.DataFrame, cds: str) -> pd.DataFrame:
 
 def veto_flags(
     retained: pd.DataFrame, ids: Sequence[str] | np.ndarray, high_conf: set[str],
+    tolerance: float = 0.20,
 ) -> pd.DataFrame:
-    """Evaluate the veto from retained calls and high-confidence variant annotations."""
+    """Evaluate the epistatic pump veto with allele-frequency linkage checking.
+
+    Under WHO Catalogue 3rd Edition (2026) and TB-Profiler v6.6.5, an mmpL5/mmpS5 LoF
+    must be genetically linked to the Rv0678 variant to inactivate efflux:
+        FRS(mmpL5/S5) >= FRS(Rv0678) - tolerance
+    A minor subclone pump LoF (e.g. 10%) cannot veto a dominant (e.g. 95%) Rv0678 LoF.
+    """
     rv = retained[(retained.GENE == "Rv0678") & (retained.MUT.isin(high_conf) | retained.is_indel | retained.is_stop) & (retained.FRSf > 0)]
-    pump = retained[retained.GENE.isin(["mmpL5", "mmpS5"]) & (retained.is_indel | retained.is_stop)]
+    pump = retained[retained.GENE.isin(["mmpL5", "mmpS5"]) & (retained.is_indel | retained.is_stop) & (retained.FRSf > 0)]
     atpe = retained[retained.GENE == "atpE"]
     flags = pd.DataFrame(index=ids)
     flags["rv_highconf_lof"] = flags.index.isin(rv.UNIQUEID)
     flags["pump_lof"] = flags.index.isin(pump.UNIQUEID)
     flags["atpE_present"] = flags.index.isin(atpe.UNIQUEID)
-    flags["veto_fire"] = flags.rv_highconf_lof & flags.pump_lof & ~flags.atpE_present
+
+    if not rv.empty and not pump.empty:
+        rv_frs = rv.groupby("UNIQUEID").FRSf.max()
+        pump_frs = pump.groupby("UNIQUEID").FRSf.max()
+        s_rv = pd.Series(flags.index, index=flags.index).map(rv_frs).fillna(0.0)
+        s_pump = pd.Series(flags.index, index=flags.index).map(pump_frs).fillna(0.0)
+        linked = (s_pump >= (s_rv - tolerance)) & (s_pump > 0)
+    else:
+        linked = pd.Series(False, index=flags.index)
+    flags["frs_linked"] = linked.values
+    flags["veto_fire"] = flags.rv_highconf_lof & flags.pump_lof & ~flags.atpE_present & flags.frs_linked
     return flags
 
 

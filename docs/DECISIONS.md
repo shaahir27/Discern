@@ -330,3 +330,13 @@ The prevalence control uses the archived probabilities of each firm call across
 the full cohort. The legacy engine uses E03 rates in golden mode and E16 rates
 when the veto is enabled. This corrects PPV and NPV reporting while preserving
 saved calls, scores, and evaluation records.
+
+## D016 — Epistatic veto allele-frequency linkage and scientific literature alignment
+
+1. **Epistatic Veto Allele-Frequency Linkage (WHO Catalogue v3 / TB-Profiler v6.6.5)**:
+   The epistatic pump downgrade rule (`mmpL5`/`mmpS5` LoF vetoing `Rv0678` resistance) requires allele-frequency linkage:
+   `FRS(pump_LoF) >= FRS(Rv0678_LoF) - 0.20`. A minor subclone pump LoF (e.g. 10%) cannot inactivate efflux in a dominant (e.g. 95%) resistant clone.
+2. **Prior Art & Novelty Alignment**:
+   TB-Profiler v6.6.5 (Genome Medicine, Sept 2026) and WHO Mutation Catalogue 3rd Edition (Late 2026) established the biological rule of mmpL5 LoF epistatic downgrades. Discern does not claim to be the first to invent this rule, but is the first clinical triage system to combine it with out-of-fold calibrated probabilities, empirical prevalence reweighting, and automated laboratory referral (`U`).
+3. **Snobre 2024, Schön 2025, and Köser 2024 Framing**:
+   Frameshift-susceptibility rates reported by Snobre et al. (AAC 2024) are interpreted alongside Schön et al. (AAC 2025), which demonstrated laboratory-specific MGIT MIC shifts in the underlying cohorts. Discern's multi-source cross-validation across CRyPTIC + NICD provides an independent benchmark on this active debate. Furthermore, `Rv0678@c-11a` (our canonical unresolved case) is explicitly framed as conferring borderline hypersusceptibility/low-level MIC shift (Köser et al., ERJ 2024), warranting laboratory culture testing (`U`) rather than a binary call.

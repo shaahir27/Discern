@@ -9,4 +9,5 @@ data/*.tsv
 .ruff_cache/
 *.tar.gz
 scratch/
-demo.zip
+*.zip
+.env

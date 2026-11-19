@@ -80,12 +80,16 @@ Rv0678 coordinates: **NC_000962.3:778,990–779,487, + strand, 498 nt, GTG start
    *Wording:* "first predictive integration of Snobre-style truncation-position/ARF reasoning
    into a bedaquiline triage decision layer (to our knowledge)."
 
-2. **Deployed epistatic veto.** Vargas/Adlard mask mmpL5-LoF during catalogue *building*; no
-   tool downgrades a final R call at the *decision* layer when the pump is broken.
-   *Wording:* "an audited decision-layer epistatic downgrade rule." **Safety:** mmpL5 LoF
-   calls are noisy (repeat-rich gene, 84,815 rows; Adlard's codon-64 heteroresistance caveat).
-   Require HIGH-confidence LoF (frameshift/stop, not single-nt homopolymer indels); audit
-   every flip; NEVER veto atpE-driven R (target-site resistance is pump-independent).
+2. **Audited decision-layer epistatic pump veto with allele linkage.** 
+   While TB-Profiler v6.6.5 (Sept 2026) and WHO Mutation Catalogue 3rd Edition (2026) codified
+   the biological principle that mmpL5/mmpS5 LoF overrides Rv0678 resistance, Discern implements
+   the first clinically calibrated triage integration: enforcing strict subclonal allele-frequency
+   linkage (frs(mmpL5/S5) >= frs(Rv0678) - tolerance), protecting atpE target resistance, and
+   downgrading to lab referral ('U') rather than a false-sense-of-security susceptible call.
+   *Wording:* "an audited decision-layer epistatic downgrade rule aligned with WHO Catalogue v3
+   and TB-Profiler v6.6.5." **Safety:** mmpL5 LoF calls are noisy (repeat-rich gene).
+   Require HIGH-confidence LoF (frameshift/stop, excluding homopolymers); audit every flip;
+   NEVER veto atpE-driven R (target-site resistance is pump-independent).
 
 3. **True multi-cohort external validation of a BDQ triage tool** (§4). *Wording:* "validated
    on N non-overlapping external isolates from [cohorts], the first such evaluation for a
@@ -315,7 +319,7 @@ certifies when to say 'I don't know'."
 reasoning for BDQ (to our knowledge)"; "audited epistatic downgrade rule"; "validated on
 N non-overlapping external isolates [cohorts, assay caveats]"; "beat WHO v2 binary sensitivity
 on identical data". FORBID "first lineage-deconfounded" (Kulkarni/catomatic); "first ML/
-minor-allele/probability model" (Ghosh/Adlard); "catalogues ignore context"; "works on Indian
+minor-allele/probability model" (Ghosh/Adlard); "first deployed epistatic veto" (TB-Profiler v6.6.5/WHO v3); "catalogues ignore context"; "works on Indian
 patients"; "predicts new variants"; any cross-dataset "beat"; unqualified "first externally
 validated"; guaranteed NPV/PPV without bound+δ.
 - Panel auditor (§6b): ALLOW "first phenotype-weighted, local-lineage coverage audit of

@@ -87,6 +87,29 @@ def test_epistatic_veto_firing_and_target_protection():
     flags_atpe = veto_flags(retained_atpe, ["iso_atpe"], {"Rv0678@192_ins_g"})
     assert flags_atpe.veto_fire.iloc[0] == False  # Protected because atpE is present
 
+    # Case 3: Minor unlinked mmpL5 subclone (e.g. 10%) with fixed dominant Rv0678 (95%)
+    # Under WHO Catalogue v3 / TB-Profiler v6.6.5, this must NOT veto!
+    retained_unlinked = pd.DataFrame([
+        {"UNIQUEID": "iso_unlinked", "GENE": "Rv0678", "MUT": "Rv0678@192_ins_g",
+         "is_indel": True, "is_stop": False, "FRSf": 0.95},
+        {"UNIQUEID": "iso_unlinked", "GENE": "mmpL5", "MUT": "mmpL5@141_ins_c",
+         "is_indel": True, "is_stop": False, "FRSf": 0.10},
+    ])
+    flags_unlinked = veto_flags(retained_unlinked, ["iso_unlinked"], {"Rv0678@192_ins_g"})
+    assert flags_unlinked.frs_linked.iloc[0] == False
+    assert flags_unlinked.veto_fire.iloc[0] == False  # Dominant Rv0678 clone remains active!
+
+    # Case 4: Linked subclone (e.g. Rv0678 90% and mmpL5 85%) -> veto fires!
+    retained_linked = pd.DataFrame([
+        {"UNIQUEID": "iso_linked", "GENE": "Rv0678", "MUT": "Rv0678@192_ins_g",
+         "is_indel": True, "is_stop": False, "FRSf": 0.90},
+        {"UNIQUEID": "iso_linked", "GENE": "mmpL5", "MUT": "mmpL5@141_ins_c",
+         "is_indel": True, "is_stop": False, "FRSf": 0.85},
+    ])
+    flags_linked = veto_flags(retained_linked, ["iso_linked"], {"Rv0678@192_ins_g"})
+    assert flags_linked.frs_linked.iloc[0] == True
+    assert flags_linked.veto_fire.iloc[0] == True
+
 
 def test_subclonal_heteroresistance_warning(tmp_path):
     predictor = Predictor()
