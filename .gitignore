@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+data/raw/
+data/processed/
+data/external_cryptic_v34/
+.pytest_cache/
+.ruff_cache/
+*.tar.gz
+scratch/
+demo.zip

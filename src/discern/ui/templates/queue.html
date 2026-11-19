@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-heading">
+  <h1>Review queue</h1>
+  <p>Unresolved recorded isolates are ranked by their saved out-of-fold model probability.</p>
+</header>
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+
+{% if upload_quality %}
+<!-- Live CSV Quality Check Result: Kept strictly separate from resistance results -->
+<section class="panel upload-quality-panel" aria-labelledby="queue-upload-quality-heading">
+  <div class="quality-header">
+    <div>
+      <h2 id="queue-upload-quality-heading">Upload quality</h2>
+      <p class="fine">Pre-analysis CSV completeness and data integrity check across uploaded batch. Kept separate from resistance results.</p>
+    </div>
+    <div class="quality-score-badge {% if upload_quality.completeness_score == 100 and upload_quality.is_valid %}quality-pass{% else %}quality-warn{% endif %}">
+      <span class="quality-score-number">{{ "%.1f"|format(upload_quality.completeness_score) }}%</span>
+      <span class="quality-score-label">Completeness</span>
+    </div>
+  </div>
+  <dl class="facts quality-facts">
+    <div><dt>Total rows</dt><dd>{{ upload_quality.total_rows }}</dd></div>
+    <div><dt>Valid rows</dt><dd>{{ upload_quality.valid_rows }} / {{ upload_quality.total_rows }}</dd></div>
+    <div><dt>Missing values</dt><dd>{{ upload_quality.missing_count }}</dd></div>
+    <div><dt>Duplicate rows</dt><dd>{{ upload_quality.duplicate_count }}</dd></div>
+    <div><dt>Formatting errors</dt><dd>{{ upload_quality.formatting_count }}</dd></div>
+  </dl>
+  {% if upload_quality.issues %}
+    <details class="quality-issues-details" open>
+      <summary>Show {{ upload_quality.issues|length }} issue(s) detected in batch file</summary>
+      <div class="table-scroll">
+        <table class="quality-issues-table">
+          <thead>
+            <tr><th scope="col">Line</th><th scope="col">Type</th><th scope="col">Field</th><th scope="col">Issue details</th></tr>
+          </thead>
+          <tbody>
+            {% for issue in upload_quality.issues %}
+            <tr>
+              <td>Line {{ issue.line }}</td>
+              <td><span class="issue-pill issue-{{ issue.type }}">{{ issue.type }}</span></td>
+              <td><code>{{ issue.field }}</code></td>
+              <td>{{ issue.message }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  {% else %}
+    <p class="quality-clean-note">✓ 100% complete. All required fields present and valid across the batch.</p>
+  {% endif %}
+</section>
+{% endif %}
+
+<div class="toolbar">
+  <nav class="tabs" aria-label="Filter review queue">
+    <a href="/queue"{% if scope == "all" %} aria-current="page"{% endif %}>All isolates</a>
+    <a href="/queue?scope=unresolved"{% if scope == "unresolved" %} aria-current="page"{% endif %}>Unresolved</a>
+    {% if scope == "import" %}<span aria-current="page">Imported list</span>{% endif %}
+  </nav>
+  {% if scope != "import" %}<a href="/queue?scope={{ scope|urlencode }}&amp;download=true">Download view</a>{% endif %}
+</div>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Recorded isolate review queue">
+  <table>
+    <thead><tr><th scope="col" class="num">Priority</th><th scope="col">Isolate</th><th scope="col">Call</th><th scope="col" class="num">Model probability</th><th scope="col">Lab phenotype</th></tr></thead>
+    <tbody>{% for row in rows %}
+      <tr><td class="num">{{ row.rank if row.rank else "—" }}</td><th scope="row"><a class="id" href="/result?sample_id={{ row.sample_id|urlencode }}">{{ row.sample_id }}</a></th><td><span class="status status-{{ row.call }}">{{ row.call_label }}</span></td><td class="num">{{ "%.1f"|format(row.probability * 100) }}%</td><td>{{ row.phenotype }}</td></tr>
+    {% else %}<tr><td colspan="5">No isolates match this view.</td></tr>{% endfor %}</tbody>
+  </table>
+</div>
+<details class="section panel import-panel"{% if error %} open{% endif %}>
+  <summary>Review a CSV of recorded isolate IDs</summary>
+  <p><a href="/replay-samples.csv">Download the replay roster</a> and remove any rows you want to leave out.</p>
+  <form action="/queue" method="post" class="form-stack">
+    <label for="csv-file">Open a CSV</label>
+    <input id="csv-file" type="file" accept=".csv,text/csv" data-max-bytes="{{ max_csv_bytes }}" aria-describedby="file-status">
+    <p id="file-status" class="fine" role="status"></p>
+    <label for="csv">CSV contents</label>
+    <textarea id="csv" name="csv" rows="4" required>sample_id</textarea>
+    <button type="submit">Review listed isolates</button>
+  </form>
+</details>
+{% endblock %}

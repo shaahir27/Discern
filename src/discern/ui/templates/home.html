@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+{% set example = roster|selectattr("sample_id", "equalto", example_id)|first %}
+<header class="page-heading intake-heading">
+  <h1>Check a sample</h1>
+  <p>Upload a CSV to run live bedaquiline resistance scoring and review data completeness.</p>
+</header>
+<div class="intake">
+  <section class="panel upload-panel" aria-labelledby="upload-title">
+    <h2 id="upload-title">Upload a CSV</h2>
+    <form method="post" action="/review" class="form-stack">
+      <label for="csv-file">Sample file</label>
+      {% if error %}<p class="error" id="upload-error" role="alert" tabindex="-1" data-upload-error>{{ error }}</p>{% endif %}
+      <div class="dropzone" data-dropzone>
+        <span class="file-icon" aria-hidden="true"></span>
+        <div class="dropzone-content">
+          <p class="drop-label" id="drop-hint">Drop a CSV here or choose a file.</p>
+          <input id="csv-file" type="file" accept=".csv,text/csv" data-max-bytes="{{ max_csv_bytes }}" aria-describedby="upload-help file-status{% if error %} upload-error{% endif %}"{% if error %} aria-invalid="true"{% endif %}>
+        </div>
+      </div>
+      <p id="file-status" class="fine" role="status"></p>
+
+      <!-- Live CSV Quality Check Result -->
+      <section id="upload-quality-card" class="panel upload-quality-panel" data-upload-quality hidden aria-live="polite">
+        <div class="quality-header">
+          <div>
+            <h3 id="live-quality-heading">Upload quality</h3>
+            <p class="fine">Live completeness &amp; format check • Kept separate from resistance results</p>
+          </div>
+          <div id="quality-score-badge" class="quality-score-badge quality-pass">
+            <span id="quality-score-val" class="quality-score-number">100.0%</span>
+            <span class="quality-score-label">Completeness</span>
+          </div>
+        </div>
+        <dl class="facts quality-facts">
+          <div><dt>Total rows</dt><dd id="quality-total-rows">0</dd></div>
+          <div><dt>Valid rows</dt><dd id="quality-valid-rows">0</dd></div>
+          <div><dt>Missing values</dt><dd id="quality-missing-count">0</dd></div>
+          <div><dt>Duplicate rows</dt><dd id="quality-duplicate-count">0</dd></div>
+          <div><dt>Formatting errors</dt><dd id="quality-formatting-count">0</dd></div>
+        </dl>
+        <div id="quality-issues-container" hidden>
+          <p class="quality-issues-summary" id="quality-issues-summary"></p>
+          <div class="table-scroll">
+            <table class="quality-issues-table">
+              <thead>
+                <tr><th scope="col">Line</th><th scope="col">Type</th><th scope="col">Field</th><th scope="col">Issue details</th></tr>
+              </thead>
+              <tbody id="quality-issues-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <p id="quality-clean-msg" class="quality-clean-note">✓ All required fields present and valid. Ready for model scoring.</p>
+      </section>
+
+      <p id="upload-help" class="fine">Upload any variant table (<code>sample_id,gene,mutation,frs</code>) for live model scoring, or a <a href="/replay-samples.csv">list of recorded sample IDs</a>.</p>
+      <noscript><p class="fine">Paste the CSV text to submit with JavaScript turned off.</p></noscript>
+      <details class="paste-input">
+        <summary>Paste CSV text instead</summary>
+        <label for="csv">CSV contents</label>
+        <textarea id="csv" name="csv" rows="5" spellcheck="false" placeholder="sample_id,gene,mutation,frs"></textarea>
+      </details>
+      <div class="upload-actions">
+        <button type="submit" id="submit-btn">Run model scoring</button>
+        <a href="/example.csv">Download example CSV</a>
+      </div>
+    </form>
+  </section>
+  <section class="panel example-card" aria-labelledby="example-title">
+    <h2 id="example-title">Example result</h2>
+    <dl class="facts example-facts">
+      <div><dt>Catalogue call</dt><dd><span class="status status-{{ example.call }}">{{ example.call_label }}</span></dd></div>
+      <div><dt>Saved model score</dt><dd class="example-score">{{ "%.1f"|format(example.probability * 100) }}%</dd></div>
+      <div><dt>Lab finding</dt><dd>{{ example.phenotype }}</dd></div>
+    </dl>
+    <a class="button secondary" href="/result?sample_id={{ example_id|urlencode }}">Open example</a>
+  </section>
+</div>
+<details class="more-examples">
+  <summary>Choose another recorded sample</summary>
+  <form action="/result" method="get" class="form-stack">
+    <label for="sample">Recorded sample</label>
+    <select id="sample" name="sample_id" required>
+      <option value="">Select a sample</option>
+      {% for row in roster %}<option value="{{ row.sample_id }}">{{ row.call_label }} · {{ row.sample_id }}</option>{% endfor %}
+    </select>
+    <button type="submit" class="secondary">Open saved result</button>
+  </form>
+</details>
+{% endblock %}

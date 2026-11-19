@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-heading">
+  <h1>Performance archive</h1>
+  <p>Browse saved experiments, acceptance checks, and the tables that support them.</p>
+</header>
+<nav class="tabs study-links" aria-label="Study resources"><a href="/model-card">Model card</a><a href="/priority">Variant priorities</a><a href="/about">About Discern</a></nav>
+<form class="toolbar report-picker" method="get" action="/performance">
+  <div class="field"><label for="report">Evaluation report</label>
+    <select id="report" name="report">
+      {% for key, approach in approaches.items() %}
+        <optgroup label="{{ approach.name }}">
+          {% for test in approach.tests %}{% set option = key ~ '/' ~ test %}
+          <option value="{{ option }}"{% if option == report %} selected{% endif %}>{{ test|replace('_', ' ') }}</option>
+          {% endfor %}
+        </optgroup>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit">Open report</button>
+</form>
+<section class="panel report-summary" aria-labelledby="report-heading">
+  <div class="section-heading">
+    <h2 id="report-heading">{{ record.test|replace('_', ' ') }}</h2>
+    <span class="status {{ 'status-S' if record.pass_all is sameas true else 'status-R' if record.pass_all is sameas false else '' }}">{{ "Acceptance passed" if record.pass_all is sameas true else "Acceptance failed" if record.pass_all is sameas false else "Descriptive" }}</span>
+  </div>
+  {% if record.method %}<p>{{ record.method }}</p>{% endif %}
+  {% if record.caveats %}<p class="fine">{{ record.caveats }}</p>{% endif %}
+</section>
+<section class="section" aria-labelledby="observed-title">
+  <h2 id="observed-title">Observed metrics</h2>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="Observed metrics">
+    <table><thead><tr><th scope="col">Metric</th><th scope="col" class="num">Observed</th><th scope="col" class="num">Expected</th><th scope="col" class="num">Tolerance</th></tr></thead>
+      <tbody>{% for metric, value in record.observed.items() %}
+        {% if value is not mapping and (value is string or not value is iterable) %}
+          <tr><th scope="row">{{ metric }}</th><td class="num">{{ value if value is not none else "—" }}</td><td class="num">{{ record.expected.get(metric, "—") }}</td><td class="num">{{ record.tolerance.get(metric, "—") }}</td></tr>
+        {% endif %}
+      {% endfor %}</tbody>
+    </table>
+  </div>
+</section>
+{% if names %}
+  <section class="section" aria-labelledby="table-title">
+    <div class="section-heading"><h2 id="table-title">Supporting tables</h2></div>
+    <nav class="tabs" aria-label="Supporting tables">
+      {% for name in names %}<a href="/performance?report={{ report|urlencode }}&amp;table={{ name|urlencode }}"{% if name == table %} aria-current="page"{% endif %}>{{ name|replace('.csv', '')|replace('_', ' ') }}</a>{% endfor %}
+    </nav>
+    {% set table_label = table %}{% include "table.html" %}
+    {% if page > 1 or more %}<nav class="pager" aria-label="Supporting table pages">{% if page > 1 %}<a href="/performance?report={{ report|urlencode }}&amp;table={{ table|urlencode }}&amp;page={{ page - 1 }}">Previous</a>{% endif %}<span>Page {{ page }}</span>{% if more %}<a href="/performance?report={{ report|urlencode }}&amp;table={{ table|urlencode }}&amp;page={{ page + 1 }}">Next</a>{% endif %}</nav>{% endif %}
+  </section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-heading"><h1>Model card</h1><p>Intended use, evidence, and the limits of the archived evaluation.</p></header>
+<article class="prose">{% for heading, paragraphs in sections %}<section><h2>{{ heading }}</h2>{% for paragraph in paragraphs %}<p>{{ paragraph }}</p>{% endfor %}</section>{% endfor %}</article>
+{% endblock %}

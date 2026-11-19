@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} · Discern</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="shell">
+    <header class="topbar">
+      <div class="bar-inner">
+      <a class="brand" href="/" aria-label="Discern home"><span class="brand-mark" aria-hidden="true"></span>Discern</a>
+      <nav aria-label="Main navigation">
+        {% for key, href, label in [
+          ('home', '/', 'Check a sample'), ('queue', '/queue', 'Review queue'),
+          ('performance', '/performance', 'Study results')
+        ] %}
+          <a href="{{ href }}"{% if active == key %} aria-current="page"{% endif %}>{{ label }}</a>
+        {% endfor %}
+      </nav>
+      <span class="local-state">Offline archive</span>
+      </div>
+    </header>
+    <div class="notice-bar"><p class="research-notice">{{ banner }}</p></div>
+    <main class="sheet" id="content">
+      <div class="page">{% block content %}{% endblock %}</div>
+    </main>
+    <footer class="footer">
+      <span>Discern · Bedaquiline research archive</span>
+      <nav aria-label="Study resources"><a href="/model-card">Model card</a><a href="/priority">Variant priorities</a><a href="/about">About</a></nav>
+    </footer>
+  </div>
+</body>
+</html>

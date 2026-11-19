@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-heading">
+  <h1>Variant evidence priorities</h1>
+  <p>Archived variant sets ordered by carrier count among unresolved cross-validation cases.</p>
+</header>
+<dl class="summary-strip">
+  <div><dt>Unresolved isolates</dt><dd>{{ overview.n_U }}</dd></div>
+  <div><dt>Distinct variant sets</dt><dd>{{ overview.n_distinct_sets }}</dd></div>
+</dl>
+{% set table_label = "Unresolved variant sets by carrier count" %}
+{% set columns = ["Variant set", "Carriers", "Resistant carriers", "Resistant fraction"] %}
+{% include "table.html" %}
+{% if page > 1 or more %}<nav class="pager" aria-label="Variant table pages">{% if page > 1 %}<a href="/priority?page={{ page - 1 }}">Previous</a>{% endif %}<span>Page {{ page }}</span>{% if more %}<a href="/priority?page={{ page + 1 }}">Next</a>{% endif %}</nav>{% endif %}
+{% endblock %}

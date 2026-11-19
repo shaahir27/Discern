@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-heading"><h1>{{ title }}</h1><p>{{ detail }}</p></header>
+<a class="button secondary" href="{{ '/performance' if active == 'performance' else '/' }}">Return to {{ 'performance' if active == 'performance' else 'replay' }}</a>
+{% endblock %}

@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-head">
+  <p class="tag">Case study result</p>
+  <h1 id="title">{{ record.sample_id }}</h1>
+</header>
+
+{% if upload_quality %}
+<!-- Upload Quality Section (Separated from resistance results) -->
+<section class="panel upload-quality-panel" aria-labelledby="upload-quality-heading" style="margin-bottom: 2rem;">
+  <div class="quality-header">
+    <div>
+      <h2 id="upload-quality-heading" class="quality-title">Upload quality</h2>
+      <p class="quality-subtitle">Calculated live from uploaded CSV rows prior to scoring. Kept separate from archived resistance results.</p>
+    </div>
+    <div class="quality-score-badge {% if upload_quality.completeness_score == 100 %}quality-pass{% else %}quality-warn{% endif %}">
+      <span class="score-num">{{ "%.1f"|format(upload_quality.completeness_score) }}%</span>
+      <span class="score-label">Completeness</span>
+    </div>
+  </div>
+
+  <div class="quality-stats-grid">
+    <div class="quality-stat-box">
+      <span class="stat-label">Total rows</span>
+      <span class="stat-value">{{ upload_quality.total_rows }}</span>
+    </div>
+    <div class="quality-stat-box">
+      <span class="stat-label">Valid complete</span>
+      <span class="stat-value">{{ upload_quality.valid_rows }}</span>
+    </div>
+    <div class="quality-stat-box">
+      <span class="stat-label">Missing values</span>
+      <span class="stat-value {% if upload_quality.missing_count > 0 %}stat-warn{% endif %}">{{ upload_quality.missing_count }}</span>
+    </div>
+    <div class="quality-stat-box">
+      <span class="stat-label">Duplicate rows</span>
+      <span class="stat-value {% if upload_quality.duplicate_count > 0 %}stat-warn{% endif %}">{{ upload_quality.duplicate_count }}</span>
+    </div>
+    <div class="quality-stat-box">
+      <span class="stat-label">Format issues</span>
+      <span class="stat-value {% if upload_quality.formatting_count > 0 %}stat-warn{% endif %}">{{ upload_quality.formatting_count }}</span>
+    </div>
+  </div>
+
+  {% if upload_quality.issues %}
+    <details class="quality-issues-details">
+      <summary>View {{ upload_quality.issues|length }} flagged quality issue(s)</summary>
+      <div class="table-wrap">
+        <table class="data-table quality-table">
+          <thead>
+            <tr>
+              <th>Line</th>
+              <th>Field</th>
+              <th>Issue Type</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for issue in upload_quality.issues %}
+            <tr>
+              <td>Line {{ issue.line }}</td>
+              <td><code>{{ issue.field }}</code></td>
+              <td><span class="issue-pill issue-{{ issue.type }}">{{ issue.type }}</span></td>
+              <td>{{ issue.message }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  {% else %}
+    <p class="quality-clean-note">✓ 100% complete. All required fields present and valid. No duplicates or formatting errors.</p>
+  {% endif %}
+</section>
+{% endif %}
+
+<!-- Archived / Live Resistance Results Section -->
+<div class="result-overview">
+  <section class="panel verdict" aria-labelledby="verdict">
+    <h2 id="verdict">Catalogue call {% if record.tier_a and record.tier_a.epistatic_veto_applied %}<span class="badge" style="font-size: 0.75rem; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 9999px; vertical-align: middle;">Epistatic Veto Active</span>{% endif %}</h2>
+    <p class="call-display call-{{ record.call }}">{{ record.call_label }}</p>
+    <p>{% if record.tier_a and record.tier_a.epistatic_veto_applied %}The catalogue R call was downgraded under the epistatic pump-inactivation rule because <em>mmpL5</em> contains an inactivating mutation.{% elif record.call == "U" %}The catalogue left this case unresolved.{% elif record.call == "R" %}The catalogue flagged this case for resistance.{% else %}The catalogue recorded this case as susceptible.{% endif %}</p>
+    <dl class="facts">
+      <div><dt>Recorded lab result</dt><dd>{{ record.phenotype }}</dd></div>
+    </dl>
+    {% if record.call != "U" and record.call_label != record.phenotype and not record.is_live %}
+      <p class="disagreement">The lab finding differed from the catalogue call in this study case.</p>
+    {% endif %}
+  </section>
+  <section class="panel score-panel" aria-labelledby="probability">
+    <h2 id="probability">Saved model score</h2>
+    {% if record.probability is number %}
+    <strong class="reading">{{ "%.1f"|format(record.probability * 100) }}%</strong>
+    <meter min="0" max="1" value="{{ record.probability }}" aria-labelledby="probability">{{ record.probability }}</meter>
+    <p>{% if record.is_live %}Live model estimated probability of bedaquiline resistance at {{ "%.1f"|format(prevalence * 100) }}% prevalence.{% else %}Estimated probability of resistance in this study case. The catalogue sets the call independently of this score.{% endif %}</p>
+    {% else %}<p>No model score was saved for this case.</p>{% endif %}
+  </section>
+</div>
+
+{% if record.warnings %}
+<section class="panel warnings-panel" aria-labelledby="warnings-title" style="margin-top: 1.5rem;">
+  <h2 id="warnings-title" style="font-size: 1.15rem; margin-bottom: 0.75rem;">Biological mechanism & clinical guidance</h2>
+  <div class="warnings-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+    {% for w in record.warnings %}
+      {% if w == "EPISTATIC_PUMP_INACTIVATION" or (record.tier_a and record.tier_a.epistatic_veto_applied) %}
+        <div class="alert alert-info" style="background: rgba(30, 144, 255, 0.1); border-left: 4px solid #1e90ff; padding: 0.75rem 1rem; border-radius: 4px;">
+          <strong>⚡ Epistatic Pump Inactivation Veto</strong>
+          <p style="margin: 0.25rem 0 0; font-size: 0.9rem;">
+            This isolate carries an <em>Rv0678</em> mutation, but the efflux pump gene <em>mmpL5</em> contains an inactivating frameshift or nonsense mutation. 
+            Because the MmpS5-MmpL5 efflux pump protein cannot assemble, bedaquiline cannot be extruded. In clinical studies, <strong>97.6% (41/42)</strong> of such strains test phenotypically susceptible.
+          </p>
+        </div>
+      {% elif w == "HETERORESISTANCE_SUBCLONAL" %}
+        <div class="alert alert-warning" style="background: rgba(255, 165, 0, 0.1); border-left: 4px solid #ffa500; padding: 0.75rem 1rem; border-radius: 4px;">
+          <strong>⚠️ Subclonal Heteroresistance Detected (0.10 ≤ FRS &lt; 0.75)</strong>
+          <p style="margin: 0.25rem 0 0; font-size: 0.9rem;">
+            Contributing variant is present as a minority allele. Heteroresistant sub-clones often test susceptible on 14-day microtiter plates (UKMYC, ECOFF 0.25 mg/L) but grow out as resistant in 42-day liquid culture (MGIT960). Liquid culture DST confirmation is advised.
+          </p>
+        </div>
+      {% elif w == "PUMP_DAMAGE_MODIFIER" and not (record.tier_a and record.tier_a.epistatic_veto_applied) and "EPISTATIC_PUMP_INACTIVATION" not in record.warnings %}
+        <div class="alert alert-secondary" style="background: rgba(128, 128, 128, 0.1); border-left: 4px solid #888; padding: 0.75rem 1rem; border-radius: 4px;">
+          <strong>Pump Damage Modifier</strong>: Isolate carries co-occurring variants in <em>Rv0678</em> and <em>mmpL5</em>.
+        </div>
+      {% elif w == "MINOR_ALLELE_ONLY" %}
+        <div class="alert alert-secondary" style="background: rgba(128, 128, 128, 0.1); border-left: 4px solid #888; padding: 0.75rem 1rem; border-radius: 4px;">
+          <strong>Minor Allele Only</strong>: All contributing mutations have read support under 90%.
+        </div>
+      {% elif w == "NOVEL_VARIANT" %}
+        <div class="alert alert-info" style="background: rgba(70, 130, 180, 0.1); border-left: 4px solid #4682b4; padding: 0.75rem 1rem; border-radius: 4px;">
+          <strong>Novel Variant</strong>: One or more variants have not been previously observed in the public training cohort.
+        </div>
+      {% elif w == "LOW_EVIDENCE" %}
+        <div class="alert alert-secondary" style="background: rgba(128, 128, 128, 0.1); border-left: 4px solid #888; padding: 0.75rem 1rem; border-radius: 4px;">
+          <strong>Low Evidence</strong>: Variant has fewer than 10 recorded carriers in the evidence store.
+        </div>
+      {% elif w == "MODEL_DISAGREES" %}
+        <div class="alert alert-warning" style="background: rgba(220, 53, 69, 0.1); border-left: 4px solid #dc3545; padding: 0.75rem 1rem; border-radius: 4px;">
+          <strong>Model/Catalogue Disagreement</strong>: Statistical model probability strongly diverges from the deterministic catalogue call.
+        </div>
+      {% elif w == "NO_VARIANT_INVISIBLE_RESISTANCE_POSSIBLE" %}
+        <div class="alert alert-secondary" style="background: rgba(128, 128, 128, 0.1); border-left: 4px solid #888; padding: 0.75rem 1rem; border-radius: 4px;">
+          <strong>Wild-Type Profile</strong>: No known core variants detected. Note that ~15.6% of clinical bedaquiline resistance is driven by alternative loci (e.g. <em>atpB</em>, <em>glpK</em>, or deep promoter deletions).
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="section" aria-labelledby="evidence">
+  <h2 id="evidence">Observed gene changes</h2>
+  <p>Study evidence shows how often samples with each change tested resistant to bedaquiline. The archive did not record which variants drove this call.</p>
+  {% if record.evidence %}
+  <div class="variant-cards">
+    {% for item in record.evidence|sort(attribute="variant") %}
+      {% set gene, mutation = item.variant.split("@", 1) %}
+      <article class="panel variant-card">
+        <h3><span class="variant-gene">{{ gene }}</span> <span class="variant-change">{{ mutation }}</span></h3>
+        <dl class="facts variant-facts">
+          <div><dt>Reads with this change</dt><dd>{{ "%.1f"|format(item.frs * 100) }}%</dd></div>
+          <div><dt>Resistant among carriers</dt><dd>{% if item.n_carriers %}<strong>{{ item.n_resistant }} / {{ item.n_carriers }}</strong>{% else %}No carrier evidence{% endif %}</dd></div>
+          {% if item.ci95_low is number and item.ci95_high is number %}
+            <div><dt>Uncertainty range</dt><dd>{{ "%.1f"|format(item.ci95_low * 100) }}–{{ "%.1f"|format(item.ci95_high * 100) }}%</dd></div>
+          {% endif %}
+        </dl>
+        {% if item.by_source %}
+          <details class="source-breakdown">
+            <summary>Resistant / carriers by source<span class="sr-only"> for {{ item.variant }}</span></summary>
+            <dl class="facts">
+              {% for source, counts in item.by_source.items() %}
+                <div><dt>{{ source }}</dt><dd>{{ counts.r }} / {{ counts.n }}</dd></div>
+              {% endfor %}
+            </dl>
+          </details>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+  <p class="fine">Carrier counts combine study sources. NICD included a higher share of resistant samples.</p>
+  {% else %}<p>No variant records accompany this sample.</p>{% endif %}
+</section>
+<details class="section panel">
+  <summary>Sample ID, source and prevalence estimates</summary>
+  <dl class="facts">
+    <div><dt>Sample ID</dt><dd class="id">{{ record.sample_id }}</dd></div>
+    <div><dt>Study source</dt><dd>{{ record.source }}</dd></div>
+    <div><dt>Study method</dt><dd>{{ record.mode if record.mode else mode }}</dd></div>
+    <div><dt>Validation fold</dt><dd>{{ record.fold }}</dd></div>
+    <div><dt>Resistance in the training fold</dt><dd>{{ "%.1f"|format(record.score_context.reference_prevalence * 100) }}%</dd></div>
+    <div><dt>Uncertainty for this score</dt><dd>{{ record.score_context.uncertainty_status|default('Not archived')|title }}</dd></div>
+  </dl>
+<section class="prevalence" aria-labelledby="prevalence-title">
+  <div>
+    <h2 id="prevalence-title">Prevalence and predictive values</h2>
+    <p>Explore catalogue-level estimates using the rates of each call across all study cases. Changing prevalence updates the calibrated resistance score.</p>
+    <form action="/result" method="get" class="form-stack">
+      <input type="hidden" name="sample_id" value="{{ record.sample_id }}">
+      <label for="prevalence">Assumed resistance prevalence <output id="prevalence-value" for="prevalence">{{ "%.1f"|format(prevalence * 100) }}%</output></label>
+      <input id="prevalence" type="range" min="0.001" max="0.5" step="0.001" name="prevalence" value="{{ prevalence }}" aria-describedby="prevalence-help">
+      <p class="fine" id="prevalence-help">The starting value is a placeholder for a laboratory estimate.</p>
+      <button type="submit" class="secondary">Update estimates</button>
+    </form>
+  </div>
+  <dl class="figures">
+    <div><dt>Correct among resistant calls</dt><dd>{{ "%.1f"|format(ppv * 100) }}%</dd></div>
+    <div><dt>Correct among susceptible calls</dt><dd>{{ "%.1f"|format(npv * 100) }}%</dd></div>
+  </dl>
+</section>
+</details>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-heading"><h1>About Discern</h1><p>An offline research archive for evaluating bedaquiline resistance in tuberculosis.</p></header>
+<article class="prose">
+  <section><h2>How the archive works</h2><p>Replay opens a recorded isolate with its saved catalogue call, laboratory phenotype, and out-of-fold model probability. Evidence cards show the observed carrier counts by source and their uncertainty.</p></section>
+  <section><h2>Review and reproduce</h2><p>Use Performance to explore the experiment registry and follow the interpretation and caveats in the model card. The review queue organizes unresolved examples for inspection.</p></section>
+  <section><h2>Data handling</h2><p>The app reads bundled results from this workspace. CSV review accepts recorded replay IDs and processes the list in memory.</p></section>
+</article>
+{% endblock %}

@@ -1,0 +1,9 @@
+<div class="table-scroll" tabindex="0" role="region" aria-label="{{ table_label }}">
+<table>
+  <thead><tr>{% for col in columns %}<th scope="col">{{ col }}</th>{% endfor %}</tr></thead>
+  <tbody>
+    {% for row in rows %}<tr>{% for value in row %}<td>{{ value if value != "" else "—" }}</td>{% endfor %}</tr>
+    {% else %}<tr><td colspan="{{ columns|length }}">No rows on this page.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
