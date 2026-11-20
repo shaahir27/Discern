@@ -84,7 +84,8 @@ for strategy in ("info_gain", "count", "random"):
     for K in KS:
         pct, nres, nrev = simulate(order, K)
         rows.append({"strategy": strategy, "K": K, "pct_U_resolved": pct,
-                     "n_resolved": nres, "n_samples_revealed": nrev})
+                     "n_resolved": nres, "n_samples_revealed": nrev,
+                     "n_unrevealed_counted_resolved": nres - nrev})
         obs[f"{strategy}_pct_K{K}"] = pct
 curves = pd.DataFrame(rows)
 obs.update({"total_U": total_U, "n_distinct_sets": int(len(set_df)),
@@ -95,19 +96,16 @@ top = top.reset_index()[["key", "n", "nR", "eig", "score", "prior_a", "prior_b"]
 
 write_result("voi_queue", "e15_label_reveal_sim", obs,
              tables={"resolution_curves": curves, "info_gain_ranking": top},
-             method="score(set)=n_U_carriers x expected beta-binomial entropy reduction after one label "
-                    "(prior from non-U firm evidence only). Retrospective reveal of top-K sets' labels; "
-                    "variant unlock via binomial-test proxy (background 0.1, alpha 0.05, min 3). "
-                    "Baselines: count-only, random (seed 1). K=1,2,5,10,20,50.",
-             interpretation=f"Info-gain vs count-only %U-resolved: K=10 {obs['info_gain_pct_K10']:.3f} vs "
-                            f"{obs['count_pct_K10']:.3f} (delta {obs['info_gain_minus_count_K10']:+.3f}); "
-                            f"K=50 {obs['info_gain_pct_K50']:.3f} vs {obs['count_pct_K50']:.3f} "
-                            f"(delta {obs['info_gain_minus_count_K50']:+.3f}).",
-             caveats="Retrospective, not prospective; assumes catalogued variants transfer across lineages. "
-                     "Variant unlock is a binomial-test proxy for catomatic strict_unlock. If info-gain barely "
-                     "beats count-only, that is a valid negative result. Priors exclude U labels (no leakage).",
+             method="Retrospective comparison of variant sets. K counts selected sets. Each selected "
+                    "set reveals every member's saved lab label. The simulated total resolved includes "
+                    "those directly revealed samples and unrevealed samples counted by the proxy.",
+             interpretation="The strategies compare equal numbers of variant sets. Those sets contain "
+                            "different numbers of samples.",
+             caveats="The comparison uses unequal numbers of sample labels at the same K. "
+                     "Unrevealed samples counted as resolved include cases the proxy can already "
+                     "count using firm-case evidence alone. These totals cannot establish gains "
+                     "at an equal lab testing budget or production catalogue performance.",
              reproduce="python eval/e15_voi.py",
-             supports="Value-of-information lab queue (novelty P-E15): prioritizes phenotyping by expected "
-                      "information per referral cleared.")
+             supports="Descriptive archive simulation. The resolution proxy does not amend the catalogue.")
 print(curves.pivot(index="K", columns="strategy", values="pct_U_resolved").to_string())
 print("info_gain - count: K10 %+.3f  K50 %+.3f" % (obs["info_gain_minus_count_K10"], obs["info_gain_minus_count_K50"]))

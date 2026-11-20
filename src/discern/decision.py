@@ -253,11 +253,11 @@ class Predictor:
             w.append("LOW_EVIDENCE")
         if mdf.IS_NULL.any():
             w.append("NULL_CALL")
-        has_rv = (mdf.GENE == "Rv0678").any()
+        has_rv = (contrib.GENE == "Rv0678").any()
         if float(a["mmpL5_LoF"].iloc[0]) > 0 and has_rv:
             w.append("PUMP_DAMAGE_MODIFIER")
-            if veto_fired or not (mdf.GENE == "atpE").any():
-                w.append("EPISTATIC_PUMP_INACTIVATION")
+        if veto_fired:
+            w.append("EPISTATIC_PUMP_INACTIVATION")
         if call == "S" and len(contrib) == 0:
             w.append("NO_VARIANT_INVISIBLE_RESISTANCE_POSSIBLE")
         if (call == "S" and p >= self.th["hi"]) or (call == "R" and p <= self.th["lo"]):

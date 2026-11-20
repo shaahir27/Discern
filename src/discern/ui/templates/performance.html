@@ -6,7 +6,8 @@
     'lr_model/e05_ablation': 'Which model inputs matter',
     'lr_model/e06_cross_source': 'Performance across study sources',
     'lr_model/e07_loso': 'Performance across study sites',
-    'prevalence_correction/e10_prevalence_shift': 'Adjusting for different resistance rates',
+    'prevalence_correction/e10_prevalence_shift': 'Adjusting scores with known target prevalence',
+    'voi_queue/e15_label_reveal_sim': 'Retrospective comparison of variant sets',
     'predictive_values/e13_ppv_npv': 'Predictive values by resistance rate'
 } %}
 {% set labels = {
@@ -45,8 +46,16 @@
   <section class="study-reading" aria-labelledby="report-heading">
     <div class="section-heading">
       <h2 id="report-heading">{{ report_titles.get(report, record.test|replace('_', ' ')|capitalize) }}</h2>
-      <span class="status {{ 'status-S' if record.pass_all is sameas true else 'status-R' if record.pass_all is sameas false else '' }}">{{ "Reproduction check passed" if record.pass_all is sameas true else "Reproduction check failed" if record.pass_all is sameas false else "Descriptive evaluation" }}</span>
+      <span class="status {{ 'status-S' if record.pass_all is sameas true else 'status-R' if record.pass_all is sameas false else '' }}">{{ "Saved metrics within tolerance" if record.pass_all is sameas true else "Saved metrics outside tolerance" if record.pass_all is sameas false else "Descriptive evaluation" }}</span>
     </div>
+
+    {% set context_visible = record.test in ("e10_prevalence_shift", "e15_label_reveal_sim", "e14_certificate_audit") %}
+    {% if record.test == "e14_certificate_audit" %}
+      <p class="fine study-context">The audit failed to certify susceptible calls at its target. The bounds also failed to transfer across study sources.</p>
+    {% endif %}
+    {% if context_visible and record.caveats %}
+      <p class="fine study-context">{{ record.caveats }}</p>
+    {% endif %}
 
     {% if catalogue_overview %}
       <section class="cohort-comparison" aria-labelledby="comparison-title" data-cohort-comparison>
@@ -103,7 +112,13 @@
           {% for name in names %}<a href="/performance?report={{ report|urlencode }}&amp;table={{ name|urlencode }}#table-title"{% if name == table %} aria-current="page"{% endif %}>{{ name|replace('.csv', '')|replace('_', ' ') }}</a>{% endfor %}
         </nav>
         {% endif %}
-        {% set table_label = table %}{% include "table.html" %}
+        {% set table_label = table %}
+        {% if record.test == "e15_label_reveal_sim" and table == "resolution_curves.csv" %}
+          {% set column_labels = {"K": "Variant sets", "pct_U_resolved": "Fraction counted as resolved",
+             "n_resolved": "Total counted as resolved", "n_samples_revealed": "Lab labels revealed",
+             "n_unrevealed_counted_resolved": "Unrevealed counted as resolved"} %}
+        {% endif %}
+        {% include "table.html" %}
         {% if page > 1 or more %}<nav class="pager" aria-label="Supporting table pages">{% if page > 1 %}<a href="/performance?report={{ report|urlencode }}&amp;table={{ table|urlencode }}&amp;page={{ page - 1 }}#table-title">Previous</a>{% endif %}<span>Page {{ page }}</span>{% if more %}<a href="/performance?report={{ report|urlencode }}&amp;table={{ table|urlencode }}&amp;page={{ page + 1 }}#table-title">Next</a>{% endif %}</nav>{% endif %}
       </section>
     {% endif %}
@@ -112,7 +127,7 @@
       <details class="report-audit panel study-method">
         <summary>Study method and limitations</summary>
         {% if record.method %}<p>{{ record.method }}</p>{% endif %}
-        {% if record.caveats %}<p>{{ record.caveats }}</p>{% endif %}
+        {% if record.caveats and not context_visible %}<p>{{ record.caveats }}</p>{% endif %}
       </details>
     {% endif %}
   </section>

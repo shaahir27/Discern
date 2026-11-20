@@ -421,6 +421,8 @@ Descriptive · [Source JSON](../results/models/rf_tuned/e21_tuned_cv/results.jso
 
 Passed · [Source JSON](../results/models/structure_test/e08_novel_variant/results.json)
 
+DNA chains are a modeled complex. Grantham matrix captures radical vs conservative substitutions. Exploratory subset only (n=312); balanced class weighting deviates from production calibration.
+
 | Metric | Observed | Expected | Tolerance |
 |---|---|---|---|
 | `n_samples` | 312 | — | — |
@@ -428,6 +430,8 @@ Passed · [Source JSON](../results/models/structure_test/e08_novel_variant/resul
 | `n_resistant` | 169 | — | — |
 | `auc_region_count` | 0.5451442049075186 | — | — |
 | `auc_plus_structure` | 0.5932469896966939 | 0.57 | 0.08 |
+| `auc_plus_biophysics` | 0.6876318947324864 | — | — |
+| `auc_full_novel` | 0.6693631811975007 | — | — |
 
 ## svm_model/e05b_model_cv
 
@@ -501,6 +505,8 @@ Passed · [Source JSON](../results/approaches/catalogue/e03_s1_catalogue_cv/resu
 ## conformal/e14_certificate_audit
 
 Descriptive · [Source JSON](../results/approaches/conformal/e14_certificate_audit/results.json)
+
+Patient grouping => effective n ~ patients; marginal split-conformal validity only, not i.i.d. R-zone bound is wide (~170 positives/fold). Prevalence-weighted certificate is approximate at an estimated user prevalence (Barber 2022 coverage-gap). Exchangeability breaks across labs — violations are a RESULT, motivating the per-lab prevalence slider.
 
 | Metric | Observed | Expected | Tolerance |
 |---|---|---|---|
@@ -821,6 +827,8 @@ Passed · [Source JSON](../results/approaches/predictive_values/e13_ppv_npv/resu
 
 Passed · [Source JSON](../results/approaches/prevalence_correction/e10_prevalence_shift/results.json)
 
+This comparison used known target prevalence. It does not validate estimating prevalence from an unlabeled batch or transferring calibration to a new lab.
+
 | Metric | Observed | Expected | Tolerance |
 |---|---|---|---|
 | `CRyPTIC_to_NICD_ece_raw` | 0.5684131836680266 | 0.568 | 0.03 |
@@ -904,6 +912,8 @@ Descriptive · [Source JSON](../results/approaches/ship_decision/e19_ladder_summ
 ## voi_queue/e15_label_reveal_sim
 
 Descriptive · [Source JSON](../results/approaches/voi_queue/e15_label_reveal_sim/results.json)
+
+The comparison uses unequal numbers of sample labels at the same K. Unrevealed samples counted as resolved include cases the proxy can already count using firm-case evidence alone. These totals cannot establish gains at an equal lab testing budget or production catalogue performance.
 
 | Metric | Observed | Expected | Tolerance |
 |---|---|---|---|

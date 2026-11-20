@@ -1,0 +1,5 @@
+docs/MODEL_CARD.md text eol=lf
+src/discern/api/app.py text eol=lf
+src/discern/importers.py text eol=lf
+src/discern/ui/static/app.js text eol=lf
+src/discern/ui/templates/*.html text eol=lf

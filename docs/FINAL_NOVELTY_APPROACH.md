@@ -20,13 +20,10 @@ failures, and claims "beat" ONLY on identical or reconstructable data.
 
 Three pillars, one engine:
 
-1. **Mechanism-aware interpretation (biology).** A truncation is not a verdict. Where the
-   protein breaks (DNA-binding domain vs tail) and whether an alternative reading frame
-   rescues it decide if Rv0678 is really disabled (Snobre 2024). And if the efflux pump
-   itself is broken, an Rv0678 "resistance" mutation is harmless (Vargas 2021). Current
-   catalogues — including the latest regression re-grading — **pool all loss-of-function
-   variants per gene into one bucket** (Kulkarni 2025). Nobody ships position/reading-frame
-   reasoning + an epistatic downgrade in a deployed predictor. **Verified white space.**
+1. **Mechanism-aware interpretation (biology).** Published work examines why some
+   truncations have differing laboratory results and how gene interactions affect
+   interpretation. Discern reports its archived evaluation of a downgrade to laboratory
+   referral. [Snobre et al.](https://doi.org/10.1128/aac.00854-24) · [Schön et al.](https://doi.org/10.1128/aac.00266-25)
 
 2. **External proof (evaluation).** No bedaquiline genotypic tool has been validated on a
    genuinely external, non-overlapping multi-cohort set. The "external" benchmark in the
@@ -76,18 +73,13 @@ Rv0678 coordinates: **NC_000962.3:778,990–779,487, + strand, 498 nt, GTG start
 1. **Position/reading-frame-aware truncation features in a predictive model + decision layer.**
    Snobre 2024 is descriptive/structural; Sonnenkalb graded truncations by MIC not position;
    Rojas-Fuertes 2026 is missense-only (explicitly cannot handle LoF); Kulkarni pools LoF.
-   No published predictor uses first-stop codon position or ARF-conservation as features.
-   *Wording:* "first predictive integration of Snobre-style truncation-position/ARF reasoning
-   into a bedaquiline triage decision layer (to our knowledge)."
+   Discern evaluates truncation position and alternative reading frame annotations in
+   its archived research.
 
-2. **Audited decision-layer epistatic pump veto with allele linkage.** 
-   While TB-Profiler v6.6.5 (Sept 2026) and WHO Mutation Catalogue 3rd Edition (2026) codified
-   the biological principle that mmpL5/mmpS5 LoF overrides Rv0678 resistance, Discern implements
-   the first clinically calibrated triage integration: enforcing strict subclonal allele-frequency
-   linkage (frs(mmpL5/S5) >= frs(Rv0678) - tolerance), protecting atpE target resistance, and
-   downgrading to lab referral ('U') rather than a false-sense-of-security susceptible call.
-   *Wording:* "an audited decision-layer epistatic downgrade rule aligned with WHO Catalogue v3
-   and TB-Profiler v6.6.5." **Safety:** mmpL5 LoF calls are noisy (repeat-rich gene).
+2. **Archived evaluation of an epistatic downgrade to laboratory referral.**
+   WHO's third mutation catalogue and TB-Profiler are relevant prior art. Discern's E16 report
+   documents the outcomes of its archived rule. Similar read fractions alone do not establish
+   that variants are on the same genome. [WHO catalogue](https://www.who.int/publications/i/item/9789240124653) · [TB-Profiler paper](https://doi.org/10.1186/s13073-026-01767-y)
    Require HIGH-confidence LoF (frameshift/stop, excluding homopolymers); audit every flip;
    NEVER veto atpE-driven R (target-site resistance is pump-independent).
 
@@ -100,10 +92,10 @@ Rv0678 coordinates: **NC_000962.3:778,990–779,487, + strand, 498 nt, GTG start
    cross-lineage sens/spec, patient-grouped CV as primary, abstention/coverage curves,
    external sens/spec. No competitor reports these (§5).
 
-5. **Conformal risk-controlled abstention for TB triage + prevalence-weighted certificates;
-   information-gain lab queue.** (NOVELTY_UPGRADES.md §§1–2; prior art = conformal-AMR for
-   *E. coli* mBio 2025, lab-in-the-loop for drug discovery — neither for TB triage/catalogue
-   growth.)
+5. **Archived analyses of abstention and queue evidence.** E14 did not certify susceptible
+   calls at its target, and bounds failed across sources. E15 compared the same number of
+   variant sets, which exposed different numbers of sample labels across strategies.
+   [E14](../results/approaches/conformal/e14_certificate_audit/REPORT.md) · [E15](../results/approaches/voi_queue/e15_label_reveal_sim/REPORT.md)
 
 ---
 

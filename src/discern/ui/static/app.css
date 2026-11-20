@@ -181,9 +181,13 @@ meter::-moz-meter-bar { background: #cae3d0; }
 .variant-change { color: var(--muted); font-family: ui-monospace, Consolas, monospace; font-size: .89rem; }
 .variant-facts { margin: 10px 0 5px; }
 .variant-facts dd { font-variant-numeric: tabular-nums; }
-.source-breakdown { font-size: .86rem; }
-.source-breakdown summary { min-height: 44px; padding-block: 10px; color: var(--accent); }
-.source-breakdown dl { margin: 0; }
+.cohort-evidence { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 10px 0 0; }
+.cohort-evidence > div { display: grid; gap: 3px; padding: 8px 0 0; }
+.cohort-evidence dt, .cohort-evidence-empty { color: var(--muted); font-size: .86rem; }
+.cohort-evidence dd { text-align: left; font-variant-numeric: tabular-nums; }
+.pooled-evidence { font-size: .86rem; }
+.pooled-evidence summary { min-height: 44px; padding-block: 10px; color: var(--accent); }
+.pooled-evidence dl { margin: 0; }
 @media (prefers-reduced-motion: no-preference) {
   .variant-cards { animation: show-evidence 180ms cubic-bezier(.23, 1, .32, 1); }
   @keyframes show-evidence { from { opacity: .65; transform: translateY(4px); } }
@@ -754,6 +758,7 @@ thead th.num { text-align: right; }
 .report-select-bar .field { flex: 1 1 22rem; max-width: 35rem; }
 .report-select-bar select { text-overflow: ellipsis; }
 .study-reading .section-heading { flex-wrap: wrap; margin-bottom: 14px; }
+.study-context { color: var(--muted); margin-bottom: 12px; max-width: 78ch; }
 .report-audit { padding: 13px 16px; }
 .report-audit summary { color: var(--accent); }
 .study-method { margin-top: 16px; }

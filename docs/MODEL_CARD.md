@@ -16,7 +16,11 @@ Cohort composition and susceptibility-testing methods affect how estimates trans
 
 Patient-grouped cross-validation gave the golden catalogue 79.24% sensitivity and 98.35% specificity among firm calls (E03). The calibrated F2 logistic regression had ROC AUC 0.9085 and average precision 0.6836 (E04).
 
-The audited catalogue downgrade changed 41 S1 calls to lab referral, including 2 phenotypically resistant isolates (E16). The epistatic downgrade rule enforces subclonal allele-frequency linkage checking (FRS(mmpL5/S5) >= FRS(Rv0678) - 0.20), aligning with WHO Mutation Catalogue 3rd Edition (2026) and TB-Profiler v6.6.5. Observed frameshift susceptibility is evaluated in light of active debates regarding laboratory MIC shifts (Snobre et al., AAC 2024; Schön et al., AAC 2025), while unresolved promoter mutations such as Rv0678@c-11a represent borderline low-level MIC shifts (Köser et al., ERJ 2024) requiring phenotypic confirmation.
+The audited catalogue downgrade changed 41 S1 calls to lab referral, including 2 phenotypically resistant isolates (E16).
+
+E16 evaluated the archived cohort. It provides no panel-specific false-resistant counts. Similar read fractions do not establish that two variants occur on the same genome.
+
+Snobre et al. (AAC, 2024) reported susceptible phenotypes for some Rv0678 frameshifts. Schön et al. (AAC, 2025) highlighted systematic differences in MIC measurements across laboratories. Published work describes the c-11a promoter variant in the context of bedaquiline hypersusceptibility (Köser et al., ERJ, 2024). Discern's unresolved calls require laboratory confirmation.
 
 KM includes 792 non-overlapping isolates with 35 resistant. The archived model AUC was 0.8682. The cohort is a sensitivity analysis with medium-quality labels and undocumented assay and critical concentration.
 

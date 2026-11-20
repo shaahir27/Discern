@@ -3,7 +3,7 @@
 {% set counts = panels_data.reference_counts %}
 <header class="page-heading">
   <h1>Sequencing panel coverage</h1>
-  <p>Compare the genes each assay targets. This is a coverage audit of the archived cohort.</p>
+  <p>Compare the configured targets for each assay.</p>
 </header>
 <section aria-labelledby="panels-title">
   <div class="section-heading">
@@ -21,7 +21,7 @@
       <thead><tr>
         <th scope="col">Assay</th>
         {% for gene in ['Rv0678', 'atpE', 'pepQ', 'mmpL5', 'mmpS5'] %}<th scope="col">{{ gene }}</th>{% endfor %}
-        <th scope="col" class="num"><abbr title="Variant allele fraction">VAF</abbr> floor</th><th scope="col" class="num">Known-locus coverage</th>
+        <th scope="col" class="num"><abbr title="Variant allele fraction">VAF</abbr> floor</th>
       </tr></thead>
       <tbody>
         {% for key, panel in panels_data.panels.items() %}
@@ -30,7 +30,6 @@
             <th scope="row"><strong>{{ panel.panel_label }}</strong><span class="cell-detail">{{ panel.platform|capitalize }}</span></th>
             {% for gene in ['Rv0678', 'atpE', 'pepQ', 'mmpL5', 'mmpS5'] %}<td><span class="coverage-cell {{ 'covered' if gene in covered else 'uncovered' }}">{{ "Covered" if gene in covered else "Outside panel" }}</span></td>{% endfor %}
             <td class="num">{{ "%.0f"|format(panel.vaf_floor * 100) }}%</td>
-            <td class="num observed-value">{{ "%.1f"|format(panel.known_locus_sensitivity * 100) }}%</td>
           </tr>
         {% endfor %}
       </tbody>
@@ -40,8 +39,7 @@
 <div class="reading-layout panel-footnote">
   <section class="prose" aria-labelledby="panel-limits">
     <h2 id="panel-limits">Coverage limits</h2>
-    <p>{{ panels_data.caveat }}</p>
-    <p>The known-locus column uses the archived resistant isolates with a recorded variant in a core locus.</p>
+    <p>These are configured assay profiles. The archive lacks validated panel-specific sensitivity and false-resistant counts.</p>
   </section>
   <section class="context-aside">
     <h2>Reference cohort</h2>

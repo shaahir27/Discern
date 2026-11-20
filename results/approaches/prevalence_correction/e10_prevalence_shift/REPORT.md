@@ -1,8 +1,8 @@
-# E10 · Prevalence-shift correction
+# E10 · Calibration with known target prevalence
 
 > **Approach:** `prevalence_correction` · **Test:** `e10_prevalence_shift` · **PASS ✅**
 
-Calibrated probabilities do NOT transfer across prevalence unless corrected. NICD->CRyPTIC ECE 0.288->0.013; reverse improves less (only 83 CRyPTIC R).
+Adjusting to the observed prevalence improved ECE and Brier score in both archived comparisons.
 
 ## Metrics
 
@@ -18,13 +18,13 @@ Calibrated probabilities do NOT transfer across prevalence unless corrected. NIC
 | `NICD_to_CRyPTIC_brier_adj` | 0.0169 | 0.0170 | 0.0050 | ✅ |
 
 ## Method
-Cross-source OOF probabilities; odds-ratio prevalence correction (section 10); ECE (10 quantile bins) + Brier raw vs adjusted.
+Cross-source out-of-fold probabilities adjusted to known target prevalence. The target prevalence came from recorded lab labels. Calibration was measured using quantile-binned ECE and Brier score.
 
 ## Novelty claim
-Prevalence correction validated across labs (math is Saerens 2002; application here).
+Retrospective calibration comparison with known target prevalence.
 
 ## Caveats / negative results
-At low prevalence the PPV-80% R threshold is rarely reached — correct behaviour.
+This comparison used known target prevalence. It does not validate estimating prevalence from an unlabeled batch or transferring calibration to a new lab.
 
 ## Reproduce
 ```bash

@@ -64,11 +64,11 @@
     "NICD_to_CRyPTIC_brier_adj": true
   },
   "pass_all": true,
-  "method": "Cross-source OOF probabilities; odds-ratio prevalence correction (section 10); ECE (10 quantile bins) + Brier raw vs adjusted.",
-  "interpretation": "Calibrated probabilities do NOT transfer across prevalence unless corrected. NICD->CRyPTIC ECE 0.288->0.013; reverse improves less (only 83 CRyPTIC R).",
-  "caveats": "At low prevalence the PPV-80% R threshold is rarely reached — correct behaviour.",
+  "method": "Cross-source out-of-fold probabilities adjusted to known target prevalence. The target prevalence came from recorded lab labels. Calibration was measured using quantile-binned ECE and Brier score.",
+  "interpretation": "Adjusting to the observed prevalence improved ECE and Brier score in both archived comparisons.",
+  "caveats": "This comparison used known target prevalence. It does not validate estimating prevalence from an unlabeled batch or transferring calibration to a new lab.",
   "reproduce": "python eval/e10_prevalence_shift.py",
-  "supports": "Prevalence correction validated across labs (math is Saerens 2002; application here).",
+  "supports": "Retrospective calibration comparison with known target prevalence.",
   "csv_files": [
     "prevalence_shift.csv"
   ],

@@ -1,5 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
+{% set catalogue_failed = record.warnings and "CATALOGUE_EVALUATION_FAILED" in record.warnings %}
+{% set review_rule_applied = record.tier_a and record.tier_a.epistatic_veto_applied %}
+{% set call_roles = {"driving_R": "supports Resistant", "driving_U": "supports referral"} %}
+{% set drivers = [] %}
+{% if record.tier_a and record.tier_a.reason_codes and not catalogue_failed and not review_rule_applied %}
+  {% set drivers = record.tier_a.reason_codes|selectattr("role", "in", call_roles)|list %}
+{% endif %}
 <article class="case-report">
   <header class="page-heading case-heading">
     {% if batch_id %}<a class="breadcrumb" href="/queue?batch={{ batch_id|urlencode }}">Review upload</a>{% else %}<a class="breadcrumb" href="/queue">Study cases</a>{% endif %}
@@ -12,7 +19,17 @@
       <p class="readout-label">Catalogue call</p>
       <h2 class="call-display call-{{ record.call }}">{{ record.call_label }}</h2>
       {% if record.call == "U" %}
-        <p>The catalogue left this sample unresolved. Send it for laboratory confirmation.</p>
+        {% if not record.is_live %}
+          <p class="referral-reason">The archive records the referral outcome. The reason was not saved.</p>
+        {% elif catalogue_failed %}
+          <p class="referral-reason">The catalogue could not evaluate the reported profile.</p>
+        {% elif review_rule_applied %}
+          <p class="referral-reason">An additional review rule changed the catalogue call to a referral.</p>
+        {% elif drivers %}
+          <p class="referral-reason">The catalogue marked at least one reported variant as unresolved.</p>
+        {% else %}
+          <p class="referral-reason">The catalogue referred this profile for laboratory confirmation.</p>
+        {% endif %}
       {% elif record.call == "R" %}
         <p>The catalogue flagged this sample for laboratory confirmation.</p>
       {% else %}
@@ -35,39 +52,50 @@
     </div>
   </section>
 
-  {% set call_roles = {"driving_R": "supports Resistant", "driving_U": "supports referral", "vetoed_R_to_U": "referred by catalogue rule"} %}
-  {% if record.tier_a and record.tier_a.reason_codes %}
-    {% set drivers = record.tier_a.reason_codes|selectattr("role", "in", call_roles)|list %}
-    {% if drivers %}
-      <div class="driver-strip">
-        <strong>Call drivers</strong>
-        {% for driver in drivers %}<span><code>{{ driver.variant }}</code> {{ call_roles[driver.role] }}</span>{% endfor %}
-      </div>
-    {% endif %}
+  {% if drivers %}
+    <div class="driver-strip">
+      <strong>Call drivers</strong>
+      {% for driver in drivers %}<span><code>{{ driver.variant }}</code> {{ call_roles[driver.role] }}</span>{% endfor %}
+    </div>
   {% endif %}
 <section class="case-evidence" aria-labelledby="evidence">
   <h2 id="evidence">Observed gene changes</h2>
-  <p>Each entry shows how common the change was in this sample and what the archived lab results showed. {% if not record.is_live %}The archive did not record which variants drove this call.{% endif %}</p>
   {% if record.evidence %}
+  <p>Archived carrier counts show resistant lab results by study source. NICD included a higher share of resistant isolates.{% if not record.is_live and record.call != "U" %} The archive did not record which variants drove this call.{% endif %}</p>
+  {% if record.evidence|length > 1 %}
+    <p class="fine">This file does not show whether these variants are on the same genome.</p>
+  {% endif %}
   <div class="variant-cards">
-    {% for item in record.evidence|sort(attribute="variant") %}
+    {% set by_name = record.evidence|sort(attribute="variant") %}
+    {% set with_counts = by_name|selectattr("n_carriers")|list %}
+    {% set without_counts = by_name|rejectattr("n_carriers")|list %}
+    {% for item in with_counts + without_counts %}
       {% set gene, mutation = item.variant.split("@", 1) %}
       <article class="panel variant-card">
         <h3><span class="variant-gene">{{ gene }}</span> <span class="variant-change">{{ mutation }}</span></h3>
+        {% if item.by_source %}
+          <dl class="facts cohort-evidence">
+            {% for source, counts in item.by_source.items() %}
+              <div>
+                <dt>{{ source }}</dt>
+                <dd>{% if counts.n %}<strong>{{ counts.r }} / {{ counts.n }}</strong>{% else %}No carriers recorded{% endif %}</dd>
+              </div>
+            {% endfor %}
+          </dl>
+        {% else %}
+          <p class="cohort-evidence-empty">No carrier evidence in the archive.</p>
+        {% endif %}
         <dl class="facts variant-facts">
           <div><dt>Reads with this change</dt><dd>{{ "%.1f"|format(item.frs * 100) }}%</dd></div>
-          <div><dt>Resistant among carriers</dt><dd>{% if item.n_carriers %}<strong>{{ item.n_resistant }} / {{ item.n_carriers }}</strong>{% else %}No carrier evidence{% endif %}</dd></div>
-          {% if item.ci95_low is number and item.ci95_high is number %}
-            <div><dt>95% confidence interval</dt><dd>{{ "%.1f"|format(item.ci95_low * 100) }}–{{ "%.1f"|format(item.ci95_high * 100) }}%</dd></div>
-          {% endif %}
         </dl>
-        {% if item.by_source %}
-          <details class="source-breakdown">
-            <summary>Lab results by study source<span class="sr-only"> for {{ item.variant }}</span></summary>
+        {% if item.n_carriers %}
+          <details class="pooled-evidence">
+            <summary>Pooled archive summary<span class="sr-only"> for {{ item.variant }}</span></summary>
             <dl class="facts">
-              {% for source, counts in item.by_source.items() %}
-                <div><dt>{{ source }}</dt><dd>{{ counts.r }} / {{ counts.n }}</dd></div>
-              {% endfor %}
+              <div><dt>Resistant among carriers</dt><dd>{{ item.n_resistant }} / {{ item.n_carriers }}</dd></div>
+              {% if item.ci95_low is number and item.ci95_high is number %}
+                <div><dt>95% confidence interval</dt><dd>{{ "%.1f"|format(item.ci95_low * 100) }}–{{ "%.1f"|format(item.ci95_high * 100) }}%</dd></div>
+              {% endif %}
             </dl>
           </details>
         {% endif %}
@@ -111,7 +139,6 @@
       </article>
     {% endfor %}
   </div>
-  <p class="fine">Carrier counts combine study sources. NICD included a higher share of resistant samples.</p>
   {% else %}<p>No variant records accompany this sample.</p>{% endif %}
 </section>
 {% if record.warnings %}
@@ -121,10 +148,8 @@
     {% for w in record.warnings %}
       {% if w == "EPISTATIC_PUMP_INACTIVATION" %}
         <div class="alert alert-info">
-          <strong>⚡ Epistatic Pump Inactivation Veto (WHO Catalogue v3 / TB-Profiler v6.6.5 Rule)</strong>
-          <p>
-            A catalogue rule flagged this profile for laboratory confirmation.
-          </p>
+          <strong>Catalogue review rule applied</strong>
+          <p>Discern referred this profile for laboratory confirmation.</p>
         </div>
       {% elif w == "HETERORESISTANCE_SUBCLONAL" %}
         <div class="alert alert-warning">
@@ -190,8 +215,10 @@
         <span class="pill-gene pill-mutated" title="{{ g }}: Retained variant detected"><strong>{{ g }}</strong><span>Variant reported</span></span>
       {% elif st == "wild_type" %}
         <span class="pill-gene pill-wt" title="{{ g }}: No retained variant reported"><strong>{{ g }}</strong><span>No variant reported</span></span>
+      {% elif st == "below_detection_limit" %}
+        <span class="pill-gene pill-wt" title="{{ g }}: Reported fraction below the reporting threshold"><strong>{{ g }}</strong><span>Below reporting threshold</span></span>
       {% else %}
-        <span class="pill-gene pill-blind" title="{{ g }}<span>Outside this test</span> by this assay"><strong>{{ g }}</strong><span>Outside this test</span></span>
+        <span class="pill-gene pill-blind" title="{{ g }}: Outside this assay"><strong>{{ g }}</strong><span>Outside this test</span></span>
       {% endif %}
     {% endfor %}
   </div>
@@ -207,6 +234,7 @@
     <form action="/result#estimates" method="get" class="form-stack">
       <input type="hidden" name="sample_id" value="{{ record.sample_id }}">
       {% if batch_id %}<input type="hidden" name="batch" value="{{ batch_id }}">{% endif %}
+      {% if replay_assay and replay_assay != "wgs" %}<input type="hidden" name="assay" value="{{ replay_assay }}">{% endif %}
       {% if prefilled_from_batch %}<p class="fine">Pre-filled from batch MLLS estimate. Use the slider to set a different prevalence.</p>{% endif %}
       <label for="prevalence">Assumed resistance prevalence <output id="prevalence-value" for="prevalence">{{ "%.1f"|format(prevalence * 100) }}%</output></label>
       <input id="prevalence" type="range" min="0.001" max="0.5" step="0.001" name="prevalence" value="{{ prevalence }}" aria-describedby="prevalence-help">

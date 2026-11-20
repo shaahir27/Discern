@@ -5,6 +5,8 @@
 .pytest_cache_local
 .ruff_cache
 scratch/
+prompt.md
+demo.zip
 data/
 models/**
 !models/lr_model/

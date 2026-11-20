@@ -6,11 +6,11 @@
 
 | Test | Status | Headline | Detail |
 |---|---|---|---|
-| E10 · Prevalence-shift correction | ✅ | CRyPTIC_to_NICD_ece_raw=0.5684 | [report](e10_prevalence_shift/REPORT.md) |
+| E10 · Calibration with known target prevalence | ✅ | CRyPTIC_to_NICD_ece_raw=0.5684 | [report](e10_prevalence_shift/REPORT.md) |
 
-## E10 · Prevalence-shift correction — PASS ✅
+## E10 · Calibration with known target prevalence — PASS ✅
 
-Calibrated probabilities do NOT transfer across prevalence unless corrected. NICD->CRyPTIC ECE 0.288->0.013; reverse improves less (only 83 CRyPTIC R).
+Adjusting to the observed prevalence improved ECE and Brier score in both archived comparisons.
 
 | Metric | Value | Expected | ±Tol | Status |
 |---|---|---|---|---|
@@ -23,5 +23,5 @@ Calibrated probabilities do NOT transfer across prevalence unless corrected. NIC
 | `NICD_to_CRyPTIC_brier_raw` | 0.1020 | 0.1020 | 0.0050 | ✅ |
 | `NICD_to_CRyPTIC_brier_adj` | 0.0169 | 0.0170 | 0.0050 | ✅ |
 
-_Caveats: At low prevalence the PPV-80% R threshold is rarely reached — correct behaviour._
+_Caveats: This comparison used known target prevalence. It does not validate estimating prevalence from an unlabeled batch or transferring calibration to a new lab._
 

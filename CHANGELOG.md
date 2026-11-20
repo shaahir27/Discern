@@ -3,6 +3,9 @@
 ## Unreleased
 
 - Fixed the live catalogue review rule to require a high-confidence annotation and preserve independent resistant findings.
+- Added recorded referral explanations and moved cohort-specific counts to the front of each result card. Clarified the E10, E14, and E15 evaluation limits.
+- Fixed lab-export frequency units, filename handling, and duplicate-row feedback. Retained assay selection in replay and added private batch CSV export.
+- Corrected timeline fractions and result warnings. Removed unsupported panel coverage estimates from the interface and corrected the model card's literature summary.
 - Reworked sample intake, case results, review queues, and study views around their primary actions. Added dated visit controls and a one-click illustrative timeline.
 - Fixed panel-report loading, batch prevalence rendering and manual overrides, native-export validation, and baseline selection for repeated patients.
 - Scoped live results and timelines to the uploading browser and separated live links from saved replay.

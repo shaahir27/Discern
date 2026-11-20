@@ -77,6 +77,7 @@ def test_below_lod_warning():
     # AmPORE has a 15% (0.15) LOD floor. A variant at 12% (0.12) should trigger BELOW_PANEL_LOD
     audit_lod = audit_sample_panel([{"gene": "Rv0678", "mutation": "M146T", "frs": 0.12}], "ampore_tb")
     assert "BELOW_PANEL_LOD" in audit_lod["warnings"]
+    assert audit_lod["gene_status"]["Rv0678"] == "below_detection_limit"
 
 
 def test_predictor_integration():

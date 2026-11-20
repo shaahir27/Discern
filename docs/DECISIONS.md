@@ -337,7 +337,7 @@ saved calls, scores, and evaluation records.
    The epistatic pump downgrade rule (`mmpL5`/`mmpS5` LoF vetoing `Rv0678` resistance) requires allele-frequency linkage:
    `FRS(pump_LoF) >= FRS(Rv0678_LoF) - 0.20`. A minor subclone pump LoF (e.g. 10%) cannot inactivate efflux in a dominant (e.g. 95%) resistant clone.
 2. **Prior Art & Novelty Alignment**:
-   TB-Profiler v6.6.5 (Genome Medicine, Sept 2026) and WHO Mutation Catalogue 3rd Edition (Late 2026) established the biological rule of mmpL5 LoF epistatic downgrades. Discern does not claim to be the first to invent this rule, but is the first clinical triage system to combine it with out-of-fold calibrated probabilities, empirical prevalence reweighting, and automated laboratory referral (`U`).
+   WHO catalogue guidance and TB-Profiler are relevant prior art. Discern reports its archived evaluation of a downgrade to laboratory referral. The archived comparison does not establish clinical validity or validate the open live-path issues.
 3. **Snobre 2024, Schön 2025, and Köser 2024 Framing**:
    Frameshift-susceptibility rates reported by Snobre et al. (AAC 2024) are interpreted alongside Schön et al. (AAC 2025), which demonstrated laboratory-specific MGIT MIC shifts in the underlying cohorts. Discern's multi-source cross-validation across CRyPTIC + NICD provides an independent benchmark on this active debate. Furthermore, `Rv0678@c-11a` (our canonical unresolved case) is explicitly framed as conferring borderline hypersusceptibility/low-level MIC shift (Köser et al., ERJ 2024), warranting laboratory culture testing (`U`) rather than a binary call.
 
@@ -346,3 +346,11 @@ saved calls, scores, and evaluation records.
 The local single-worker app keeps completed uploads in a bounded in-memory cache. Live links carry a batch identifier and require the uploading browser's session cookie. Replay URLs without a batch identifier open the saved case and use its recorded score. A prevalence explicitly selected in the result form takes priority over a converged batch estimate.
 
 Serial charts require comparable dates. Undated observations remain visible in the batch. A patient with a mix of calendar dates and day offsets has no common time axis until the input uses a single date convention. Batch prevalence uses the earliest dated isolate per patient and uses sample ID to break ties.
+
+## Result evidence and archived evaluations
+
+A saved referral with no recorded rationale shows the missing reason explicitly. A live catalogue failure is distinct from an unresolved catalogue observation. Variant counts from each study source are primary. The pooled interval remains available in a disclosure. A phase limitation is shown separately when a profile contains several variants.
+
+E10 uses known target prevalence from archived labels. E15 uses equal numbers of variant sets, so its comparisons can consume different numbers of lab labels. Its new count of unrevealed samples counted as resolved is the archived total minus the number of revealed labels. Both reports retain their existing archived metrics.
+
+The live software checks use known archived inputs and an empty profile with a new upload identifier. Neither establishes accuracy for a biologically unseen isolate. The understanding study is specified in [the comprehension study protocol](RESULT_REVIEW_PROTOCOL.md).

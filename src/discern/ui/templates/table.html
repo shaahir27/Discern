@@ -1,6 +1,6 @@
 <div class="table-scroll" tabindex="0" role="region" aria-label="{{ table_label }}">
   <table>
-    <thead><tr>{% for col in columns %}<th scope="col">{{ col|replace('_', ' ') }}</th>{% endfor %}</tr></thead>
+    <thead><tr>{% for col in columns %}<th scope="col">{{ (column_labels|default({})).get(col, col|replace('_', ' ')) }}</th>{% endfor %}</tr></thead>
     <tbody>
       {% for row in rows %}<tr>{% for value in row %}{% set text = "—" if value in ["", none] else value %}{% if loop.first %}<th scope="row">{{ text }}</th>{% else %}<td{% if value|float(none) is number %} class="num"{% endif %}>{{ text }}</td>{% endif %}{% endfor %}</tr>
       {% else %}<tr><td colspan="{{ columns|length }}">No rows on this page.</td></tr>{% endfor %}

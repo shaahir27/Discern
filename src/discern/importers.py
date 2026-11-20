@@ -89,11 +89,13 @@ def hgvs_to_garc(change: str) -> str:
     return s
 
 
-def _fraction(value: object, line: int, *, percent: bool = False) -> float:
+def _fraction(value: object, line: int, *, percent: bool = False, table: bool = False) -> float:
     text = str(value).strip()
     number = text.removesuffix("%")
     try:
-        fraction = float(number) / (100 if percent or text.endswith("%") else 1)
+        fraction = float(number)
+        if percent or text.endswith("%") or (table and 1 < fraction <= 100):
+            fraction /= 100
     except (ValueError, OverflowError):
         fraction = math.nan
     if not 0 <= fraction <= 1:
@@ -151,32 +153,33 @@ def detect_and_parse_upload(payload: bytes, filename: str = "") -> dict:
                 "%" in headers[freq_idx] or headers[freq_idx] == "variant frequency"
                 or "gene name" in headers or "deeplex" in filename.lower()
             )
-            ampore = delimiter == "\t" or sid_idx is not None or any(
-                token in filename.lower() for token in ("ampore", "wf-tb")
-            )
-            if deeplex or ampore:
-                rows = []
-                sample_ids = set()
-                for parts in reader:
-                    if not parts or not any(part.strip() for part in parts):
-                        continue
-                    line = reader.line_num
-                    if len(parts) != len(headers):
-                        raise UploadError("invalid_export", "Use the same columns on all rows.", line=line)
-                    sid = parts[sid_idx].strip() if sid_idx is not None else default_id
-                    if not sid:
-                        raise UploadError("invalid_export", "Fill in the sample identifier.", line=line, column="sample_id")
-                    sample_ids.add(sid)
-                    gene = BDQ_GENE_ALIAS.get(parts[gene_idx].strip().lower())
-                    if gene:
-                        rows.append({"sample_id": sid, "gene": gene,
-                                     "mutation": hgvs_to_garc(parts[change_idx]),
-                                     "frs": _fraction(parts[freq_idx], line, percent=deeplex)})
-                return {
-                    "format": "deeplex_csv" if deeplex else "ampore_tb_tsv",
-                    "inferred_assay": "deeplex_myc_tb" if deeplex else "ampore_tb",
-                    "rows": rows, "sample_ids": sorted(sample_ids),
-                }
+            rows = []
+            sample_ids = set()
+            declared_percent = "%" in headers[freq_idx]
+            for parts in reader:
+                if not parts or not any(part.strip() for part in parts):
+                    continue
+                line = reader.line_num
+                if len(parts) != len(headers):
+                    raise UploadError("invalid_export", "Use the same columns on all rows.", line=line)
+                sid = parts[sid_idx].strip() if sid_idx is not None else default_id
+                if not sid:
+                    raise UploadError("invalid_export", "Fill in the sample identifier.", line=line, column="sample_id")
+                sample_ids.add(sid)
+                gene = BDQ_GENE_ALIAS.get(parts[gene_idx].strip().lower())
+                if gene:
+                    rows.append({
+                        "sample_id": sid,
+                        "gene": gene,
+                        "mutation": hgvs_to_garc(parts[change_idx]),
+                        "frs": _fraction(parts[freq_idx], line, percent=declared_percent, table=True),
+                    })
+            extension = "tsv" if delimiter == "\t" else "csv"
+            return {
+                "format": "deeplex_csv" if deeplex else f"ampore_tb_{extension}",
+                "inferred_assay": "deeplex_myc_tb" if deeplex else "ampore_tb",
+                "rows": rows, "sample_ids": sorted(sample_ids),
+            }
     except csv.Error:
         raise UploadError("malformed_csv", "Check the export quoting and separators.", line=reader.line_num or 1) from None
     return {"format": "discern_csv", "inferred_assay": None, "rows": [], "sample_ids": []}

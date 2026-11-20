@@ -65,14 +65,16 @@
       <span class="legend-color-box legend-remainder"></span>
       <span>Remainder</span>
     </div>
-    {% for var in timeline.variants %}
+    {% for var in timeline.core_variants %}
       <div>
         <span class="legend-color-box" data-variant="{{ var }}"></span>
         <span><code>{{ var }}</code></span>
       </div>
     {% endfor %}
   </div>
-  <p class="fine">Read fractions can overlap. The plotted sum is capped at 100%.</p>
+  {% if timeline.has_overlapping_fractions %}
+    <p class="fine">Reported fractions exceed 100% at some visits. Variants can occur together on the same genome. The chart clips the sum at 100%. Visit details show the reported fractions.</p>
+  {% endif %}
 </section>
 
 <!-- Active Visit Detail Card -->

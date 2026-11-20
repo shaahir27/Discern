@@ -210,7 +210,8 @@ function evaluateCSVQuality(text) {
 
     // Check duplicate rows
     const exactKey = headers.map(h => rowObj[h] || "").join("||");
-    if (seenExact.has(exactKey)) {
+    const isExactDup = seenExact.has(exactKey);
+    if (isExactDup) {
       const prior = seenExact.get(exactKey);
       issues.push({ line: lineNum, type: "duplicate", field: "row", message: `Line ${lineNum}: exact duplicate of line ${prior}` });
       rowsWithIssues.add(lineNum);
@@ -221,7 +222,7 @@ function evaluateCSVQuality(text) {
     // Check duplicate variants for same sample
     if (rowObj.sample_id && rowObj.gene && rowObj.mutation) {
       const varKey = `${rowObj.sample_id}@@${rowObj.gene}@@${rowObj.mutation}`;
-      if (seenVariants.has(varKey) && !seenExact.has(exactKey)) {
+      if (seenVariants.has(varKey) && !isExactDup) {
         const prior = seenVariants.get(varKey);
         issues.push({ line: lineNum, type: "duplicate", field: "variant", message: `Line ${lineNum}: duplicate variant ${rowObj.gene}@${rowObj.mutation} for sample '${rowObj.sample_id}' (earlier at line ${prior})` });
         rowsWithIssues.add(lineNum);
@@ -352,6 +353,10 @@ if (fileInput) {
   const maxBytes = Number(fileInput.dataset.maxBytes);
   const assay = form.elements.assay;
   const formatStatus = form.querySelector("[data-format-status]");
+  const filename = document.createElement("input");
+  filename.type = "hidden";
+  filename.name = "filename";
+  form.append(filename);
   let selection = 0;
   let manualAssay = false;
   assay?.addEventListener("change", () => { manualAssay = true; });
@@ -400,6 +405,7 @@ if (fileInput) {
     if (!file) return;
     const current = ++selection;
     contents.value = "";
+    filename.value = "";
     const serverError = form.querySelector("[data-upload-error]");
     if (serverError) serverError.hidden = true;
     fileInput.setAttribute("aria-describedby", zone ? "upload-help file-status" : "file-status");
@@ -420,6 +426,7 @@ if (fileInput) {
         return;
       }
       contents.value = text;
+      filename.value = file.name;
       setStatus(file.name + " is ready to check.");
       inspectUpload(text);
     } catch {
@@ -433,6 +440,9 @@ if (fileInput) {
 
   if (contents) {
     contents.addEventListener("input", () => {
+      ++selection;
+      filename.value = "";
+      if (submit) submit.disabled = false;
       inspectUpload(contents.value);
     });
   }
@@ -454,6 +464,7 @@ if (fileInput) {
       if (event.dataTransfer.files.length !== 1) {
         ++selection;
         contents.value = "";
+        filename.value = "";
         fileInput.value = "";
         if (submit) submit.disabled = false;
         setStatus("Drop one file at a time.", true);
@@ -550,7 +561,7 @@ function initLongitudinalTimeline() {
 
   // Calculate stacked ribbon intervals for each visit
   // order: variants then wildtype
-  const allLayers = [...variants, "__WT__"];
+  const allLayers = [...timeline.core_variants, "__WT__"];
   const stackedTops = {};
   const stackedBots = {};
 
@@ -561,7 +572,7 @@ function initLongitudinalTimeline() {
 
   for (let i = 0; i < n; i++) {
     let currentBot = 0.0;
-    variants.forEach(v => {
+    timeline.core_variants.forEach(v => {
       const frs = (trajectories[v] && trajectories[v][i]) || 0.0;
       const top = currentBot + frs;
       stackedBots[v][i] = currentBot;
@@ -569,7 +580,7 @@ function initLongitudinalTimeline() {
       currentBot = top;
     });
     // WT remainder fills up to 1.0
-    stackedBots["__WT__"][i] = Math.min(1.0, currentBot);
+    stackedBots["__WT__"][i] = 1.0 - timeline.wt_series[i];
     stackedTops["__WT__"][i] = 1.0;
   }
 

@@ -35,6 +35,12 @@ def model_card(reports: Reports) -> list[tuple[str, list[str]]]:
             f"and average precision {model['auprc']:.4f} (E04)."),
             (f"The audited catalogue downgrade changed {mechanism['s1_n_flips']} S1 calls to lab referral, "
             f"including {mechanism['s1_n_flips_resistant']} phenotypically resistant isolates (E16)."),
+            ("E16 evaluated the archived cohort. It provides no panel-specific false-resistant counts. "
+             "Similar read fractions do not establish that two variants occur on the same genome."),
+            ("Snobre et al. (AAC, 2024) reported susceptible phenotypes for some Rv0678 frameshifts. "
+             "Schön et al. (AAC, 2025) highlighted systematic differences in MIC measurements across laboratories. "
+             "Published work describes the c-11a promoter variant in the context of bedaquiline "
+             "hypersusceptibility (Köser et al., ERJ, 2024). Discern's unresolved calls require laboratory confirmation."),
             (f"KM includes {km['n_isolates']} non-overlapping isolates with {km['n_resistant']} resistant. "
             f"The archived model AUC was {km['model_auc']:.4f}. The cohort is a sensitivity analysis with "
             "medium-quality labels and undocumented assay and critical concentration."),

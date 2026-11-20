@@ -6,11 +6,11 @@
 
 | Test | Status | Headline | Detail |
 |---|---|---|---|
-| E15 · Label Reveal Sim | — | n_distinct_sets=332 | [report](e15_label_reveal_sim/REPORT.md) |
+| E15 · Retrospective comparison of variant sets | — | n_distinct_sets=332 | [report](e15_label_reveal_sim/REPORT.md) |
 
-## E15 · Label Reveal Sim — DESCRIPTIVE •
+## E15 · Retrospective comparison of variant sets — DESCRIPTIVE •
 
-Info-gain vs count-only %U-resolved: K=10 0.381 vs 0.381 (delta +0.000); K=50 0.537 vs 0.526 (delta +0.011).
+The strategies compare equal numbers of variant sets. Those sets contain different numbers of samples.
 
 | Metric | Value |
 |---|---|
@@ -37,5 +37,5 @@ Info-gain vs count-only %U-resolved: K=10 0.381 vs 0.381 (delta +0.000); K=50 0.
 | `info_gain_minus_count_K10` | 0.0000 |
 | `info_gain_minus_count_K50` | 0.0106 |
 
-_Caveats: Retrospective, not prospective; assumes catalogued variants transfer across lineages. Variant unlock is a binomial-test proxy for catomatic strict_unlock. If info-gain barely beats count-only, that is a valid negative result. Priors exclude U labels (no leakage)._
+_Caveats: The comparison uses unequal numbers of sample labels at the same K. Unrevealed samples counted as resolved include cases the proxy can already count using firm-case evidence alone. These totals cannot establish gains at an equal lab testing budget or production catalogue performance._
 

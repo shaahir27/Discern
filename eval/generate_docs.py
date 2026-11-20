@@ -15,14 +15,17 @@ def main() -> None:
     card = ["# Discern model card", BANNER]
     for heading, paragraphs in model_card(reports):
         card.extend([f"## {heading}", *paragraphs])
-    (root / "docs/MODEL_CARD.md").write_text("\n\n".join(card) + "\n", encoding="utf-8")
+    (root / "docs/MODEL_CARD.md").write_text("\n\n".join(card) + "\n", encoding="utf-8", newline="\n")
 
     results = ["# Evaluation results", "", BANNER, "", "Metrics are reproduced from the indexed result JSON.", ""]
     for key, path in reports.paths.items():
         record = reports.get(key)
         status = {True: "Passed", False: "Failed", None: "Descriptive"}[record["pass_all"]]
-        results.extend([f"## {key}", "", f"{status} · [Source JSON](../{path.as_posix()})", "",
-                        "| Metric | Observed | Expected | Tolerance |", "|---|---|---|---|"])
+        results.extend([f"## {key}", "", f"{status} · [Source JSON](../{path.as_posix()})", ""])
+        if record["test"] in ("e08_novel_variant", "e10_prevalence_shift", "e14_certificate_audit",
+                              "e15_label_reveal_sim"):
+            results.extend([record["caveats"], ""])
+        results.extend(["| Metric | Observed | Expected | Tolerance |", "|---|---|---|---|"])
         for metric, value in record["observed"].items():
             if isinstance(value, (str, int, float)) and "|" not in str(value):
                 results.append(f"| `{metric}` | {value} | {record['expected'].get(metric, '—')} | "

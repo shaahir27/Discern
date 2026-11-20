@@ -86,6 +86,7 @@ def audit_sample_panel(variants: list[dict], assay_key: str = "wgs") -> dict:
 
     # Determine per-gene mutation presence
     gene_mutated: dict[str, bool] = {g: False for g in ALL_BDQ_GENES}
+    below_limit: set[str] = set()
     has_homopolymer_risk = False
     has_below_lod = False
 
@@ -96,10 +97,11 @@ def audit_sample_panel(variants: list[dict], assay_key: str = "wgs") -> dict:
         frs = float(v.get("frs", 1.0))
 
         flags = classify(suffix)
-        is_retained = (not flags["IS_SYN"]) and (not flags["IS_NULL"]) and (frs >= 0.10 or frs >= panel.vaf_floor)
-
-        if gene in ALL_BDQ_GENES and is_retained and gene in panel.covered_genes:
-            gene_mutated[gene] = True
+        if gene in panel.covered_genes and not (flags["IS_SYN"] or flags["IS_NULL"]):
+            if frs >= max(0.10, panel.vaf_floor):
+                gene_mutated[gene] = True
+            else:
+                below_limit.add(gene)
 
         # Check LOD floor
         if 0 < frs < panel.vaf_floor:
@@ -118,6 +120,8 @@ def audit_sample_panel(variants: list[dict], assay_key: str = "wgs") -> dict:
             gene_status[g] = "not_interrogated"
         elif gene_mutated[g]:
             gene_status[g] = "mutated"
+        elif g in below_limit:
+            gene_status[g] = "below_detection_limit"
         else:
             gene_status[g] = "wild_type"
 

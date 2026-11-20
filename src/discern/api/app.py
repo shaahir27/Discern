@@ -193,21 +193,28 @@ def sample_home(request: Request, error: UploadError | None = None) -> Response:
                   example_id=data.example_id, error=str(error) if error else "", status=error.status if error else 200)
 
 
-async def form_csv(request: Request) -> tuple[bytes, str]:
+async def form_csv(request: Request) -> tuple[bytes, str, str]:
     if request.headers.get("content-type", "").split(";", 1)[0].strip().lower() != "application/x-www-form-urlencoded":
         raise UploadError("unsupported_media_type", "Use the CSV upload form.", status=415)
     # Each CSV byte can expand to three bytes when the browser percent-encodes the form.
-    body = await small_body(request, limit=3 * MAX_CSV_BYTES + len("csv=") + len("&assay=icmr_nirt_minion") + 64)
+    body = await small_body(request, limit=3 * MAX_CSV_BYTES + 3 * 255 + 64)
     try:
-        form = parse_qs(body.decode("utf-8"), max_num_fields=2, strict_parsing=True,
+        form = parse_qs(body.decode("utf-8"), max_num_fields=3, strict_parsing=True,
                         keep_blank_values=True, errors="strict")
     except ValueError:
         raise UploadError("invalid_form", "Open the CSV upload form and submit the file again.") from None
-    if set(form) not in ({"csv"}, {"csv", "assay"}) or any(len(values) != 1 for values in form.values()):
+    if "csv" not in form or form.keys() - {"csv", "assay", "filename"} or any(
+        len(values) != 1 for values in form.values()
+    ):
         raise UploadError("invalid_form", "Open the CSV upload form and submit the file again.")
     raw_csv = form["csv"][0].encode("utf-8")
+    if len(raw_csv) > MAX_CSV_BYTES:
+        raise UploadError("file_too_large", "Choose a smaller file.", status=413)
     assay = form.get("assay", ["wgs"])[0].strip() or "wgs"
-    return raw_csv, assay
+    filename = form.get("filename", [""])[0]
+    if len(filename.encode("utf-8")) > 255 or "/" in filename or "\\" in filename or "\x00" in filename:
+        raise UploadError("invalid_filename", "Choose a file with a valid name.")
+    return raw_csv, assay, filename
 
 
 @app.post("/review", response_class=HTMLResponse)
@@ -229,17 +236,20 @@ async def review_upload(request: Request, *, single_redirect: bool, illustrative
     data = archive(request)
     try:
         if illustrative:
-            payload, assay = longitudinal_example_path().read_bytes(), "wgs"
+            payload, assay, filename = longitudinal_example_path().read_bytes(), "wgs", ""
         else:
-            payload, assay = await form_csv(request)
-        parsed = await run_in_threadpool(parse_upload, payload, assay, data)
+            payload, assay, filename = await form_csv(request)
+        parsed = await run_in_threadpool(parse_upload, payload, assay, data, filename=filename)
         rows, quality, archived = parsed
         if archived:
             if single_redirect and len(rows) == 1:
-                destination = "/result?" + urlencode({"sample_id": next(iter(rows))})
+                params = {"sample_id": next(iter(rows))}
+                if assay != "wgs":
+                    params["assay"] = assay
+                destination = "/result?" + urlencode(params)
                 return RedirectResponse(destination, status_code=303)
             return render(request, "queue", title="Review queue", active="queue",
-                          rows=data.queue(list(rows)), scope="import", upload_quality=quality)
+                          rows=data.queue(list(rows)), scope="import", upload_quality=quality, replay_assay=assay)
         predictor = request.app.state.predictor
         records, queue_rows, timelines, prevalence, alerts = await run_in_threadpool(
             score_upload, rows, predictor,
@@ -274,8 +284,8 @@ async def review_upload(request: Request, *, single_redirect: bool, illustrative
     return response
 
 
-def parse_upload(payload: bytes, assay: str, data: Archive) -> tuple[dict[str, dict], dict, bool]:
-    parsed = detect_and_parse_upload(payload)
+def parse_upload(payload: bytes, assay: str, data: Archive, *, filename: str = "") -> tuple[dict[str, dict], dict, bool]:
+    parsed = detect_and_parse_upload(payload, filename=filename)
     if parsed["format"] in ("discern_csv", "empty"):
         headers, rows = read_batch(payload)
         quality = check_csv_quality(payload)
@@ -422,6 +432,7 @@ def uploaded_batch(request: Request, batch_id: str | None = None) -> UploadedBat
 def result(
     request: Request, sample_id: str, batch: str | None = None,
     prevalence: float | None = Query(None, ge=0.001, le=0.5),
+    assay: str = "wgs",
 ) -> Response:
     data = archive(request)
     manual_prevalence = prevalence
@@ -448,10 +459,10 @@ def result(
     except KeyError:
         return render(request, "error", status=404, title="Recorded isolate unavailable", active="home",
                       detail="Choose an isolate from the replay collection.")
-    record["panel_audit"] = audit_sample_panel(data.profile(sample_id), "wgs")
+    record["panel_audit"] = audit_sample_panel(data.profile(sample_id), assay)
     ppv, npv = archived_predictive_values(data.reports.observed("catalogue"), prevalence)
     return render(request, "result", active="home", title="Bedaquiline result", record=record,
-                  prevalence=prevalence, ppv=ppv, npv=npv)
+                  prevalence=prevalence, ppv=ppv, npv=npv, replay_assay=assay)
 
 
 @app.get("/queue", response_class=HTMLResponse)
@@ -461,6 +472,8 @@ def queue(request: Request, scope: str = "all", download: bool = False, batch: s
         if upload is None:
             return render(request, "error", status=404, title="Upload unavailable", active="queue",
                           detail="Open the queue from your upload or submit the file again.")
+        if download:
+            return queue_csv(upload.rows)
         return render_uploaded_queue(request, upload, batch)
     data = archive(request)
     ids = [sid for sid, row in data.roster.items() if scope != "unresolved" or row["call"] == "U"]

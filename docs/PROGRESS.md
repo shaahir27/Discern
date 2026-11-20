@@ -292,3 +292,41 @@ Verified the five additions through the shared upload handler. The checks cover 
 ```
 
 Chrome checks at desktop, tablet, and phone widths exercised CSV and JSON intake, the queue filters, selectable timeline dates, and the performance comparison. The run recorded zero external requests or browser console errors. The local server responded on port 8000 under Python 3.12. The first container build timed out downloading dependencies, and a retry used the cached base layer.
+
+## Prompt audit (2026-11-20)
+
+Verified export units and filename handling, private queue downloads, replay assay selection, and timeline fractions. Regenerated the model card and checked separate duplicate diagnoses in JavaScript. The acceptance gate used the saved evaluation artifacts.
+
+```text
+14/14 acceptance tests passed.
+81 passed in 13.06s
+```
+
+### Live-scoring issues found during the audit
+
+- The veto eligibility filter can bypass the curated high-confidence annotations.
+- A downgrade can change an independent resistant call as well as the intended call.
+
+The prompt audit corrected when the veto warning appears. Commit `73b2019` fixed both decision issues and added regression tests. The archived acceptance checks do not validate these live paths. Discern remains a research-use tool, and clinical decisions require laboratory confirmation.
+
+## Result evidence and evaluation review (2026-11-20)
+
+Verified referral explanations, cohort counts, archive replay, and live upload behavior. A fresh upload identifier with an empty profile entered the real scoring path. Its displayed score matched an independent calculation at the selected prevalence. Controlled catalogue responses exercised unresolved and catalogue-failure messages.
+
+Recomputed ROC AUC and average precision from the saved out-of-fold predictions and matched E04. E10 and E15 retain their original metrics. The E15 report now accounts separately for samples whose lab labels were revealed and unrevealed samples counted as resolved. E10 identifies the recorded lab labels as the source of target prevalence. E14 shows its failed certification and cross-source transfer limits.
+
+```text
+14/14 acceptance tests passed.
+86 passed in 11.44s
+```
+
+Chromium verified replay and evidence display at desktop, tablet, and phone widths, plus a live upload and the E15 report. The checks recorded no external requests or browser console errors. The [comprehension study](RESULT_REVIEW_PROTOCOL.md) awaits reviewer responses.
+
+## Combined verification (2026-11-20)
+
+`make verify` covered the live decision fix and the upload, interface, and evaluation updates together.
+
+```text
+14/14 acceptance tests passed.
+89 passed in 15.62s
+```

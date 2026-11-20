@@ -63,12 +63,15 @@ def analyze_patient_timelines(sample_records: list[dict]) -> dict[str, dict]:
             d_key, d_disp = parse_timepoint_date(r.get("collection_date"))
             if d_key is None:
                 continue
-            variants = []
+            variants = {}
             for variant in r.get("variants", []):
                 mutation = suffix_of(variant.get("mutation", ""))
                 flags = classify(mutation)
                 if mutation and not (flags["IS_SYN"] or flags["IS_NULL"]):
-                    variants.append({**variant, "mutation": mutation})
+                    key = (variant.get("gene", ""), mutation)
+                    frs = float(variant.get("frs", 0.0))
+                    if key not in variants or frs > variants[key]["frs"]:
+                        variants[key] = {**variant, "mutation": mutation, "frs": frs}
             parsed_records.append({
                 "sort_key": d_key,
                 "date_display": d_disp,
@@ -76,7 +79,7 @@ def analyze_patient_timelines(sample_records: list[dict]) -> dict[str, dict]:
                 "call": r.get("call", "U"),
                 "call_label": r.get("call_label", ""),
                 "probability": r.get("probability"),
-                "variants": variants,
+                "variants": list(variants.values()),
             })
 
         if len(parsed_records) < 2 or len({r["date_display"].startswith("Day ") for r in parsed_records}) > 1:
@@ -103,10 +106,9 @@ def analyze_patient_timelines(sample_records: list[dict]) -> dict[str, dict]:
                 trajectories[m].append(v_map.get(m, 0.0))
 
         # Compute wild-type remainder per visit
-        wt_series = []
-        for j in range(len(parsed_records)):
-            core_sum = sum(trajectories[m][j] for m in var_list if all_variants[m] in CORE_GENES)
-            wt_series.append(max(0.0, round(1.0 - core_sum, 4)))
+        core_variants = [m for m in var_list if all_variants[m] in CORE_GENES]
+        core_sums = [sum(trajectories[m][j] for m in core_variants) for j in range(len(parsed_records))]
+        wt_series = [max(0.0, round(1.0 - value, 4)) for value in core_sums]
 
         # Evaluate longitudinal alerts
         alerts = []
@@ -174,8 +176,10 @@ def analyze_patient_timelines(sample_records: list[dict]) -> dict[str, dict]:
             "n_visits": len(parsed_records),
             "timepoints": parsed_records,
             "variants": var_list,
+            "core_variants": core_variants,
             "trajectories": trajectories,
             "wt_series": wt_series,
+            "has_overlapping_fractions": any(value > 1.000000001 for value in core_sums),
             "alerts": alerts,
             "has_alerts": len(alerts) > 0,
         }

@@ -2,6 +2,8 @@
 
 import csv
 import io
+import re
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -84,3 +86,60 @@ ISOLATE_BETA,Rv0678,c-11a,0.95
         assert "Upload quality" in response.text
         assert "ISOLATE_ALPHA" in response.text
         assert "ISOLATE_BETA" in response.text
+
+
+def test_archived_referral_displays_evidence_without_inventing_a_reason() -> None:
+    with TestClient(app) as client:
+        archive = client.app.state.archive
+        sample_id = next(sid for sid, row in archive.roster.items() if row["call"] == "U")
+        html = client.get("/result", params={"sample_id": sample_id}).text
+        assert "The archive records the referral outcome. The reason was not saved." in html
+        assert 'class="facts cohort-evidence"' in html
+        assert "Archived carrier counts" in html
+        assert "Pooled archive summary" in html
+        assert 'class="source-breakdown"' not in html
+        first_card = html.index('class="panel variant-card"')
+        next_card = html.find('class="panel variant-card"', first_card + 1)
+        assert 'class="facts cohort-evidence"' in html[first_card:next_card if next_card != -1 else None]
+
+
+@pytest.mark.parametrize(("catalogue_response", "reason"), [
+    ({}, "The catalogue could not evaluate the reported profile."),
+    ({"BDQ": "U"}, "The catalogue marked at least one reported variant as unresolved."),
+])
+def test_live_referral_uses_recorded_catalogue_evidence(
+    monkeypatch: pytest.MonkeyPatch, catalogue_response: dict, reason: str,
+) -> None:
+    with TestClient(app) as client:
+        archive = client.app.state.archive
+        records = archive.profile(archive.example_id)
+        records = [{**row, "sample_id": "REFERRAL_CHECK"} for row in records]
+        contents = io.StringIO()
+        writer = csv.DictWriter(contents, fieldnames=["sample_id", "gene", "mutation", "frs"])
+        writer.writeheader()
+        writer.writerows(records)
+        monkeypatch.setattr(client.app.state.predictor, "rc",
+                            SimpleNamespace(predict=lambda _variant: catalogue_response))
+        response = client.post("/review", data={"csv": contents.getvalue()})
+        assert response.status_code == 200
+        assert "Send for lab test" in response.text
+        assert reason in response.text
+
+
+def test_new_upload_score_and_manual_prevalence_match_the_stored_score() -> None:
+    with TestClient(app) as client:
+        predictor = client.app.state.predictor
+        expected = predictor.predict([], sample_id="REFERENCE")
+        response = client.post("/review", data={"csv": "sample_id\nNEW_SCORE_CHECK\n"})
+        assert response.status_code == 200
+        assert "NEW_SCORE_CHECK" in response.text
+        assert "Live model evaluation" in response.text
+        shown = client.get(str(response.url), params={**response.url.params, "prevalence": 0.12})
+        assert shown.status_code == 200
+        trained = expected["model"]["probability_train_prevalence"]
+        prior_ratio = (0.12 / 0.88) / (predictor.pi_tr / (1 - predictor.pi_tr))
+        adjusted_odds = (trained / (1 - trained)) * prior_ratio
+        meter = re.search(r'<meter min="0" max="1" value="([^"]+)"', shown.text)
+        assert meter is not None
+        assert float(meter[1]) == pytest.approx(adjusted_odds / (1 + adjusted_odds), abs=1e-12)
+        assert f'call-display call-{expected["call"]}' in shown.text

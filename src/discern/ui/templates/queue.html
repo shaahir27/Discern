@@ -37,7 +37,11 @@
   <section class="queue-records" aria-labelledby="queue-list-title">
     <div class="section-heading">
       <h2 id="queue-list-title">{{ "Uploaded samples" if batch_id else "Study isolates" }}</h2>
-      {% if scope != "import" %}<a href="/queue?scope={{ scope|urlencode }}&amp;download=true">Export CSV</a>{% endif %}
+      {% if batch_id %}
+        <a href="/queue?batch={{ batch_id|urlencode }}&amp;download=true">Export CSV</a>
+      {% elif scope != "import" %}
+        <a href="/queue?scope={{ scope|urlencode }}&amp;download=true">Export CSV</a>
+      {% endif %}
     </div>
     <div class="queue-controls">
       {% if scope != "import" %}
@@ -59,7 +63,7 @@
         {% for row in rows %}
           <tr data-sample-id="{{ row.sample_id }}">
             <td class="num row-rank">{{ row.rank if row.rank else "—" }}</td>
-            <th scope="row"><a class="id" href="/result?sample_id={{ row.sample_id|urlencode }}{% if batch_id %}&amp;batch={{ batch_id|urlencode }}{% endif %}">{{ row.sample_id }}</a>
+            <th scope="row"><a class="id" href="/result?sample_id={{ row.sample_id|urlencode }}{% if batch_id %}&amp;batch={{ batch_id|urlencode }}{% elif replay_assay and replay_assay != 'wgs' %}&amp;assay={{ replay_assay|urlencode }}{% endif %}">{{ row.sample_id }}</a>
               {% if row.patient_id and row.n_visits %}<a href="/patient/{{ row.patient_id|urlencode }}?batch={{ batch_id|urlencode }}" class="visit-link">{{ row.n_visits }} visits{% if row.has_longitudinal_alerts %} with alerts{% endif %}</a>{% endif %}</th>
             <td><span class="status status-{{ row.call }}">{{ row.call_label }}</span></td>
             <td class="num">{{ "%.1f"|format(row.probability * 100) }}%</td>
