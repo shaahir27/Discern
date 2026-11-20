@@ -333,6 +333,21 @@ def check_csv_quality(payload: bytes | str) -> dict[str, Any]:
                     })
                     rows_with_issues.add(line_idx)
 
+        # 5. collection_date
+        if "collection_date" in headers:
+            cdate = row_dict.get("collection_date", "").strip()
+            if cdate != "":
+                from .longitudinal import parse_timepoint_date
+                parsed_val, _ = parse_timepoint_date(cdate)
+                if parsed_val is None:
+                    issues.append({
+                        "line": line_idx,
+                        "type": "format",
+                        "field": "collection_date",
+                        "message": f"Line {line_idx}: invalid collection_date '{cdate}' (expected YYYY-MM-DD or day offset like '0', '28', 'Day 0')",
+                    })
+                    rows_with_issues.add(line_idx)
+
     completeness_score = round(
         (filled_required_cells / total_required_cells * 100.0) if total_required_cells > 0 else 0.0,
         1,

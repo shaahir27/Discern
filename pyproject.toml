@@ -19,3 +19,10 @@ discern = ["ui/templates/*.html", "ui/static/*.css", "ui/static/*.js"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+testpaths = ["tests"]
+cache_dir = ".pytest_cache_local"
+filterwarnings = [
+    "ignore:.*The inplace keyword in DataFrame.drop is deprecated.*",
+    "ignore:.*Using `httpx` with `starlette.testclient` is deprecated.*",
+    "ignore::DeprecationWarning",
+]

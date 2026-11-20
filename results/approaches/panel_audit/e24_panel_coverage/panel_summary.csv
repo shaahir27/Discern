@@ -1,0 +1,6 @@
+panel_key,panel_label,platform,vaf_floor,covered_genes,known_locus_sensitivity,overall_sensitivity_upper_bound,missed_known_pct,missed_loci
+wgs,Whole Genome Sequencing (WGS) — All 5 loci,mixed,0.1,"Rv0678,atpE,mmpL5,mmpS5,pepQ",1.0,0.8418,0.0,
+deeplex_myc_tb,GenoScreen Deeplex Myc-TB (Commercial tNGS),illumina,0.03,Rv0678,0.8848,0.7448,11.52,"atpE,mmpL5,mmpS5,pepQ"
+deeplex_xl,Deeplex Myc-TB XL (Expanded beta tNGS),illumina,0.03,"Rv0678,atpE,mmpL5,mmpS5,pepQ",1.0,0.8418,0.0,
+ampore_tb,ONT AmPORE-TB / wf-tb-amr (Nanopore),nanopore,0.15,"Rv0678,atpE",0.9451,0.7956,5.49,"mmpL5,mmpS5,pepQ"
+icmr_nirt_minion,ICMR-NIRT India MinION Pilot,nanopore,0.15,Rv0678,0.8848,0.7448,11.52,"atpE,mmpL5,mmpS5,pepQ"

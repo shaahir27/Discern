@@ -321,3 +321,28 @@ meter::-moz-meter-bar { background: #cae3d0; }
   background: var(--alert-bg);
   color: var(--alert);
 }
+
+/* 5-gene coverage strip pills */
+.pill-gene {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.65rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+.pill-mutated {
+  background: rgba(192, 41, 43, 0.12);
+  border: 1px solid #c0392b;
+  color: #962d22;
+}
+.pill-wt {
+  background: rgba(46, 139, 87, 0.12);
+  border: 1px solid #2e8b57;
+  color: #1e5e3a;
+}
+.pill-blind {
+  background: rgba(128, 128, 128, 0.1);
+  border: 1px dashed #888;
+  color: #666;
+}

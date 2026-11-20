@@ -4,6 +4,7 @@ Offline; loads only local production artefacts. No request bodies are logged her
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import joblib
@@ -18,6 +19,7 @@ from .features import design, sample_tables
 from .grammar import classify
 from .mechanism import apply_veto, veto_flags
 from .model import score
+from .panels import audit_sample_panel
 from .prevalence import adjust, archived_predictive_values
 
 GENES = {"Rv0678", "atpE", "pepQ", "mmpL5", "mmpS5"}
@@ -53,8 +55,13 @@ class Predictor:
         if config_path.is_file():
             config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
         self.veto_high_conf: set[str] | None = None
+        self.lof_effects: dict[str, dict] = {}
+        effects_path = models_dir.parent / "lr_mechanism/lof_effects.csv"
+        if effects_path.is_file():
+            eff_df = pd.read_csv(effects_path)
+            for _, erow in eff_df.iterrows():
+                self.lof_effects[erow["MUT"]] = erow.to_dict()
         if config.get("enhanced", {}).get("epistatic_veto", True):
-            effects_path = models_dir.parent / "lr_mechanism/lof_effects.csv"
             if effects_path.is_file():
                 effects = pd.read_csv(effects_path, usecols=["MUT", "high_conf"])
                 self.veto_high_conf = set(effects.loc[effects.high_conf, "MUT"])
@@ -96,7 +103,7 @@ class Predictor:
             raise CatalogueEvaluationError("Catalogue returned an unsupported call.")
         return call
 
-    def predict(self, variants, prevalence: float = 0.05, sample_id: str | None = None) -> dict:
+    def predict(self, variants, prevalence: float = 0.05, sample_id: str | None = None, assay: str = "wgs") -> dict:
         sid = sample_id or "input"
         mdf = self._mutation_rows(variants, sid)
         core, a = sample_tables(mdf, [sid], self.art["frs_min"], tuple(self.art["dbd"]))
@@ -104,6 +111,7 @@ class Predictor:
 
         variant_calls, core_calls = [], []
         catalogue_failed = False
+        raw_core_calls = {}
         for _, r in mdf.iterrows():
             c = "S"
             if r.GENE in CORE and not r.IS_SYN and not r.IS_NULL and r.FRSf >= self.art["frs_min"]:
@@ -113,15 +121,74 @@ class Predictor:
                     c = "U"
                     catalogue_failed = True
                 core_calls.append(c)
+                raw_core_calls[r.MUT] = c
             variant_calls.append({"variant": r.MUT, "gene": r.GENE, "frs": float(r.FRSf), "call": c})
         tier_a = {"variant_calls": variant_calls}
+        veto_applied = False
         if not catalogue_failed and self.veto_high_conf is not None and "R" in core_calls:
             retained = mdf[(~mdf.IS_SYN) & (~mdf.IS_NULL) & (mdf.FRSf >= self.art["frs_min"])]
             flags = veto_flags(retained, [sid], self.veto_high_conf)
             if flags.veto_fire.iloc[0]:
                 core_calls = apply_veto(np.asarray(core_calls), np.ones(len(core_calls), dtype=bool)).tolist()
                 tier_a["epistatic_veto_applied"] = True
+                veto_applied = True
         call = "U" if catalogue_failed else (_aggregate(pd.Series(core_calls)) if core_calls else "S")
+
+        reason_codes = []
+        for vc in variant_calls:
+            v_mut = vc["variant"]
+            v_call = vc["call"]
+            initial_call = raw_core_calls.get(v_mut, v_call)
+            if veto_applied and initial_call == "R" and v_mut.startswith("Rv0678@"):
+                role = "vetoed_R_to_U"
+            elif call == "R" and v_call == "R":
+                role = "driving_R"
+            elif call == "U" and v_call == "U":
+                role = "driving_U"
+            else:
+                role = "benign_or_below_frs"
+            reason_codes.append({"variant": v_mut, "call": v_call, "role": role})
+        tier_a["reason_codes"] = reason_codes
+
+        clinical_reflex = []
+        has_atpe_r_or_u = any(
+            vc["gene"] == "atpE" and vc["call"] in ("R", "U") for vc in variant_calls
+        )
+        if has_atpe_r_or_u:
+            clinical_reflex.append(
+                "Target-site (atpE): typically confers high-level BDQ resistance that is CFZ-sparing (efflux-independent) and unaffected by mmpL5/mmpS5 loss-of-function."
+            )
+
+        has_rv_r_or_u = any(
+            vc["gene"] == "Rv0678" and vc["call"] in ("R", "U") for vc in variant_calls
+        )
+        if has_rv_r_or_u:
+            clinical_reflex.append(
+                "Efflux-mediated (Rv0678): typically confers low-to-moderate/borderline BDQ MIC elevation with high likelihood of clofazimine (CFZ) cross-resistance. Reflex to MGIT960 BDQ MIC and monitor intermediate-growth tubes."
+            )
+
+        has_late_trunc = False
+        for _, r in mdf.iterrows():
+            if r.GENE == "Rv0678" and not r.IS_SYN and not r.IS_NULL and r.FRSf >= self.art["frs_min"]:
+                lof_info = self.lof_effects.get(r.MUT)
+                if lof_info and (lof_info.get("first_stop_aa", 0) > 160 or lof_info.get("late_preserved")):
+                    has_late_trunc = True
+                    break
+                if r.is_stop:
+                    m_stop_pos = re.search(r"(\d+)", r.suffix)
+                    if m_stop_pos and int(m_stop_pos.group(1)) > 160:
+                        has_late_trunc = True
+                        break
+
+        if has_late_trunc:
+            clinical_reflex.append(
+                "Late Rv0678 truncation (first stop > aa 160): protein dimerization domain may be preserved (Snobre et al., AAC 2024), though susceptibility evidence is actively debated due to inter-lab MIC shifts (Schön et al., AAC 2025). Confirm with phenotypic DST."
+            )
+
+        if veto_applied:
+            clinical_reflex.append(
+                "Efflux pump inactivation (mmpL5/mmpS5 LoF): associated with BDQ hypersusceptibility; negates Rv0678-only efflux resistance when genetically linked (WHO Catalogue v3)."
+            )
 
         raw, p = score(self.art["final"], self.art["platt"], X)
         raw, p = float(raw[0]), float(p[0])
@@ -132,22 +199,42 @@ class Predictor:
         warnings = self._warnings(mdf, a, call, p, veto_fired=veto_fired)
         if catalogue_failed:
             warnings.append("CATALOGUE_EVALUATION_FAILED")
+
+        panel_audit = audit_sample_panel(variants, assay)
+        for pw in panel_audit.get("warnings", []):
+            if pw not in warnings:
+                warnings.append(pw)
+
         evidence = []
         for mut in mdf.MUT.unique():
             card = self.ev.card(mut)
             if card is None:
                 card = {"variant": mut, "n_carriers": 0, "n_resistant": 0, "pct_resistant": None,
                         "ci95_low": None, "ci95_high": None, "by_source": {}, "note": "Novel variant - not in evidence store."}
+            else:
+                card = dict(card)
+            card["lof_annotation"] = self.lof_effects.get(mut)
+            matching_rows = mdf[mdf.MUT == mut]
+            if not matching_rows.empty:
+                r0 = matching_rows.iloc[0]
+                pos_val = r0["pos"] if not np.isnan(r0["pos"]) else None
+                if pos_val is None:
+                    m_digits = re.search(r"(\d+)", r0["suffix"])
+                    if m_digits:
+                        pos_val = int(m_digits.group(1))
+                card["pos"] = pos_val
             evidence.append(card)
         ppv, npv = archived_predictive_values(self.cat_metrics, prevalence)
         return {
             "sample_id": sid, "call": call, "call_label": LABEL[call],
             "tier_a": tier_a,
+            "panel_audit": panel_audit,
             "model": {"score_raw": raw, "probability_train_prevalence": p,
                       "probability_at_prevalence": p_adj, "queue_rank_percentile": rank_pct},
             "predictive_values": {"prevalence": prevalence, "ppv_if_R": ppv, "npv_if_S": npv,
                                   "catalogue_sens": self.cat_sens, "catalogue_spec": self.cat_spec},
             "evidence": evidence, "warnings": warnings,
+            "clinical_reflex": clinical_reflex,
             "versions": {"package": self.meta.get("package_versions", {}), "catalogue": self.catver.get("version"),
                          "model_git_commit": self.meta.get("git_commit"),
                          "data_manifest_sha256": self.meta.get("data_manifest_sha256")},

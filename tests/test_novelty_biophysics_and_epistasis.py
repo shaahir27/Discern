@@ -1,18 +1,14 @@
 """Unit and regression tests for novel biophysics, epistatic veto, and subclonal heteroresistance."""
 from __future__ import annotations
 
-from pathlib import Path
 import numpy as np
 import pandas as pd
-import pytest
 
 from discern.decision import Predictor
-from discern.grammar import classify
 from discern.mechanism import apply_veto, veto_flags
 from discern.structure import (
-    grantham_distance,
     charge_delta,
-    parse_pdb,
+    grantham_distance,
     sample_biophysical_features,
 )
 

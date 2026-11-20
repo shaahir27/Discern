@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="prose" aria-labelledby="panels-title">
+  <span class="eyebrow">Assay Blind-Spot Analysis</span>
+  <h1 id="panels-title">Sequencing-Assay & tNGS Panel Coverage Audit</h1>
+  <p class="lede">
+    Commercial and public health targeted NGS (tNGS) panels sequence subsets of bedaquiline-associated genes. 
+    Treating unsequenced loci as wild-type introduces silent false-susceptible risk and disables the <em>mmpL5</em> epistatic pump veto.
+  </p>
+
+  <div class="alert alert-warning" style="background: rgba(255, 165, 0, 0.1); border-left: 4px solid #ffa500; padding: 0.85rem 1.25rem; border-radius: 4px; margin: 1.5rem 0;">
+    <strong>⚠️ Diagnostic Coverage Caveat:</strong>
+    <p style="margin: 0.35rem 0 0; font-size: 0.92rem;">
+      Genomic locus coverage represents a theoretical <em>upper bound</em> on resistance detection. Real-world sensitivity is further constrained by amplicon sequencing depth, low-frequency subclonal heteroresistance, and Nanopore/Illumina homopolymer calling noise (Hall et al., <em>eLife</em> 2024; Ismail et al., <em>AAC</em> 2025).
+    </p>
+  </div>
+
+  <h2>Assay Profiles & Locus Blind Spots</h2>
+  <div class="table-wrap" style="margin-top: 1rem; overflow-x: auto;">
+    <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 0.92rem;">
+      <thead>
+        <tr style="border-bottom: 2px solid var(--border, #ccc); text-align: left;">
+          <th style="padding: 0.6rem 0.75rem;">Assay / tNGS Panel</th>
+          <th style="padding: 0.6rem 0.75rem;">Platform</th>
+          <th style="padding: 0.6rem 0.75rem;">Covered Loci</th>
+          <th style="padding: 0.6rem 0.75rem;">Unsequenced Blind Spots</th>
+          <th style="padding: 0.6rem 0.75rem;">VAF Floor</th>
+          <th style="padding: 0.6rem 0.75rem;">Known BDQ-R Upper Bound</th>
+          <th style="padding: 0.6rem 0.75rem;">Missed Known BDQ-R</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for key, p in panels_data.panels.items() %}
+        <tr style="border-bottom: 1px solid var(--border, #eee);">
+          <td style="padding: 0.6rem 0.75rem;">
+            <strong>{{ p.panel_label }}</strong>
+            <div style="font-size: 0.82rem; color: #666; margin-top: 0.15rem;">{{ p.notes }}</div>
+          </td>
+          <td style="padding: 0.6rem 0.75rem;"><span class="badge">{{ p.platform|capitalize }}</span></td>
+          <td style="padding: 0.6rem 0.75rem;"><code>{{ p.covered_genes }}</code></td>
+          <td style="padding: 0.6rem 0.75rem;">
+            {% if p.missed_loci %}
+              <span style="color: #c92a2a; font-weight: 500;">{{ p.missed_loci }}</span>
+            {% else %}
+              <span style="color: #2b8a3e; font-weight: 500;">None (Full 5-gene)</span>
+            {% endif %}
+          </td>
+          <td style="padding: 0.6rem 0.75rem;">{{ "%.0f"|format(p.vaf_floor * 100) }}%</td>
+          <td style="padding: 0.6rem 0.75rem; font-weight: 600;">{{ "%.1f"|format(p.known_locus_sensitivity * 100) }}%</td>
+          <td style="padding: 0.6rem 0.75rem;">
+            {% if p.missed_known_pct > 0 %}
+              <strong style="color: #e03131;">{{ "%.1f"|format(p.missed_known_pct) }}%</strong>
+            {% else %}
+              <span style="color: #2b8a3e;">0.0%</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h2 style="margin-top: 2rem;">Cohort Reference Breakdown (N = 866 BDQ-R Isolates)</h2>
+  <p>
+    Across 11,868 isolates in the reference cohort (CRyPTIC + NICD), 866 were phenotypically bedaquiline resistant.
+    Among these, <strong>729 isolates (84.2%)</strong> harbored mutations in established core loci (<em>Rv0678</em>, <em>atpE</em>, or <em>pepQ</em>), while <strong>137 isolates (15.8%)</strong> carried no core-gene variant (invisible resistance).
+  </p>
+  <ul>
+    <li><strong>Standard Deeplex Myc-TB & ICMR-NIRT MinION (Rv0678-only)</strong>: Cover 88.5% of known-locus resistant strains. They miss <strong>11.5%</strong> of known resistance drivers (<em>atpE</em> ~7.0%, <em>pepQ</em> ~5.8%), and cannot evaluate the <em>mmpL5</em> epistatic veto.</li>
+    <li><strong>AmPORE-TB (Rv0678 + atpE)</strong>: Covers 94.2% of known-locus resistant strains, but misses <em>pepQ</em> and cannot evaluate <em>mmpL5</em> epistatic inactivation.</li>
+    <li><strong>Deeplex Myc-TB XL & WGS (All 5 genes)</strong>: Deliver 100% coverage of known resistance loci and active epistatic veto auditing.</li>
+  </ul>
+</section>
+{% endblock %}

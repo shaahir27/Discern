@@ -395,3 +395,275 @@ if (fileInput) {
   const uploadError = form.querySelector("[data-upload-error]");
   if (uploadError) uploadError.focus();
 }
+
+// ---------------------------------------------------------------------------
+// Longitudinal Serial-Isolate Tracking & Clonal-Ribbon Timeline
+// ---------------------------------------------------------------------------
+function initLongitudinalTimeline() {
+  const dataScript = document.getElementById("timeline-data");
+  if (!dataScript) return;
+
+  let timeline;
+  try {
+    timeline = JSON.parse(dataScript.textContent);
+  } catch (e) {
+    return;
+  }
+
+  const visits = timeline.timepoints;
+  const n = visits.length;
+  if (n < 2) return;
+
+  const variants = timeline.variants;
+  const trajectories = timeline.trajectories;
+  const wtSeries = timeline.wt_series;
+
+  // Mineral color palette for variants
+  const colorPalette = [
+    "#dc2626", // bark-red (Rv0678 core)
+    "#d97706", // amber / mineral gold
+    "#0284c7", // spruce / cobalt
+    "#7c3aed", // violet / atpE
+    "#059669", // emerald
+    "#ea580c", // rust
+    "#4f46e5", // indigo
+  ];
+
+  const variantColors = {};
+  variants.forEach((v, idx) => {
+    variantColors[v] = colorPalette[idx % colorPalette.length];
+  });
+
+  // Color legend boxes
+  document.querySelectorAll(".legend-color-box").forEach(el => {
+    const v = el.getAttribute("data-variant");
+    if (variantColors[v]) el.style.backgroundColor = variantColors[v];
+  });
+
+  const svg = document.getElementById("muller-svg");
+  const ribbonsGroup = document.getElementById("ribbons-group");
+  const markersGroup = document.getElementById("visit-markers-group");
+  const cursor = document.getElementById("scrubber-cursor");
+
+  const scrubber = document.getElementById("visit-scrubber");
+  const activeLabel = document.getElementById("active-visit-label");
+  const btnPrev = document.getElementById("btn-prev-visit");
+  const btnNext = document.getElementById("btn-next-visit");
+  const btnPlay = document.getElementById("btn-play-pause");
+
+  const leftX = 60;
+  const rightX = 720;
+  const topY = 20;
+  const botY = 240;
+  const usableW = rightX - leftX;
+  const usableH = botY - topY;
+
+  const getX = idx => leftX + (idx / (n - 1)) * usableW;
+  const getY = frs => botY - Math.min(1.0, Math.max(0.0, frs)) * usableH;
+
+  // Calculate stacked ribbon intervals for each visit
+  // order: variants then wildtype
+  const allLayers = [...variants, "__WT__"];
+  const stackedTops = {};
+  const stackedBots = {};
+
+  allLayers.forEach(layer => {
+    stackedTops[layer] = new Array(n).fill(0);
+    stackedBots[layer] = new Array(n).fill(0);
+  });
+
+  for (let i = 0; i < n; i++) {
+    let currentBot = 0.0;
+    variants.forEach(v => {
+      const frs = (trajectories[v] && trajectories[v][i]) || 0.0;
+      const top = currentBot + frs;
+      stackedBots[v][i] = currentBot;
+      stackedTops[v][i] = Math.min(1.0, top);
+      currentBot = top;
+    });
+    // WT remainder fills up to 1.0
+    stackedBots["__WT__"][i] = Math.min(1.0, currentBot);
+    stackedTops["__WT__"][i] = 1.0;
+  }
+
+  // Draw ribbons
+  allLayers.forEach(layer => {
+    let pathD = "";
+    // Top boundary left-to-right
+    for (let i = 0; i < n; i++) {
+      const x = getX(i);
+      const y = getY(stackedTops[layer][i]);
+      if (i === 0) pathD += `M ${x} ${y}`;
+      else {
+        const prevX = getX(i - 1);
+        const prevY = getY(stackedTops[layer][i - 1]);
+        const midX = (prevX + x) / 2;
+        pathD += ` C ${midX} ${prevY}, ${midX} ${y}, ${x} ${y}`;
+      }
+    }
+    // Bottom boundary right-to-left
+    for (let i = n - 1; i >= 0; i--) {
+      const x = getX(i);
+      const y = getY(stackedBots[layer][i]);
+      const nextX = getX(i + 1);
+      const nextY = getY(stackedBots[layer][i + 1]);
+      if (i === n - 1) pathD += ` L ${x} ${y}`;
+      else {
+        const midX = (nextX + x) / 2;
+        pathD += ` C ${midX} ${nextY}, ${midX} ${y}, ${x} ${y}`;
+      }
+    }
+    pathD += " Z";
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", pathD);
+    path.setAttribute("fill", layer === "__WT__" ? "#94a3b8" : variantColors[layer]);
+    path.setAttribute("opacity", layer === "__WT__" ? "0.35" : "0.85");
+    path.setAttribute("stroke", "#ffffff");
+    path.setAttribute("stroke-width", "1");
+    ribbonsGroup.appendChild(path);
+  });
+
+  // Draw visit markers & date labels
+  visits.forEach((v, idx) => {
+    const x = getX(idx);
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", x);
+    line.setAttribute("y1", topY);
+    line.setAttribute("x2", x);
+    line.setAttribute("y2", botY);
+    line.setAttribute("stroke", "#94a3b8");
+    line.setAttribute("stroke-width", "1.5");
+    line.setAttribute("stroke-dasharray", "2,2");
+    markersGroup.appendChild(line);
+
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", x);
+    circle.setAttribute("cy", botY);
+    circle.setAttribute("r", "4");
+    circle.setAttribute("fill", "#0f172a");
+    markersGroup.appendChild(circle);
+
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute("x", x);
+    text.setAttribute("y", botY + 18);
+    text.setAttribute("font-size", "10");
+    text.setAttribute("fill", "#475569");
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("font-weight", "600");
+    text.textContent = v.date_display;
+    markersGroup.appendChild(text);
+  });
+
+  // Active visit update function
+  function updateActiveVisit(idx) {
+    if (idx < 0) idx = 0;
+    if (idx >= n) idx = n - 1;
+    const current = visits[idx];
+    const x = getX(idx);
+
+    cursor.setAttribute("x1", x);
+    cursor.setAttribute("x2", x);
+    scrubber.value = idx;
+    activeLabel.textContent = `${idx + 1} of ${n}`;
+
+    // Update active visit summary card
+    document.getElementById("visit-date-title").textContent = current.date_display;
+    document.getElementById("visit-sample-id").textContent = current.sample_id;
+    const link = document.getElementById("visit-sample-link");
+    link.href = `/result?sample_id=${encodeURIComponent(current.sample_id)}`;
+
+    const callBadge = document.getElementById("visit-call-badge");
+    callBadge.textContent = current.call_label || current.call;
+    callBadge.className = `badge status-${current.call}`;
+
+    const probDisp = document.getElementById("visit-prob-display");
+    if (typeof current.probability === "number") {
+      probDisp.textContent = `${(current.probability * 100).toFixed(1)}%`;
+    } else {
+      probDisp.textContent = "—";
+    }
+
+    // Populate variant bars
+    const barsContainer = document.getElementById("visit-variant-bars");
+    barsContainer.innerHTML = "";
+    if (current.variants && current.variants.length > 0) {
+      current.variants.forEach(v => {
+        const row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.alignItems = "center";
+        row.style.gap = "0.5rem";
+        row.style.fontSize = "0.85rem";
+
+        const label = document.createElement("span");
+        label.style.minWidth = "160px";
+        label.innerHTML = `<code>${v.gene}@${v.mutation}</code>`;
+
+        const barTrack = document.createElement("div");
+        barTrack.style.flex = "1";
+        barTrack.style.height = "10px";
+        barTrack.style.background = "#e2e8f0";
+        barTrack.style.borderRadius = "4px";
+        barTrack.style.overflow = "hidden";
+
+        const barFill = document.createElement("div");
+        barFill.style.height = "100%";
+        barFill.style.width = `${Math.min(100, Math.max(0, v.frs * 100))}%`;
+        const mutKey = `${v.gene}@${v.mutation}`;
+        barFill.style.background = variantColors[mutKey] || "#dc2626";
+
+        barTrack.appendChild(barFill);
+
+        const val = document.createElement("strong");
+        val.style.minWidth = "50px";
+        val.style.textAlign = "right";
+        val.textContent = `${(v.frs * 100).toFixed(1)}%`;
+
+        row.appendChild(label);
+        row.appendChild(barTrack);
+        row.appendChild(val);
+        barsContainer.appendChild(row);
+      });
+    } else {
+      barsContainer.innerHTML = "<p class='fine' style='margin: 0; font-style: italic;'>No core mutations detected (100% Wild-type).</p>";
+    }
+  }
+
+  // Interactive scrubber events
+  scrubber.addEventListener("input", () => {
+    updateActiveVisit(parseInt(scrubber.value, 10));
+  });
+
+  btnPrev.addEventListener("click", () => {
+    updateActiveVisit(parseInt(scrubber.value, 10) - 1);
+  });
+
+  btnNext.addEventListener("click", () => {
+    updateActiveVisit(parseInt(scrubber.value, 10) + 1);
+  });
+
+  // Play / Pause timer
+  let playTimer = null;
+  btnPlay.addEventListener("click", () => {
+    if (playTimer) {
+      clearInterval(playTimer);
+      playTimer = null;
+      btnPlay.textContent = "▶ Play";
+    } else {
+      btnPlay.textContent = "⏸ Pause";
+      playTimer = setInterval(() => {
+        let cur = parseInt(scrubber.value, 10);
+        let next = cur + 1;
+        if (next >= n) next = 0;
+        updateActiveVisit(next);
+      }, 1200);
+    }
+  });
+
+  // Initialize on first visit
+  updateActiveVisit(0);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  initLongitudinalTimeline();
+});

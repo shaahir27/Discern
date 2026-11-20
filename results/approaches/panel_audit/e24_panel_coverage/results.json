@@ -1,0 +1,92 @@
+{
+  "title": "Sequencing-Assay & tNGS Panel Blind-Spot Audit",
+  "description": "Coverage upper bounds and blind spots across tNGS panels on the 866-isolate BDQ-R reference cohort",
+  "reference_counts": {
+    "total_resistant": 866,
+    "known_locus_resistant": 729,
+    "invisible_resistant_no_core_variant": 137
+  },
+  "panels": {
+    "wgs": {
+      "panel_key": "wgs",
+      "panel_label": "Whole Genome Sequencing (WGS) \u2014 All 5 loci",
+      "platform": "mixed",
+      "vaf_floor": 0.1,
+      "covered_genes": "Rv0678,atpE,mmpL5,mmpS5,pepQ",
+      "known_locus_sensitivity": 1.0,
+      "overall_sensitivity_upper_bound": 0.8418,
+      "missed_known_pct": 0.0,
+      "missed_loci": "",
+      "notes": "Comprehensive 5-locus coverage (default)."
+    },
+    "deeplex_myc_tb": {
+      "panel_key": "deeplex_myc_tb",
+      "panel_label": "GenoScreen Deeplex Myc-TB (Commercial tNGS)",
+      "platform": "illumina",
+      "vaf_floor": 0.03,
+      "covered_genes": "Rv0678",
+      "known_locus_sensitivity": 0.8848,
+      "overall_sensitivity_upper_bound": 0.7448,
+      "missed_known_pct": 11.52,
+      "missed_loci": "atpE,mmpL5,mmpS5,pepQ",
+      "notes": "Targeted Illumina panel; sequences Rv0678 only (missing atpE, pepQ, mmpL5, mmpS5)."
+    },
+    "deeplex_xl": {
+      "panel_key": "deeplex_xl",
+      "panel_label": "Deeplex Myc-TB XL (Expanded beta tNGS)",
+      "platform": "illumina",
+      "vaf_floor": 0.03,
+      "covered_genes": "Rv0678,atpE,mmpL5,mmpS5,pepQ",
+      "known_locus_sensitivity": 1.0,
+      "overall_sensitivity_upper_bound": 0.8418,
+      "missed_known_pct": 0.0,
+      "missed_loci": "",
+      "notes": "Expanded research panel covering all 5 bedaquiline resistance loci."
+    },
+    "ampore_tb": {
+      "panel_key": "ampore_tb",
+      "panel_label": "ONT AmPORE-TB / wf-tb-amr (Nanopore)",
+      "platform": "nanopore",
+      "vaf_floor": 0.15,
+      "covered_genes": "Rv0678,atpE",
+      "known_locus_sensitivity": 0.9451,
+      "overall_sensitivity_upper_bound": 0.7956,
+      "missed_known_pct": 5.49,
+      "missed_loci": "mmpL5,mmpS5,pepQ",
+      "notes": "Targeted Oxford Nanopore amplicon panel; missing pepQ and mmpL5/mmpS5."
+    },
+    "icmr_nirt_minion": {
+      "panel_key": "icmr_nirt_minion",
+      "panel_label": "ICMR-NIRT India MinION Pilot",
+      "platform": "nanopore",
+      "vaf_floor": 0.15,
+      "covered_genes": "Rv0678",
+      "known_locus_sensitivity": 0.8848,
+      "overall_sensitivity_upper_bound": 0.7448,
+      "missed_known_pct": 11.52,
+      "missed_loci": "atpE,mmpL5,mmpS5,pepQ",
+      "notes": "Targeted MinION sequencing for Indian surveillance; sequences Rv0678 only."
+    }
+  },
+  "caveat": "Coverage is an upper bound on detection; tNGS depth, low VAF, and homopolymer calling errors can further reduce real-world sensitivity (Hall et al., eLife 2024; Ismail et al., AAC 2025).",
+  "controls": {
+    "full_coverage_control": {
+      "known_locus_sensitivity": 1.0,
+      "overall_sensitivity_upper_bound": 0.8418,
+      "missed_known_pct": 0.0,
+      "missed_loci": []
+    },
+    "empty_coverage_control": {
+      "known_locus_sensitivity": 0.0,
+      "overall_sensitivity_upper_bound": 0.0,
+      "missed_known_pct": 100.0,
+      "missed_loci": [
+        "Rv0678",
+        "atpE",
+        "pepQ",
+        "mmpL5",
+        "mmpS5"
+      ]
+    }
+  }
+}

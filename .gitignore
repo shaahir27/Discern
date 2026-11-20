@@ -6,8 +6,10 @@ data/processed/
 data/external_cryptic_v34/
 data/*.tsv
 .pytest_cache/
+.pytest_cache_local/
 .ruff_cache/
 *.tar.gz
 scratch/
 *.zip
 .env
+prompt.md

@@ -14,8 +14,8 @@
       <div class="dropzone" data-dropzone>
         <span class="file-icon" aria-hidden="true"></span>
         <div class="dropzone-content">
-          <p class="drop-label" id="drop-hint">Drop a CSV here or choose a file.</p>
-          <input id="csv-file" type="file" accept=".csv,text/csv" data-max-bytes="{{ max_csv_bytes }}" aria-describedby="upload-help file-status{% if error %} upload-error{% endif %}"{% if error %} aria-invalid="true"{% endif %}>
+          <p class="drop-label" id="drop-hint">Drop a CSV, TSV, or TB-Profiler JSON here or choose a file.</p>
+          <input id="csv-file" type="file" accept=".csv,.tsv,.json,text/csv,text/tab-separated-values,application/json" data-max-bytes="{{ max_csv_bytes }}" aria-describedby="upload-help file-status{% if error %} upload-error{% endif %}"{% if error %} aria-invalid="true"{% endif %}>
         </div>
       </div>
       <p id="file-status" class="fine" role="status"></p>
@@ -60,6 +60,18 @@
         <label for="csv">CSV contents</label>
         <textarea id="csv" name="csv" rows="5" spellcheck="false" placeholder="sample_id,gene,mutation,frs"></textarea>
       </details>
+      <div class="field" style="margin-top: 1rem; margin-bottom: 0.5rem;">
+        <label for="assay" style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Sequencing assay / tNGS panel</label>
+        <select id="assay" name="assay" class="select-field" style="width: 100%; max-width: 450px; padding: 0.4rem 0.6rem; border-radius: 4px; border: 1px solid var(--border, #ccc); font-size: 0.9rem;">
+          <option value="wgs" selected>Whole Genome Sequencing (WGS) — All 5 loci</option>
+          <option value="deeplex_myc_tb">GenoScreen Deeplex Myc-TB (Rv0678 only)</option>
+          <option value="deeplex_xl">Deeplex Myc-TB XL (All 5 loci)</option>
+          <option value="ampore_tb">ONT AmPORE-TB (Rv0678 + atpE)</option>
+          <option value="icmr_nirt_minion">ICMR-NIRT India MinION Pilot (Rv0678 only)</option>
+        </select>
+        <p class="fine" style="margin-top: 0.25rem;">Audits unsequenced blind spots and homopolymer noise. <a href="/panels">View panel audit table</a>.</p>
+      </div>
+
       <div class="upload-actions">
         <button type="submit" id="submit-btn">Run model scoring</button>
         <a href="/example.csv">Download example CSV</a>

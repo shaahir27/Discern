@@ -254,3 +254,30 @@ requests.
 14/14 acceptance tests passed.
 31 passed, 5 warnings in 5.33s
 ```
+
+## 5 Novel Clinical & Genomic Approaches: Completed & Verified (2026-11-20)
+
+Implemented the 5 high-impact, test-driven additions without altering golden mode or retraining baseline models:
+1. **Sequencing-Assay & tNGS Panel Blind-Spot Auditor (`src/discern/panels.py`, `eval/panel_audit.py`, `GET /panels`)**:
+   - Profiles WGS, Deeplex Myc-TB, Deeplex Myc-TB XL, ONT AmPORE-TB, and ICMR-NIRT MinION.
+   - Detects missing pump genes (epistatic veto blind), unsequenced core genes (atpE/pepQ), and homopolymer indels on Nanopore or at low VAF (<0.25).
+   - Generates 5-gene coverage comparison table and inline 5-gene coverage strip.
+2. **Unsupervised Batch Prevalence Estimation (MLLS / Saerens EM) (`src/discern/label_shift.py`)**:
+   - Solves local prevalence estimation for regional labs lacking pDST using unlabeled isolate batches (N >= 30).
+   - Computes 100-rep bootstrap 95% confidence intervals and deduplicates serial patient isolates.
+   - Renders interactive inline SVG PPV curve (0.5%–25% prevalence) with shaded 95% CI band in `/queue` and dynamically updates slider.
+3. **Longitudinal Serial-Isolate Tracking & Clonal-Ribbon Timeline (`src/discern/longitudinal.py`, `GET /patient/{patient_id}`)**:
+   - Supports optional `patient_id` and `collection_date` (ISO or Day offset) columns in uploaded CSVs.
+   - Computes clonal trajectories, detecting de novo emergence, rising minority subclones, and polyclonal competition.
+   - Renders interactive inline SVG Muller plot with timeline scrubber and accessible fallback table.
+4. **Native Lab-Export Importers & Mechanism-Stratified Reflex Guidance (`src/discern/importers.py`, `result.html`)**:
+   - Ingests TB-Profiler JSON, Deeplex Myc-TB CSV, and AmPORE-TB TSV/CSV formats directly with HGVS-to-GARC variant normalization.
+   - Maps resistance drivers to structural domains and provides actionable mechanism-stratified clinical reflex guidance (CFZ cross-resistance, pDST reflex, target protection).
+5. **Lightweight Batch-Recurrence & Contamination Alert (`src/discern/surveillance.py`, `queue.html`)**:
+   - Identifies identical rare variants across distinct patients to trigger WGS surveillance escalation.
+   - Differentiates biological transmission from technical homopolymer sequencing artifacts (e.g., Rv0678 nt 192–198 poly-G runs).
+
+```text
+14/14 acceptance tests passed.
+61 passed in 12.14s (0 warnings, 0 failures)
+```

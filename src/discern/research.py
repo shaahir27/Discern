@@ -31,6 +31,7 @@ REPORTS = {
 MAX_CSV_BYTES = 16_384
 PRIVATE_HEADERS = {"uniqueid", "sample_id", "subjid", "accession", "run_accession"}
 PROFILE_COLUMNS = ["sample_id", "gene", "mutation", "frs"]
+OPTIONAL_PROFILE_COLUMNS = {"patient_id", "collection_date", "assay"}
 
 
 class UploadError(ValueError):
@@ -86,16 +87,22 @@ def read_batch(payload: bytes) -> tuple[list[str], list[tuple[int, dict[str, str
         if not fields and not text.strip():
             raise UploadError("empty_csv", "Add at least one recorded sample ID.")
         headers = fields[:-1] if fields[-1:] == ["banner"] else fields
-        if headers not in (["sample_id"], PROFILE_COLUMNS):
+        is_valid_header = (
+            headers == ["sample_id"]
+            or headers == PROFILE_COLUMNS
+            or (len(headers) >= 4 and headers[:4] == PROFILE_COLUMNS and set(headers[4:]).issubset(OPTIONAL_PROFILE_COLUMNS))
+        )
+        if not is_valid_header:
             raise UploadError(
                 "invalid_header", "Use the columns in the example CSV or a list with a sample_id column.", line=1,
             )
+        req_headers = headers[:4] if len(headers) >= 4 and headers[:4] == PROFILE_COLUMNS else headers
         while (values := next(reader, None)) is not None:
             if values:
                 if len(values) > len(fields):
                     raise UploadError("extra_cells", "Remove the extra cells from this row.", line=line + 1)
                 row = dict(zip(headers, (value.strip() for value in values)))
-                for column in headers:
+                for column in req_headers:
                     if not row.get(column):
                         raise UploadError("missing_cell", "Fill in this required cell.", line=line + 1, column=column)
                 rows.append((line + 1, row))
@@ -205,7 +212,7 @@ class Archive:
             if sid not in self.roster:
                 raise UploadError("unknown_sample", message, line=line, column="sample_id")
             first_lines.setdefault(sid, line)
-        if headers == PROFILE_COLUMNS:
+        if headers == PROFILE_COLUMNS or (len(headers) >= 4 and headers[:4] == PROFILE_COLUMNS):
             remaining = {
                 sid: Counter((row["gene"], row["mutation"], Decimal(row["frs"])) for row in self.profile(sid))
                 for sid in first_lines

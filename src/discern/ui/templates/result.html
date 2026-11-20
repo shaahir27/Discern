@@ -79,9 +79,31 @@
   <section class="panel verdict" aria-labelledby="verdict">
     <h2 id="verdict">Catalogue call {% if record.tier_a and record.tier_a.epistatic_veto_applied %}<span class="badge" style="font-size: 0.75rem; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 9999px; vertical-align: middle;">Epistatic Veto Active</span>{% endif %}</h2>
     <p class="call-display call-{{ record.call }}">{{ record.call_label }}</p>
+    {% if record.tier_a and record.tier_a.reason_codes %}
+      <p class="call-drivers" style="font-size: 0.88rem; margin: 0.25rem 0 0.5rem; color: var(--text-muted, #555);">
+        <strong>Call drivers:</strong>
+        {% set active_drivers = record.tier_a.reason_codes|selectattr("role", "in", ["driving_R", "driving_U", "vetoed_R_to_U"])|list %}
+        {% if active_drivers %}
+          {% for rc in active_drivers %}
+            <span class="badge" style="margin-right: 4px; padding: 2px 6px; font-size: 0.8rem; border-radius: 4px; {% if rc.role == 'driving_R' %}background: #fee2e2; color: #991b1b;{% elif rc.role == 'vetoed_R_to_U' %}background: #e0f2fe; color: #0369a1;{% else %}background: #fef3c7; color: #92400e;{% endif %}">
+              {{ rc.variant }} ({{ rc.role|replace('_', ' ') }})
+            </span>
+          {% endfor %}
+        {% else %}
+          <span style="font-style: italic;">None (Wild-type or below detection floor)</span>
+        {% endif %}
+      </p>
+    {% elif not record.is_live %}
+      <p class="call-drivers" style="font-size: 0.85rem; margin: 0.25rem 0 0.5rem; color: var(--text-muted, #666);">
+        <em>Call drivers: Not archived in historical study replay</em>
+      </p>
+    {% endif %}
     <p>{% if record.tier_a and record.tier_a.epistatic_veto_applied %}The catalogue R call was downgraded under the epistatic pump-inactivation rule because <em>mmpL5</em> contains an inactivating mutation.{% elif record.call == "U" %}The catalogue left this case unresolved.{% elif record.call == "R" %}The catalogue flagged this case for resistance.{% else %}The catalogue recorded this case as susceptible.{% endif %}</p>
     <dl class="facts">
       <div><dt>Recorded lab result</dt><dd>{{ record.phenotype }}</dd></div>
+      {% if record.patient_id %}
+        <div><dt>Patient tracking</dt><dd><a href="/patient/{{ record.patient_id|urlencode }}" style="color: #0369a1; font-weight: 600; text-decoration: underline;">{{ record.patient_id }}{% if record.longitudinal_timeline %} ({{ record.longitudinal_timeline.n_visits }} serial visits &rarr;){% endif %}</a></dd></div>
+      {% endif %}
     </dl>
     {% if record.call != "U" and record.call_label != record.phenotype and not record.is_live %}
       <p class="disagreement">The lab finding differed from the catalogue call in this study case.</p>
@@ -147,6 +169,38 @@
 </section>
 {% endif %}
 
+{% if record.clinical_reflex %}
+<section class="panel reflex-panel" style="margin-top: 1.5rem; border-left: 4px solid #0284c7; background: rgba(2, 132, 199, 0.05); padding: 1rem 1.25rem; border-radius: 4px;">
+  <h2 style="font-size: 1.15rem; margin-top: 0; margin-bottom: 0.5rem; color: #0369a1;">Mechanism &amp; Clinical Reflex Guidance</h2>
+  <ul style="margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.92rem; line-height: 1.5;">
+    {% for reflex in record.clinical_reflex %}
+      <li>{{ reflex }}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if record.panel_audit %}
+<section class="panel" style="margin-top: 1.5rem; margin-bottom: 1.5rem; padding: 1rem 1.25rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;">
+    <h3 style="font-size: 1rem; margin: 0;">5-Gene Coverage Strip ({{ record.panel_audit.assay_label }})</h3>
+    <a href="/panels" style="font-size: 0.85rem; text-decoration: underline;">Compare panel blind spots →</a>
+  </div>
+  <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+    {% for g in ["Rv0678", "atpE", "pepQ", "mmpL5", "mmpS5"] %}
+      {% set st = record.panel_audit.gene_status.get(g, "wild_type") %}
+      {% if st == "mutated" %}
+        <span class="pill-gene pill-mutated" title="{{ g }}: Retained variant detected"><strong>{{ g }}</strong>: Mutated</span>
+      {% elif st == "wild_type" %}
+        <span class="pill-gene pill-wt" title="{{ g }}: Sequenced and wild-type"><strong>{{ g }}</strong>: Wild-type</span>
+      {% else %}
+        <span class="pill-gene pill-blind" title="{{ g }}: Not interrogated by this assay"><strong>{{ g }}</strong>: Not interrogated</span>
+      {% endif %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 <section class="section" aria-labelledby="evidence">
   <h2 id="evidence">Observed gene changes</h2>
   <p>Study evidence shows how often samples with each change tested resistant to bedaquiline. The archive did not record which variants drove this call.</p>
@@ -172,6 +226,41 @@
               {% endfor %}
             </dl>
           </details>
+        {% endif %}
+        {% if gene == "Rv0678" and item.pos is number and item.pos > 0 and item.pos <= 165 %}
+          {% set codon_num = item.pos|int %}
+          {% set pin_x = 10 + (codon_num / 165.0) * 310 %}
+          <div class="domain-track-wrapper" style="margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--border-light, #eee);">
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted, #666); margin-bottom: 2px;">
+              <span><strong>Rv0678 Domain Track</strong> (165 aa)</span>
+              <span>Position: <strong>aa {{ codon_num }}</strong></span>
+            </div>
+            <svg viewBox="0 0 330 38" width="100%" height="38" style="display: block; overflow: visible;" aria-label="Rv0678 domain map showing variant at position {{ codon_num }}">
+              <!-- N-term (1-33) -->
+              <rect x="10" y="4" width="62" height="12" rx="2" fill="#94a3b8" />
+              <text x="41" y="13" font-size="7" fill="#fff" text-anchor="middle" font-weight="bold">N-term</text>
+              <!-- DBD (34-99) -->
+              <rect x="74" y="4" width="122" height="12" rx="2" fill="#d97706" />
+              <text x="135" y="13" font-size="7" fill="#fff" text-anchor="middle" font-weight="bold">DNA-Binding (34–99)</text>
+              <!-- Dimerization (100-160) -->
+              <rect x="198" y="4" width="112" height="12" rx="2" fill="#0284c7" />
+              <text x="254" y="13" font-size="7" fill="#fff" text-anchor="middle" font-weight="bold">Dimerization (100–160)</text>
+              <!-- C-term (161-165) -->
+              <rect x="312" y="4" width="8" height="12" rx="2" fill="#64748b" />
+              <!-- Marker Pin -->
+              <line x1="{{ pin_x }}" y1="1" x2="{{ pin_x }}" y2="24" stroke="#b91c1c" stroke-width="2" />
+              <circle cx="{{ pin_x }}" cy="2" r="3" fill="#b91c1c" />
+              <text x="{{ pin_x }}" y="34" font-size="8" font-weight="bold" fill="#b91c1c" text-anchor="middle">▲ aa {{ codon_num }}</text>
+            </svg>
+          </div>
+        {% endif %}
+        {% if item.lof_annotation %}
+          <div style="margin-top: 0.5rem; font-size: 0.8rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 0.35rem 0.5rem;">
+            <strong>LoF Effect:</strong> {{ item.lof_annotation.type|title }}
+            {% if item.lof_annotation.first_stop_aa %}(first stop: aa {{ item.lof_annotation.first_stop_aa }}){% endif %}
+            • Region: {{ item.lof_annotation.region }}
+            {% if item.lof_annotation.late_preserved %}<span style="color: #0369a1; font-weight: bold;">(Dimerization preserved)</span>{% endif %}
+          </div>
         {% endif %}
       </article>
     {% endfor %}
