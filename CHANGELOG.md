@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed the live catalogue review rule to require a high-confidence annotation and preserve independent resistant findings.
 - Reworked sample intake, case results, review queues, and study views around their primary actions. Added dated visit controls and a one-click illustrative timeline.
 - Fixed panel-report loading, batch prevalence rendering and manual overrides, native-export validation, and baseline selection for repeated patients.
 - Scoped live results and timelines to the uploading browser and separated live links from saved replay.

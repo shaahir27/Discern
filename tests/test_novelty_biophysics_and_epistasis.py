@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from discern.decision import Predictor
 from discern.mechanism import apply_veto, veto_flags
@@ -65,6 +66,8 @@ def test_epistatic_veto_firing_and_target_protection():
     ])
     flags_veto = veto_flags(retained_veto, ["iso_veto"], {"Rv0678@192_ins_g"})
     assert flags_veto.veto_fire.iloc[0] == True
+    unannotated = veto_flags(retained_veto, ["iso_veto"], set())
+    assert not unannotated.veto_fire.iloc[0]
     
     # Calls before veto: ["R"]
     calls = np.array(["R"])
@@ -137,3 +140,37 @@ def test_epistatic_veto_end_to_end():
     assert res["call"] == "U"
     assert "EPISTATIC_PUMP_INACTIVATION" in res["warnings"]
     assert "PUMP_DAMAGE_MODIFIER" in res["warnings"]
+
+
+def test_live_veto_requires_a_high_confidence_annotation():
+    predictor = Predictor()
+    predictor.veto_high_conf = set()
+
+    result = predictor.predict([
+        {"gene": "Rv0678", "mutation": "141_ins_c", "frs": 1.0},
+        {"gene": "mmpL5", "mutation": "141_ins_c", "frs": 1.0},
+    ])
+
+    assert result["call"] == "R"
+    assert not result["tier_a"].get("epistatic_veto_applied")
+    assert result["tier_a"]["reason_codes"][0]["role"] == "driving_R"
+
+
+@pytest.mark.parametrize("independent_gene", ["pepQ", "Rv0678"])
+def test_live_veto_preserves_independent_resistant_calls(monkeypatch, independent_gene):
+    predictor = Predictor()
+    # Supply an independent catalogue grade without making any biological claim about A1T.
+    monkeypatch.setattr(predictor, "_call_variant", lambda *_: "R")
+    predictor.veto_high_conf = {"Rv0678@141_ins_c"}
+
+    result = predictor.predict([
+        {"gene": "Rv0678", "mutation": "141_ins_c", "frs": 1.0},
+        {"gene": "mmpL5", "mutation": "141_ins_c", "frs": 1.0},
+        {"gene": independent_gene, "mutation": "A1T", "frs": 1.0},
+    ])
+
+    assert result["call"] == "R"
+    assert result["tier_a"]["epistatic_veto_applied"] is True
+    reasons = {item["variant"]: item["role"] for item in result["tier_a"]["reason_codes"]}
+    assert reasons["Rv0678@141_ins_c"] == "vetoed_R_to_U"
+    assert reasons[f"{independent_gene}@A1T"] == "driving_R"

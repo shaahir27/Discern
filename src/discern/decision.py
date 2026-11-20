@@ -109,9 +109,8 @@ class Predictor:
         core, a = sample_tables(mdf, [sid], self.art["frs_min"], tuple(self.art["dbd"]))
         X = design(core, a, self.vocab, "F2").values
 
-        variant_calls, core_calls = [], []
+        variant_calls = []
         catalogue_failed = False
-        raw_core_calls = {}
         for _, r in mdf.iterrows():
             c = "S"
             if r.GENE in CORE and not r.IS_SYN and not r.IS_NULL and r.FRSf >= self.art["frs_min"]:
@@ -120,26 +119,26 @@ class Predictor:
                 except CatalogueEvaluationError:
                     c = "U"
                     catalogue_failed = True
-                core_calls.append(c)
-                raw_core_calls[r.MUT] = c
             variant_calls.append({"variant": r.MUT, "gene": r.GENE, "frs": float(r.FRSf), "call": c})
         tier_a = {"variant_calls": variant_calls}
+        calls = np.array([vc["call"] for vc in variant_calls], dtype=object)
         veto_applied = False
-        if not catalogue_failed and self.veto_high_conf is not None and "R" in core_calls:
-            retained = mdf[(~mdf.IS_SYN) & (~mdf.IS_NULL) & (mdf.FRSf >= self.art["frs_min"])]
-            flags = veto_flags(retained, [sid], self.veto_high_conf)
-            if flags.veto_fire.iloc[0]:
-                core_calls = apply_veto(np.asarray(core_calls), np.ones(len(core_calls), dtype=bool)).tolist()
-                tier_a["epistatic_veto_applied"] = True
-                veto_applied = True
-        call = "U" if catalogue_failed else (_aggregate(pd.Series(core_calls)) if core_calls else "S")
+        if not catalogue_failed and self.veto_high_conf:
+            veto_targets = (calls == "R") & (
+                mdf.GENE.eq("Rv0678") & mdf.MUT.isin(self.veto_high_conf)
+            ).to_numpy()
+            if veto_targets.any():
+                retained = mdf[(~mdf.IS_SYN) & (~mdf.IS_NULL) & (mdf.FRSf >= self.art["frs_min"])]
+                flags = veto_flags(retained, [sid], self.veto_high_conf)
+                if flags.veto_fire.iloc[0]:
+                    calls = apply_veto(calls, veto_targets)
+                    tier_a["epistatic_veto_applied"] = True
+                    veto_applied = True
+        call = "U" if catalogue_failed else _aggregate(pd.Series(calls))
 
         reason_codes = []
-        for vc in variant_calls:
-            v_mut = vc["variant"]
-            v_call = vc["call"]
-            initial_call = raw_core_calls.get(v_mut, v_call)
-            if veto_applied and initial_call == "R" and v_mut.startswith("Rv0678@"):
+        for vc, v_call in zip(variant_calls, calls, strict=True):
+            if vc["call"] != v_call:
                 role = "vetoed_R_to_U"
             elif call == "R" and v_call == "R":
                 role = "driving_R"
@@ -147,7 +146,7 @@ class Predictor:
                 role = "driving_U"
             else:
                 role = "benign_or_below_frs"
-            reason_codes.append({"variant": v_mut, "call": v_call, "role": role})
+            reason_codes.append({"variant": vc["variant"], "call": vc["call"], "role": role})
         tier_a["reason_codes"] = reason_codes
 
         clinical_reflex = []

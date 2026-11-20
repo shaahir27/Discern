@@ -166,7 +166,7 @@ def veto_flags(
         FRS(mmpL5/S5) >= FRS(Rv0678) - tolerance
     A minor subclone pump LoF (e.g. 10%) cannot veto a dominant (e.g. 95%) Rv0678 LoF.
     """
-    rv = retained[(retained.GENE == "Rv0678") & (retained.MUT.isin(high_conf) | retained.is_indel | retained.is_stop) & (retained.FRSf > 0)]
+    rv = retained[(retained.GENE == "Rv0678") & retained.MUT.isin(high_conf) & (retained.FRSf > 0)]
     pump = retained[retained.GENE.isin(["mmpL5", "mmpS5"]) & (retained.is_indel | retained.is_stop) & (retained.FRSf > 0)]
     atpe = retained[retained.GENE == "atpE"]
     flags = pd.DataFrame(index=ids)
@@ -212,7 +212,9 @@ def sample_mech_flags(m: pd.DataFrame, ids, cds: str, frs_min: float = 0.1):
     feat["rv_lof_dbd"] = mx(rv2[rv2.hc & rv2.dbd])
     feat["rv_lof_late"] = mx(rv2[rv2.hc & rv2.late])
     high_conf = {mutation for mutation, effect in cls.items() if effect["high_conf"]}
-    return feat, veto_flags(mm, ids, high_conf)
+    # E16/E19 used the original stop and indel screen when producing the archive.
+    historical_candidates = high_conf | set(rv.loc[rv.is_indel | rv.is_stop, "MUT"])
+    return feat, veto_flags(mm, ids, historical_candidates)
 
 
 def apply_veto(calls: np.ndarray, veto_fire: np.ndarray) -> np.ndarray:
