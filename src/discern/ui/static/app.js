@@ -6,6 +6,61 @@ if (slider) {
   });
 }
 
+const studyNavigation = document.querySelector(".study-navigation");
+if (studyNavigation && !studyNavigation.querySelector("[aria-current]") &&
+    matchMedia("(max-width: 950px)").matches) {
+  studyNavigation.open = false;
+}
+
+const queueFilter = document.getElementById("queue-filter");
+if (queueFilter) {
+  const rows = [...document.querySelectorAll("[data-sample-id]")];
+  const count = document.querySelector("[data-queue-count]");
+  const empty = document.querySelector("[data-queue-empty]");
+  queueFilter.closest("[data-queue-controls]").hidden = !rows.length;
+  queueFilter.addEventListener("input", () => {
+    const query = queueFilter.value.trim().toLowerCase();
+    let shown = 0;
+    for (const row of rows) {
+      row.hidden = !row.dataset.sampleId.toLowerCase().includes(query);
+      if (!row.hidden) shown++;
+    }
+    count.textContent = shown === rows.length ? `${shown} samples` : `${shown} of ${rows.length} samples`;
+    empty.hidden = shown > 0;
+  });
+}
+
+const panelFilter = document.getElementById("panel-filter");
+if (panelFilter) {
+  const assays = Array.from(document.querySelectorAll("[data-assay]"));
+  panelFilter.closest("[data-panel-controls]").hidden = false;
+  panelFilter.addEventListener("change", () => {
+    for (const row of assays) {
+      row.hidden = Boolean(panelFilter.value) && row.dataset.assay !== panelFilter.value;
+    }
+  });
+}
+
+const cohortComparison = document.querySelector("[data-cohort-comparison]");
+if (cohortComparison) {
+  const options = cohortComparison.querySelector(".comparison-options");
+  const rows = cohortComparison.querySelectorAll("[data-compare-metric]");
+  options.hidden = false;
+  options.addEventListener("change", event => {
+    for (const row of rows) {
+      const value = Number(event.target.dataset[row.dataset.compareMetric]);
+      row.querySelector("meter").value = value;
+      const output = row.querySelector("data");
+      output.value = value;
+      output.textContent = `${(Math.trunc(value * 1000) / 10).toFixed(1)}%`;
+      if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        output.getAnimations().forEach(animation => animation.cancel());
+        output.animate([{opacity: .5}, {opacity: 1}], {duration: 160, easing: "ease-out"});
+      }
+    }
+  });
+}
+
 // Live CSV Quality Evaluation
 const REQUIRED_PROFILE_COLS = ["sample_id", "gene", "mutation", "frs"];
 const ALLOWED_GENES = new Set(["Rv0678", "atpE", "pepQ", "mmpL5", "mmpS5"]);
@@ -275,10 +330,11 @@ function renderUploadQuality(text) {
       }
       if (issuesBody) {
         issuesBody.innerHTML = "";
-        result.issues.slice(0, 30).forEach(iss => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `<td>Line ${iss.line}</td><td><span class="issue-pill issue-${iss.type}">${iss.type}</span></td><td><code>${iss.field}</code></td><td>${iss.message}</td>`;
-          issuesBody.appendChild(tr);
+        result.issues.slice(0, 30).forEach(issue => {
+          const row = issuesBody.insertRow();
+          for (const content of [`Line ${issue.line}`, issue.type, issue.field, issue.message]) {
+            row.insertCell().textContent = content;
+          }
         });
       }
     }
@@ -294,11 +350,48 @@ if (fileInput) {
   const action = submit ? submit.textContent : "Run model scoring";
   const zone = fileInput.closest("[data-dropzone]");
   const maxBytes = Number(fileInput.dataset.maxBytes);
+  const assay = form.elements.assay;
+  const formatStatus = form.querySelector("[data-format-status]");
   let selection = 0;
+  let manualAssay = false;
+  assay?.addEventListener("change", () => { manualAssay = true; });
+
+  function inspectUpload(text) {
+    const header = text.trimStart().split(/\r?\n/, 1)[0];
+    const columns = header.toLowerCase().split(/[,\t]/).map(value => value.trim().replace(/^"|"$/g, ""));
+    const isDiscern = columns[0] === "sample_id" &&
+      (columns[1] === "gene" && columns[2] === "mutation" && columns[3] === "frs" ||
+       columns.length === 1 || columns[1] === "banner");
+    let label = text.trim() ? "Discern CSV" : "";
+    let inferred = assay?.options[0]?.value ?? "wgs";
+    if (header.startsWith("{")) {
+      label = "TB-Profiler JSON";
+    } else if (!isDiscern && (/freq.*%|variant frequency|gene name/i.test(header))) {
+      label = "Deeplex CSV";
+      inferred = "deeplex_myc_tb";
+    } else if (!isDiscern && columns.some(value => ["vaf", "af", "freq"].includes(value))) {
+      label = "AmPORE-TB CSV/TSV";
+      inferred = "ampore_tb";
+    } else if (isDiscern && columns.includes("assay")) {
+      const assays = new Set(parseCSV(text).slice(1)
+        .map(row => row[columns.indexOf("assay")]?.trim()).filter(Boolean));
+      if (assays.size === 1 && assay) {
+        const candidate = assays.values().next().value;
+        if (Array.from(assay.options).some(option => option.value === candidate)) inferred = candidate;
+      }
+    }
+    if (assay && !manualAssay) assay.value = inferred;
+    if (formatStatus) {
+      formatStatus.textContent = label ? `Detected format: ${label}` : "";
+      formatStatus.hidden = !label;
+    }
+    renderUploadQuality(isDiscern ? text : "");
+  }
 
   function setStatus(message, error = false) {
     status.textContent = message;
     status.dataset.state = error ? "error" : "ready";
+    if (zone) zone.dataset.state = error ? "error" : contents.value ? "ready" : "idle";
     if (error) fileInput.setAttribute("aria-invalid", "true");
     else fileInput.removeAttribute("aria-invalid");
   }
@@ -311,9 +404,9 @@ if (fileInput) {
     if (serverError) serverError.hidden = true;
     fileInput.setAttribute("aria-describedby", zone ? "upload-help file-status" : "file-status");
     if (submit) submit.disabled = false;
-    if (!/\.csv$/i.test(file.name) || !file.size || file.size > maxBytes) {
-      setStatus("Choose a non-empty .csv file of up to " + maxBytes / 1024 + " KiB.", true);
-      renderUploadQuality("");
+    inspectUpload("");
+    if (!/\.(csv|tsv|json)$/i.test(file.name) || !file.size || file.size > maxBytes) {
+      setStatus("Choose a non-empty CSV, TSV, or JSON file of up to " + maxBytes / 1024 + " KiB.", true);
       return;
     }
     if (submit) submit.disabled = true;
@@ -327,8 +420,8 @@ if (fileInput) {
         return;
       }
       contents.value = text;
-      setStatus(file.name + " loaded. Ready for scoring.");
-      renderUploadQuality(text);
+      setStatus(file.name + " is ready to check.");
+      inspectUpload(text);
     } catch {
       if (current === selection) setStatus("The file could not be read. You can paste the CSV contents.", true);
     } finally {
@@ -340,7 +433,7 @@ if (fileInput) {
 
   if (contents) {
     contents.addEventListener("input", () => {
-      renderUploadQuality(contents.value);
+      inspectUpload(contents.value);
     });
   }
 
@@ -363,8 +456,8 @@ if (fileInput) {
         contents.value = "";
         fileInput.value = "";
         if (submit) submit.disabled = false;
-        setStatus("Drop one CSV file at a time.", true);
-        renderUploadQuality("");
+        setStatus("Drop one file at a time.", true);
+        inspectUpload("");
         return;
       }
       fileInput.value = "";
@@ -375,12 +468,12 @@ if (fileInput) {
   form.addEventListener("submit", event => {
     if (!contents.value.trim()) {
       event.preventDefault();
-      setStatus("Choose a CSV file or paste its contents to continue.", true);
+      setStatus("Choose a file or paste its contents to continue.", true);
       fileInput.focus();
       return;
     }
     if (submit) {
-      submit.textContent = "Scoring…";
+      submit.textContent = "Checking…";
       submit.disabled = true;
     }
   });
@@ -416,18 +509,9 @@ function initLongitudinalTimeline() {
 
   const variants = timeline.variants;
   const trajectories = timeline.trajectories;
-  const wtSeries = timeline.wt_series;
 
-  // Mineral color palette for variants
-  const colorPalette = [
-    "#dc2626", // bark-red (Rv0678 core)
-    "#d97706", // amber / mineral gold
-    "#0284c7", // spruce / cobalt
-    "#7c3aed", // violet / atpE
-    "#059669", // emerald
-    "#ea580c", // rust
-    "#4f46e5", // indigo
-  ];
+  // Series colors distinguish variants independently of the catalogue call.
+  const colorPalette = ["#126580", "#957515", "#567d76", "#6a516d"];
 
   const variantColors = {};
   variants.forEach((v, idx) => {
@@ -450,6 +534,7 @@ function initLongitudinalTimeline() {
   const btnPrev = document.getElementById("btn-prev-visit");
   const btnNext = document.getElementById("btn-next-visit");
   const btnPlay = document.getElementById("btn-play-pause");
+  const visitButtons = Array.from(document.querySelectorAll("[data-visit-index]"));
 
   const leftX = 60;
   const rightX = 720;
@@ -458,7 +543,9 @@ function initLongitudinalTimeline() {
   const usableW = rightX - leftX;
   const usableH = botY - topY;
 
-  const getX = idx => leftX + (idx / (n - 1)) * usableW;
+  const firstDay = visits[0].sort_key;
+  const spanDays = visits[n - 1].sort_key - firstDay;
+  const getX = idx => leftX + (spanDays ? (visits[idx].sort_key - firstDay) / spanDays : idx / (n - 1)) * usableW;
   const getY = frs => botY - Math.min(1.0, Math.max(0.0, frs)) * usableH;
 
   // Calculate stacked ribbon intervals for each visit
@@ -505,10 +592,10 @@ function initLongitudinalTimeline() {
     for (let i = n - 1; i >= 0; i--) {
       const x = getX(i);
       const y = getY(stackedBots[layer][i]);
-      const nextX = getX(i + 1);
-      const nextY = getY(stackedBots[layer][i + 1]);
       if (i === n - 1) pathD += ` L ${x} ${y}`;
       else {
+        const nextX = getX(i + 1);
+        const nextY = getY(stackedBots[layer][i + 1]);
         const midX = (nextX + x) / 2;
         pathD += ` C ${midX} ${nextY}, ${midX} ${y}, ${x} ${y}`;
       }
@@ -517,7 +604,7 @@ function initLongitudinalTimeline() {
 
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", pathD);
-    path.setAttribute("fill", layer === "__WT__" ? "#94a3b8" : variantColors[layer]);
+    path.setAttribute("fill", layer === "__WT__" ? "#afc3ca" : variantColors[layer]);
     path.setAttribute("opacity", layer === "__WT__" ? "0.35" : "0.85");
     path.setAttribute("stroke", "#ffffff");
     path.setAttribute("stroke-width", "1");
@@ -556,26 +643,39 @@ function initLongitudinalTimeline() {
   });
 
   // Active visit update function
-  function updateActiveVisit(idx) {
+  let cursorAnimation;
+  function updateActiveVisit(idx, play = false) {
     if (idx < 0) idx = 0;
     if (idx >= n) idx = n - 1;
     const current = visits[idx];
     const x = getX(idx);
 
+    const previousX = Number(cursor.getAttribute("x1"));
+    cursorAnimation?.cancel();
     cursor.setAttribute("x1", x);
     cursor.setAttribute("x2", x);
+    if (play && previousX !== x && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      cursorAnimation = cursor.animate(
+        [{ transform: `translateX(${previousX - x}px)` }, { transform: "translateX(0px)" }],
+        { duration: 200, easing: "cubic-bezier(.23, 1, .32, 1)" }
+      );
+    }
     scrubber.value = idx;
     activeLabel.textContent = `${idx + 1} of ${n}`;
+    btnPrev.disabled = idx === 0;
+    btnNext.disabled = idx === n - 1;
+    visitButtons.forEach((button, index) => button.setAttribute("aria-pressed", String(index === idx)));
 
     // Update active visit summary card
     document.getElementById("visit-date-title").textContent = current.date_display;
     document.getElementById("visit-sample-id").textContent = current.sample_id;
     const link = document.getElementById("visit-sample-link");
-    link.href = `/result?sample_id=${encodeURIComponent(current.sample_id)}`;
+    const batch = dataScript.dataset.batch;
+    link.href = "/result?" + new URLSearchParams({ sample_id: current.sample_id, batch });
 
     const callBadge = document.getElementById("visit-call-badge");
     callBadge.textContent = current.call_label || current.call;
-    callBadge.className = `badge status-${current.call}`;
+    callBadge.className = `status status-${current.call}`;
 
     const probDisp = document.getElementById("visit-prob-display");
     if (typeof current.probability === "number") {
@@ -586,37 +686,27 @@ function initLongitudinalTimeline() {
 
     // Populate variant bars
     const barsContainer = document.getElementById("visit-variant-bars");
-    barsContainer.innerHTML = "";
+    barsContainer.replaceChildren();
     if (current.variants && current.variants.length > 0) {
       current.variants.forEach(v => {
         const row = document.createElement("div");
-        row.style.display = "flex";
-        row.style.alignItems = "center";
-        row.style.gap = "0.5rem";
-        row.style.fontSize = "0.85rem";
+        row.className = "frequency-row";
 
-        const label = document.createElement("span");
-        label.style.minWidth = "160px";
-        label.innerHTML = `<code>${v.gene}@${v.mutation}</code>`;
+        const label = document.createElement("code");
+        label.textContent = `${v.gene}@${v.mutation}`;
 
         const barTrack = document.createElement("div");
-        barTrack.style.flex = "1";
-        barTrack.style.height = "10px";
-        barTrack.style.background = "#e2e8f0";
-        barTrack.style.borderRadius = "4px";
-        barTrack.style.overflow = "hidden";
+        barTrack.className = "frequency-track";
 
         const barFill = document.createElement("div");
-        barFill.style.height = "100%";
+        barFill.className = "frequency-fill";
         barFill.style.width = `${Math.min(100, Math.max(0, v.frs * 100))}%`;
         const mutKey = `${v.gene}@${v.mutation}`;
-        barFill.style.background = variantColors[mutKey] || "#dc2626";
+        barFill.style.background = variantColors[mutKey] || colorPalette[0];
 
         barTrack.appendChild(barFill);
 
         const val = document.createElement("strong");
-        val.style.minWidth = "50px";
-        val.style.textAlign = "right";
         val.textContent = `${(v.frs * 100).toFixed(1)}%`;
 
         row.appendChild(label);
@@ -625,43 +715,79 @@ function initLongitudinalTimeline() {
         barsContainer.appendChild(row);
       });
     } else {
-      barsContainer.innerHTML = "<p class='fine' style='margin: 0; font-style: italic;'>No core mutations detected (100% Wild-type).</p>";
+      const note = document.createElement("p");
+      note.className = "fine";
+      note.textContent = "No retained variants at this visit.";
+      barsContainer.appendChild(note);
     }
+    const alerts = document.getElementById("active-visit-alerts");
+    alerts.replaceChildren(...timeline.alerts.filter(alert => alert.visit_idx === idx).map(alert => {
+      const item = document.createElement("li");
+      item.textContent = alert.message;
+      return item;
+    }));
   }
 
   // Interactive scrubber events
   scrubber.addEventListener("input", () => {
+    stopPlayback();
     updateActiveVisit(parseInt(scrubber.value, 10));
   });
 
   btnPrev.addEventListener("click", () => {
+    stopPlayback();
     updateActiveVisit(parseInt(scrubber.value, 10) - 1);
   });
 
   btnNext.addEventListener("click", () => {
+    stopPlayback();
     updateActiveVisit(parseInt(scrubber.value, 10) + 1);
+  });
+
+  for (const button of visitButtons) {
+    button.addEventListener("click", () => {
+      stopPlayback();
+      updateActiveVisit(Number(button.dataset.visitIndex));
+    });
+  }
+
+  svg.addEventListener("click", event => {
+    stopPlayback();
+    const start = svg.createSVGPoint();
+    start.x = event.clientX;
+    start.y = event.clientY;
+    const x = start.matrixTransform(svg.getScreenCTM().inverse()).x;
+    const visit = visits.reduce((nearest, _, index) =>
+      Math.abs(getX(index) - x) < Math.abs(getX(nearest) - x) ? index : nearest, 0);
+    updateActiveVisit(visit);
   });
 
   // Play / Pause timer
   let playTimer = null;
+  function stopPlayback() {
+    clearInterval(playTimer);
+    playTimer = null;
+    btnPlay.textContent = "Play";
+    btnPlay.setAttribute("aria-pressed", "false");
+  }
   btnPlay.addEventListener("click", () => {
     if (playTimer) {
-      clearInterval(playTimer);
-      playTimer = null;
-      btnPlay.textContent = "▶ Play";
+      stopPlayback();
     } else {
-      btnPlay.textContent = "⏸ Pause";
+      if (Number(scrubber.value) === n - 1) updateActiveVisit(0);
+      btnPlay.textContent = "Pause";
+      btnPlay.setAttribute("aria-pressed", "true");
       playTimer = setInterval(() => {
-        let cur = parseInt(scrubber.value, 10);
-        let next = cur + 1;
-        if (next >= n) next = 0;
-        updateActiveVisit(next);
+        const next = Number(scrubber.value) + 1;
+        updateActiveVisit(next, true);
+        if (next >= n - 1) stopPlayback();
       }, 1200);
     }
   });
 
   // Initialize on first visit
   updateActiveVisit(0);
+  document.querySelector(".visit-picker").hidden = false;
 }
 
 document.addEventListener("DOMContentLoaded", () => {

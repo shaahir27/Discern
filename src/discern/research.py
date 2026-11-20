@@ -92,7 +92,7 @@ def read_batch(payload: bytes) -> tuple[list[str], list[tuple[int, dict[str, str
             or headers == PROFILE_COLUMNS
             or (len(headers) >= 4 and headers[:4] == PROFILE_COLUMNS and set(headers[4:]).issubset(OPTIONAL_PROFILE_COLUMNS))
         )
-        if not is_valid_header:
+        if not is_valid_header or len(headers) != len(set(headers)):
             raise UploadError(
                 "invalid_header", "Use the columns in the example CSV or a list with a sample_id column.", line=1,
             )

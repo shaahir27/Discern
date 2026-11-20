@@ -8,17 +8,9 @@ import re
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 from ..decision import GENES
+from ..grammar import valid_mutation
 
 _SAMPLE_ID = re.compile(r"[A-Za-z0-9_-]{1,40}")
-_MUTATION = re.compile(
-    r"(?:[A-Z][0-9]+[A-Z!]|[acgtnxz]-?[0-9]+[acgtnxz]"
-    r"|-?[0-9]+_(?:(?:ins|del|indel|mixed)(?:_(?:[acgtnxz]+|[0-9]+))?|minorindel)"
-    r"|del_(?:0(?:\.[0-9]+)?|1(?:\.0+)?))"
-)
-
-
-def valid_mutation(suf: str) -> bool:
-    return _MUTATION.fullmatch(suf) is not None
 
 
 class Variant(BaseModel):

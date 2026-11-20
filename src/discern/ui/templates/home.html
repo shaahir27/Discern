@@ -1,31 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
-{% set example = roster|selectattr("sample_id", "equalto", example_id)|first %}
-<header class="page-heading intake-heading">
+<div class="sample-intake">
+<header class="page-heading">
   <h1>Check a sample</h1>
-  <p>Upload a CSV to run live bedaquiline resistance scoring and review data completeness.</p>
+  <p>Upload a lab variant file to see the sample’s bedaquiline result and the evidence behind it.</p>
 </header>
-<div class="intake">
-  <section class="panel upload-panel" aria-labelledby="upload-title">
-    <h2 id="upload-title">Upload a CSV</h2>
+  <section class="panel upload-panel" aria-label="Sample file">
     <form method="post" action="/review" class="form-stack">
-      <label for="csv-file">Sample file</label>
       {% if error %}<p class="error" id="upload-error" role="alert" tabindex="-1" data-upload-error>{{ error }}</p>{% endif %}
       <div class="dropzone" data-dropzone>
         <span class="file-icon" aria-hidden="true"></span>
         <div class="dropzone-content">
-          <p class="drop-label" id="drop-hint">Drop a CSV, TSV, or TB-Profiler JSON here or choose a file.</p>
+          <label for="csv-file" class="pick-file"><strong>Choose file</strong><span>or drop it here</span></label>
           <input id="csv-file" type="file" accept=".csv,.tsv,.json,text/csv,text/tab-separated-values,application/json" data-max-bytes="{{ max_csv_bytes }}" aria-describedby="upload-help file-status{% if error %} upload-error{% endif %}"{% if error %} aria-invalid="true"{% endif %}>
         </div>
       </div>
+      <p id="upload-help" class="fine">CSV, TSV, or TB-Profiler JSON. Up to {{ max_csv_bytes // 1024 }} KiB.</p>
       <p id="file-status" class="fine" role="status"></p>
+      <p class="fine" data-format-status hidden></p>
 
       <!-- Live CSV Quality Check Result -->
       <section id="upload-quality-card" class="panel upload-quality-panel" data-upload-quality hidden aria-live="polite">
         <div class="quality-header">
           <div>
             <h3 id="live-quality-heading">Upload quality</h3>
-            <p class="fine">Live completeness &amp; format check • Kept separate from resistance results</p>
+            <p class="fine">Checks the file before analysis.</p>
           </div>
           <div id="quality-score-badge" class="quality-score-badge quality-pass">
             <span id="quality-score-val" class="quality-score-number">100.0%</span>
@@ -50,53 +49,44 @@
             </table>
           </div>
         </div>
-        <p id="quality-clean-msg" class="quality-clean-note">✓ All required fields present and valid. Ready for model scoring.</p>
+        <p id="quality-clean-msg" class="quality-clean-note">The file passed the format checks.</p>
       </section>
 
-      <p id="upload-help" class="fine">Upload any variant table (<code>sample_id,gene,mutation,frs</code>) for live model scoring, or a <a href="/replay-samples.csv">list of recorded sample IDs</a>.</p>
       <noscript><p class="fine">Paste the CSV text to submit with JavaScript turned off.</p></noscript>
       <details class="paste-input">
-        <summary>Paste CSV text instead</summary>
-        <label for="csv">CSV contents</label>
+        <summary>Paste file contents instead</summary>
+        <label for="csv">File contents</label>
+        <p class="fine">Discern CSV columns are <code>sample_id,gene,mutation,frs</code>.</p>
         <textarea id="csv" name="csv" rows="5" spellcheck="false" placeholder="sample_id,gene,mutation,frs"></textarea>
       </details>
-      <div class="field" style="margin-top: 1rem; margin-bottom: 0.5rem;">
-        <label for="assay" style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Sequencing assay / tNGS panel</label>
-        <select id="assay" name="assay" class="select-field" style="width: 100%; max-width: 450px; padding: 0.4rem 0.6rem; border-radius: 4px; border: 1px solid var(--border, #ccc); font-size: 0.9rem;">
-          <option value="wgs" selected>Whole Genome Sequencing (WGS) — All 5 loci</option>
-          <option value="deeplex_myc_tb">GenoScreen Deeplex Myc-TB (Rv0678 only)</option>
-          <option value="deeplex_xl">Deeplex Myc-TB XL (All 5 loci)</option>
-          <option value="ampore_tb">ONT AmPORE-TB (Rv0678 + atpE)</option>
-          <option value="icmr_nirt_minion">ICMR-NIRT India MinION Pilot (Rv0678 only)</option>
-        </select>
-        <p class="fine" style="margin-top: 0.25rem;">Audits unsequenced blind spots and homopolymer noise. <a href="/panels">View panel audit table</a>.</p>
-      </div>
-
-      <div class="upload-actions">
-        <button type="submit" id="submit-btn">Run model scoring</button>
-        <a href="/example.csv">Download example CSV</a>
+      <div class="intake-submit">
+        <details class="intake-options">
+          <summary>Sequencing method <span class="fine">(optional)</span></summary>
+          <p id="assay-help" class="fine">Some lab tests read only selected genes. Choose the method if you know it so Discern can show which genes the test covered.</p>
+          <label for="assay" class="sr-only">Sequencing method used by the lab</label>
+          <select id="assay" name="assay" aria-describedby="assay-help">
+            <option value="" selected>Auto-detect from file</option>
+            {% include "assay_options.html" %}
+          </select>
+          <p class="fine">If the file gives no method, Discern uses the whole-genome profile.</p>
+        </details>
+        <button type="submit" id="submit-btn">Check file</button>
       </div>
     </form>
   </section>
-  <section class="panel example-card" aria-labelledby="example-title">
-    <h2 id="example-title">Example result</h2>
-    <dl class="facts example-facts">
-      <div><dt>Catalogue call</dt><dd><span class="status status-{{ example.call }}">{{ example.call_label }}</span></dd></div>
-      <div><dt>Saved model score</dt><dd class="example-score">{{ "%.1f"|format(example.probability * 100) }}%</dd></div>
-      <div><dt>Lab finding</dt><dd>{{ example.phenotype }}</dd></div>
-    </dl>
-    <a class="button secondary" href="/result?sample_id={{ example_id|urlencode }}">Open example</a>
-  </section>
+  <div class="intake-secondary">
+    <a href="/example.csv">Download a sample CSV</a>
+    <details class="archive-access">
+      <summary>Open a study case</summary>
+      <form action="/result" method="get" class="form-stack">
+        <label for="sample">Recorded sample</label>
+        <select id="sample" name="sample_id" required>
+          <option value="">Choose a sample</option>
+          {% for row in roster %}<option value="{{ row.sample_id }}">{{ row.call_label }} · {{ row.sample_id }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="secondary">Open recorded result</button>
+      </form>
+    </details>
+  </div>
 </div>
-<details class="more-examples">
-  <summary>Choose another recorded sample</summary>
-  <form action="/result" method="get" class="form-stack">
-    <label for="sample">Recorded sample</label>
-    <select id="sample" name="sample_id" required>
-      <option value="">Select a sample</option>
-      {% for row in roster %}<option value="{{ row.sample_id }}">{{ row.call_label }} · {{ row.sample_id }}</option>{% endfor %}
-    </select>
-    <button type="submit" class="secondary">Open saved result</button>
-  </form>
-</details>
 {% endblock %}

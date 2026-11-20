@@ -340,3 +340,9 @@ saved calls, scores, and evaluation records.
    TB-Profiler v6.6.5 (Genome Medicine, Sept 2026) and WHO Mutation Catalogue 3rd Edition (Late 2026) established the biological rule of mmpL5 LoF epistatic downgrades. Discern does not claim to be the first to invent this rule, but is the first clinical triage system to combine it with out-of-fold calibrated probabilities, empirical prevalence reweighting, and automated laboratory referral (`U`).
 3. **Snobre 2024, Schön 2025, and Köser 2024 Framing**:
    Frameshift-susceptibility rates reported by Snobre et al. (AAC 2024) are interpreted alongside Schön et al. (AAC 2025), which demonstrated laboratory-specific MGIT MIC shifts in the underlying cohorts. Discern's multi-source cross-validation across CRyPTIC + NICD provides an independent benchmark on this active debate. Furthermore, `Rv0678@c-11a` (our canonical unresolved case) is explicitly framed as conferring borderline hypersusceptibility/low-level MIC shift (Köser et al., ERJ 2024), warranting laboratory culture testing (`U`) rather than a binary call.
+
+## D017 — Live upload sessions and dated visits
+
+The local single-worker app keeps completed uploads in a bounded in-memory cache. Live links carry a batch identifier and require the uploading browser's session cookie. Replay URLs without a batch identifier open the saved case and use its recorded score. A prevalence explicitly selected in the result form takes priority over a converged batch estimate.
+
+Serial charts require comparable dates. Undated observations remain visible in the batch. A patient with a mix of calendar dates and day offsets has no common time axis until the input uses a single date convention. Batch prevalence uses the earliest dated isolate per patient and uses sample ID to break ties.

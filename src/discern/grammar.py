@@ -7,6 +7,15 @@ _PROM = re.compile(r"^[acgt]-\d+")
 _MIS = re.compile(r"^[A-Z]\d+[A-Z]$")
 _POS = re.compile(r"(\d+)")
 _INDEL = re.compile(r"_ins_|_del_|indel|del_")
+_MUTATION = re.compile(
+    r"(?:[A-Z][0-9]+[A-Z!]|[acgtnxz]-?[0-9]+[acgtnxz]"
+    r"|-?[0-9]+_(?:(?:ins|del|indel|mixed)(?:_(?:[acgtnxz]+|[0-9]+))?|minorindel)"
+    r"|del_(?:0(?:\.[0-9]+)?|1(?:\.0+)?))"
+)
+
+
+def valid_mutation(suffix: str) -> bool:
+    return len(suffix) <= 512 and _MUTATION.fullmatch(suffix) is not None
 
 
 def suffix_of(mut: str) -> str:

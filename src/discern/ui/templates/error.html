@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-<header class="page-heading"><h1>{{ title }}</h1><p>{{ detail }}</p></header>
-<a class="button secondary" href="{{ '/performance' if active == 'performance' else '/' }}">Return to {{ 'performance' if active == 'performance' else 'replay' }}</a>
+<section class="error-state" aria-labelledby="error-title">
+  <h1 id="error-title">{{ title }}</h1>
+  <p>{{ detail }}</p>
+  {% set recovery = {'queue': ('/queue', 'Return to review queue'), 'performance': ('/performance', 'Return to study results'), 'panels': ('/about', 'About Discern')} %}
+  {% set href, label = recovery.get(active, ('/', 'Check a sample')) %}
+  <a class="button secondary" href="{{ href }}">{{ label }}</a>
+</section>
 {% endblock %}

@@ -1,9 +1,18 @@
 {% extends "base.html" %}
 {% block content %}
-<header class="page-heading"><h1>About Discern</h1><p>An offline research archive for evaluating bedaquiline resistance in tuberculosis.</p></header>
+<header class="page-heading">
+  <h1>About Discern</h1>
+  <p>An offline research workspace for reviewing bedaquiline resistance evidence.</p>
+</header>
 <article class="prose">
-  <section><h2>How the archive works</h2><p>Replay opens a recorded isolate with its saved catalogue call, laboratory phenotype, and out-of-fold model probability. Evidence cards show the observed carrier counts by source and their uncertainty.</p></section>
-  <section><h2>Review and reproduce</h2><p>Use Performance to explore the experiment registry and follow the interpretation and caveats in the model card. The review queue organizes unresolved examples for inspection.</p></section>
-  <section><h2>Data handling</h2><p>The app reads bundled results from this workspace. CSV review accepts recorded replay IDs and processes the list in memory.</p></section>
+  <section>
+    <h2>Evidence and scope</h2>
+    <p>Recorded cases preserve the original held-out call, model score, and laboratory finding. Live results use the submitted profile and the bundled model.</p>
+    <p><a href="/model-card">Model card and study limitations</a></p>
+  </section>
+  <section>
+    <h2>Data handling</h2>
+    <p>Discern reads study data and assets from disk. Uploads are processed in memory and scoped to the uploading browser. The app clears them at restart or when its cache fills.</p>
+  </section>
 </article>
 {% endblock %}

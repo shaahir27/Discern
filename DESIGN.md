@@ -1,13 +1,9 @@
-# Discern explorer
+# Discern interface
 
-Discern is a workbench for reviewing previously recorded evidence. Its main task is to open a saved isolate and connect its call to phenotype, provenance, and carrier evidence.
+Discern is a local workbench for recorded study cases and uploaded variant profiles. The same marine masthead, cool paper surface, and citron selection state run through intake, queue, results, timeline, and study pages. Catalogue outcomes use separate colors and readable labels. System fonts and local assets support offline operation.
 
-The interface uses a compact top navigation bar and a centered work surface. A low-chroma mineral ground, deep spruce controls, and separate bark-red, amber, and moss call colors distinguish actions from recorded findings. The label always carries the call meaning. System fonts keep the workspace available offline, and monospace is reserved for genomic keys and isolate IDs.
+Intake centers the file and keeps study replay and the optional sequencing method in disclosures. The queue uses the full available width for sample rows, with upload controls attached to the queue header. A case leads with the call and score, then shows the observed variants and optional estimates. The timeline shows selectable dated visits with the selected result beside the chart on desktop and above it on phones. Performance compares catalogue calls against laboratory outcomes and lets visitors change how unresolved cases are counted.
 
-At laptop widths, the first viewport places the upload beside a preview of a real saved result. On the result page, the catalogue call and lab finding stay together, the saved score has its own panel, and the variant evidence is visible just below. Study details open on demand. Tables preserve header associations and scroll within their own region on narrow screens.
+Native file controls, disclosure elements, and semantic tables provide the baseline interaction. JavaScript adds file feedback, local table filtering, and timeline playback. Playback moves the cursor between recorded visits. Dates and values remain attached to those visits. Reduced-motion settings disable cursor animation.
 
-Navigation has a visible current-page state and keyboard focus. Local JavaScript adds drag-and-drop, file validation, and a submission state to the upload. The labelled native file picker stays available, and users can paste CSV text. Jinja and local assets render the entire interface offline.
-
-[W3C table guidance](https://www.w3.org/WAI/tutorials/tables/) · [W3C focus visibility guidance](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html)
-
-Component references include the [USWDS file input](https://designsystem.digital.gov/components/file-input/), [GOV.UK field errors](https://design-system.service.gov.uk/components/error-message/), [NHS summary list](https://service-manual.nhs.uk/design-system/components/summary-list), and [shadcn/ui cards](https://ui.shadcn.com/docs/components/base/card).
+[USWDS file input](https://designsystem.digital.gov/components/file-input/) · [USWDS table](https://designsystem.digital.gov/components/table/) · [shadcn sidebar](https://ui.shadcn.com/docs/components/base/sidebar) · [Carbon left panel](https://www.carbondesignsystem.com/building-blocks/core/components/ui-shell-left-panel/guidelines) · [Radix disclosure](https://www.radix-ui.com/primitives/docs/components/collapsible) · [Web Animations API](https://developer.mozilla.org/en-US/docs/Web/API/Element/animate)

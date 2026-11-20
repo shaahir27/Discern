@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Reworked sample intake, case results, review queues, and study views around their primary actions. Added dated visit controls and a one-click illustrative timeline.
+- Fixed panel-report loading, batch prevalence rendering and manual overrides, native-export validation, and baseline selection for repeated patients.
+- Scoped live results and timelines to the uploading browser and separated live links from saved replay.
+- Updated the container to include the local artefacts and dependencies required at startup.
+- Added the codebase guide and moved both novelty documents into `docs/`.
+
 - Added offline acceptance verification for indexed result files and wired it into `make verify`.
 - Added E21, a preregistered nested comparison of model classes on patient-grouped S1 and the held-out KM cohort.
 - Recorded the E19 ship decision and enabled the audited Tier A veto alongside golden L2 logistic regression.

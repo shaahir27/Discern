@@ -2,17 +2,83 @@
 {% block content %}
 <header class="page-heading">
   <h1>Review queue</h1>
-  <p>Unresolved recorded isolates are ranked by their saved out-of-fold model probability.</p>
+  <p>{% if batch_id %}Uploaded batch. Unresolved samples appear first by model score.{% else %}Recorded isolates with their saved calls and out-of-fold model scores.{% endif %}</p>
 </header>
 {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
 
+  <div class="queue-actions">
+    {% if not batch_id %}
+      <form method="post" action="/longitudinal-example" class="timeline-shortcut">
+        <button type="submit" class="secondary">Open example timeline</button>
+      </form>
+    {% endif %}
+<details class="import-panel panel"{% if error %} open{% endif %}>
+  <summary class="button">Upload a batch</summary>
+  <form action="/queue" method="post" class="form-stack">
+    <label for="csv-file">Open a CSV, TSV, or JSON file</label>
+    <input id="csv-file" type="file" accept=".csv,.tsv,.json,text/csv,text/tab-separated-values,application/json" data-max-bytes="{{ max_csv_bytes }}" aria-describedby="file-status">
+    <p id="file-status" class="fine" role="status"></p>
+    <p class="fine" data-format-status hidden></p>
+    <details class="paste-input">
+      <summary>Paste file contents</summary>
+      <label for="csv">File contents</label>
+      <textarea id="csv" name="csv" rows="4" placeholder="sample_id,gene,mutation,frs"></textarea>
+    </details>
+    <label for="queue-assay">Sequencing assay</label>
+    <select id="queue-assay" name="assay" class="select-field">
+      {% include "assay_options.html" %}
+      </select>
+    <button type="submit">Review batch</button>
+  </form>
+  <div class="intake-links"><a href="/replay-samples.csv">Replay roster CSV</a><a href="/longitudinal-example.csv">Serial-visit example CSV</a></div>
+</details>
+  </div>
+<div class="queue-layout">
+  <section class="queue-records" aria-labelledby="queue-list-title">
+    <div class="section-heading">
+      <h2 id="queue-list-title">{{ "Uploaded samples" if batch_id else "Study isolates" }}</h2>
+      {% if scope != "import" %}<a href="/queue?scope={{ scope|urlencode }}&amp;download=true">Export CSV</a>{% endif %}
+    </div>
+    <div class="queue-controls">
+      {% if scope != "import" %}
+        <nav class="tabs" aria-label="Queue views">
+          <a href="/queue"{% if scope == "all" %} aria-current="page"{% endif %}>All isolates</a>
+          <a href="/queue?scope=unresolved"{% if scope == "unresolved" %} aria-current="page"{% endif %}>Unresolved</a>
+        </nav>
+      {% endif %}
+      <div class="queue-search" hidden data-queue-controls>
+        <label for="queue-filter" class="sr-only">Filter by sample ID</label>
+        <input type="search" id="queue-filter" placeholder="Find a sample ID" autocomplete="off">
+      </div>
+    </div>
+    <p class="fine queue-count" aria-live="polite" data-queue-count>{{ rows|length }} samples</p>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Queued samples">
+      <table class="queue-table">
+        <thead><tr><th scope="col" class="num">Rank</th><th scope="col">Sample ID</th><th scope="col">Catalogue call</th><th scope="col" class="num">Model score</th><th scope="col">{{ "Source" if batch_id else "Lab finding" }}</th></tr></thead>
+        <tbody>
+        {% for row in rows %}
+          <tr data-sample-id="{{ row.sample_id }}">
+            <td class="num row-rank">{{ row.rank if row.rank else "—" }}</td>
+            <th scope="row"><a class="id" href="/result?sample_id={{ row.sample_id|urlencode }}{% if batch_id %}&amp;batch={{ batch_id|urlencode }}{% endif %}">{{ row.sample_id }}</a>
+              {% if row.patient_id and row.n_visits %}<a href="/patient/{{ row.patient_id|urlencode }}?batch={{ batch_id|urlencode }}" class="visit-link">{{ row.n_visits }} visits{% if row.has_longitudinal_alerts %} with alerts{% endif %}</a>{% endif %}</th>
+            <td><span class="status status-{{ row.call }}">{{ row.call_label }}</span></td>
+            <td class="num">{{ "%.1f"|format(row.probability * 100) }}%</td>
+            <td class="row-phenotype">{{ row.source if batch_id else row.phenotype }}</td>
+          </tr>
+        {% else %}<tr><td colspan="5">No samples in this view.</td></tr>{% endfor %}
+          <tr data-queue-empty hidden><td colspan="5">No sample IDs match your filter.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <div class="queue-analysis">
 {% if upload_quality %}
 <!-- Live CSV Quality Check Result: Kept strictly separate from resistance results -->
 <section class="panel upload-quality-panel" aria-labelledby="queue-upload-quality-heading">
   <div class="quality-header">
     <div>
       <h2 id="queue-upload-quality-heading">Upload quality</h2>
-      <p class="fine">Pre-analysis CSV completeness and data integrity check across uploaded batch. Kept separate from resistance results.</p>
+      <p class="fine">Validation of the uploaded file.</p>
     </div>
     <div class="quality-score-badge {% if upload_quality.completeness_score == 100 and upload_quality.is_valid %}quality-pass{% else %}quality-warn{% endif %}">
       <span class="quality-score-number">{{ "%.1f"|format(upload_quality.completeness_score) }}%</span>
@@ -28,7 +94,7 @@
   </dl>
   {% if upload_quality.issues %}
     <details class="quality-issues-details" open>
-      <summary>Show {{ upload_quality.issues|length }} issue(s) detected in batch file</summary>
+      <summary>View {{ upload_quality.issues|length }} upload issues</summary>
       <div class="table-scroll">
         <table class="quality-issues-table">
           <thead>
@@ -54,24 +120,24 @@
 {% endif %}
 
 {% if recurrence_alerts %}
-<details class="panel" style="margin-bottom: 1.5rem; border-left: 4px solid #f59e0b; background: rgba(245, 158, 11, 0.04); padding: 1rem 1.25rem; border-radius: 4px;" open>
-  <summary style="font-weight: 600; cursor: pointer; color: #b45309; font-size: 1.05rem;">
+<details class="panel recurrence-panel" open>
+  <summary>
     ⚠️ Batch Surveillance &amp; QC Alerts ({{ recurrence_alerts|length }} detected)
   </summary>
-  <div style="margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.75rem;">
+  <div>
     {% for alert in recurrence_alerts %}
-      <div style="padding: 0.6rem 0.8rem; border-radius: 4px; {% if alert.category == 'QC_CONTAMINATION_OR_ARTIFACT_RISK' %}background: #fffbeb; border: 1px solid #fde68a;{% elif alert.category == 'RARE_VARIANT_WGS_ESCALATION' %}background: #eff6ff; border: 1px solid #bfdbfe;{% else %}background: #f8fafc; border: 1px solid #e2e8f0;{% endif %}">
-        <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.5rem;">
-          <strong style="font-size: 0.9rem; {% if alert.category == 'QC_CONTAMINATION_OR_ARTIFACT_RISK' %}color: #92400e;{% elif alert.category == 'RARE_VARIANT_WGS_ESCALATION' %}color: #1e40af;{% else %}color: #334155;{% endif %}">
+      <div class="recurrence-alert {{ 'recurrence-qc' if alert.category == 'QC_CONTAMINATION_OR_ARTIFACT_RISK' else '' }}">
+        <div class="panel-heading">
+          <strong>
             {{ alert.category|replace('_', ' ') }} — {{ alert.variant }}
           </strong>
-          <span style="font-size: 0.8rem; color: var(--text-muted, #666);">{{ alert.n_patients }} distinct patients</span>
+          <span>{{ alert.n_patients }} distinct patients</span>
         </div>
-        <p style="margin: 0.25rem 0 0.5rem; font-size: 0.88rem; line-height: 1.4;">{{ alert.message }}</p>
-        <div style="font-size: 0.8rem;">
+        <p>{{ alert.message }}</p>
+        <div>
           <span class="fine">Affects samples:</span>
           {% for sid in alert.sample_ids %}
-            <a href="/result?sample_id={{ sid|urlencode }}" style="margin-right: 6px; text-decoration: underline; font-weight: 600;">{{ sid }}</a>
+            <a href="/result?sample_id={{ sid|urlencode }}{% if batch_id %}&amp;batch={{ batch_id|urlencode }}{% endif %}">{{ sid }}</a>
           {% endfor %}
         </div>
       </div>
@@ -81,28 +147,26 @@
 {% endif %}
 
 {% if batch_prevalence %}
-<section class="panel" style="margin-bottom: 1.5rem; padding: 1.25rem; border-left: 4px solid var(--accent, #1e90ff);">
-  <h2 style="font-size: 1.1rem; margin-top: 0; margin-bottom: 0.5rem;">Local Prevalence &amp; Predictive Value Calibration (MLLS)</h2>
+<section class="panel prevalence-panel">
+  <h2>Local Prevalence &amp; Predictive Value Calibration (MLLS)</h2>
   {% if batch_prevalence.status == "estimated" %}
-    <p style="margin: 0 0 0.75rem; font-size: 0.95rem;">
+    <p>
       Estimated local BDQ resistance prevalence: <strong>{{ "%.1f"|format(batch_prevalence.pi_hat * 100) }}%</strong>
-      <span style="color: var(--text-muted, #666); font-size: 0.85rem;">(95% bootstrap CI: {{ "%.1f"|format(batch_prevalence.ci95_low * 100) }}%–{{ "%.1f"|format(batch_prevalence.ci95_high * 100) }}%, N={{ batch_prevalence.n }} distinct patients)</span>
+      <span>(95% bootstrap CI: {{ "%.1f"|format(batch_prevalence.ci95_low * 100) }}%–{{ "%.1f"|format(batch_prevalence.ci95_high * 100) }}%, N={{ batch_prevalence.n }} distinct patients)</span>
     </p>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-bottom: 1rem;">
-      <div style="background: rgba(220, 38, 38, 0.05); padding: 0.5rem 0.75rem; border-radius: 4px; border-left: 3px solid #dc2626;">
-        <span class="fine" style="display: block;">Implied PPV (if Resistant)</span>
-        <strong style="font-size: 1.15rem; color: #b91c1c;">{{ "%.1f"|format(batch_prevalence.ppv_hat * 100) }}%</strong>
-        <span class="fine" style="display: block; font-size: 0.75rem;">CI: {{ "%.1f"|format(batch_prevalence.ppv_low * 100) }}%–{{ "%.1f"|format(batch_prevalence.ppv_high * 100) }}%</span>
+    <div class="predictive-grid">
+      <div>
+        <span class="fine">Implied PPV (if Resistant)</span>
+        <strong>{{ "%.1f"|format(batch_prevalence.ppv_hat * 100) }}%</strong>
+        <span class="fine">CI: {{ "%.1f"|format(batch_prevalence.ppv_low * 100) }}%–{{ "%.1f"|format(batch_prevalence.ppv_high * 100) }}%</span>
       </div>
-      <div style="background: rgba(5, 150, 105, 0.05); padding: 0.5rem 0.75rem; border-radius: 4px; border-left: 3px solid #059669;">
-        <span class="fine" style="display: block;">Implied NPV (if Susceptible)</span>
-        <strong style="font-size: 1.15rem; color: #047857;">{{ "%.1f"|format(batch_prevalence.npv_hat * 100) }}%</strong>
-        <span class="fine" style="display: block; font-size: 0.75rem;">High NPV at regional LMIC prevalence</span>
+      <div>
+        <span class="fine">Implied NPV (if Susceptible)</span>
+        <strong>{{ "%.1f"|format(batch_prevalence.npv_hat * 100) }}%</strong>
+        <span class="fine">CI: {{ "%.1f"|format(batch_prevalence.npv_low * 100) }}%&ndash;{{ "%.1f"|format(batch_prevalence.npv_high * 100) }}%</span>
       </div>
     </div>
     {% if batch_prevalence.curve_points %}
-      {% set svg_w = 540 %}
-      {% set svg_h = 160 %}
       {% set left_pad = 45 %}
       {% set right_pad = 495 %}
       {% set top_pad = 20 %}
@@ -115,9 +179,9 @@
       {% set ci_low_x = left_pad + ((batch_prevalence.ci95_low - 0.005) / 0.245) * usable_x %}
       {% set ci_high_x = left_pad + ((batch_prevalence.ci95_high - 0.005) / 0.245) * usable_x %}
 
-      <div style="background: #fafafa; border: 1px solid #e2e8f0; border-radius: 4px; padding: 0.5rem;">
-        <span class="fine" style="display: block; margin-bottom: 4px; font-weight: 600;">Positive Predictive Value (PPV) vs Resistance Prevalence Curve</span>
-        <svg viewBox="0 0 540 160" width="100%" height="160" style="display: block; overflow: visible;">
+      <div class="chart-frame">
+        <span class="fine">Positive Predictive Value (PPV) vs Resistance Prevalence Curve</span>
+        <svg viewBox="0 0 540 160" width="100%" role="img" aria-label="Archived positive predictive value by assumed prevalence">
           <!-- Axes and Grid -->
           <line x1="{{ left_pad }}" y1="{{ top_pad }}" x2="{{ right_pad }}" y2="{{ top_pad }}" stroke="#f1f5f9" stroke-dasharray="3,3" />
           <line x1="{{ left_pad }}" y1="{{ (top_pad + bot_pad) / 2 }}" x2="{{ right_pad }}" y2="{{ (top_pad + bot_pad) / 2 }}" stroke="#f1f5f9" stroke-dasharray="3,3" />
@@ -131,70 +195,38 @@
 
           <!-- X labels -->
           <text x="{{ left_pad }}" y="{{ bot_pad + 14 }}" font-size="9" fill="#64748b" text-anchor="middle">0.5%</text>
-          <text x="{{ left_pad + usable_x * 0.2 }}" y="{{ bot_pad + 14 }}" font-size="9" fill="#64748b" text-anchor="middle">5%</text>
-          <text x="{{ left_pad + usable_x * 0.4 }}" y="{{ bot_pad + 14 }}" font-size="9" fill="#64748b" text-anchor="middle">10%</text>
-          <text x="{{ left_pad + usable_x * 0.6 }}" y="{{ bot_pad + 14 }}" font-size="9" fill="#64748b" text-anchor="middle">15%</text>
-          <text x="{{ left_pad + usable_x * 0.8 }}" y="{{ bot_pad + 14 }}" font-size="9" fill="#64748b" text-anchor="middle">20%</text>
+          <text x="{{ left_pad + usable_x * (0.045 / 0.245) }}" y="{{ bot_pad + 14 }}" font-size="9" fill="#64748b" text-anchor="middle">5%</text>
+          <text x="{{ left_pad + usable_x * (0.095 / 0.245) }}" y="{{ bot_pad + 14 }}" font-size="9" fill="#64748b" text-anchor="middle">10%</text>
+          <text x="{{ left_pad + usable_x * (0.145 / 0.245) }}" y="{{ bot_pad + 14 }}" font-size="9" fill="#64748b" text-anchor="middle">15%</text>
+          <text x="{{ left_pad + usable_x * (0.195 / 0.245) }}" y="{{ bot_pad + 14 }}" font-size="9" fill="#64748b" text-anchor="middle">20%</text>
           <text x="{{ right_pad }}" y="{{ bot_pad + 14 }}" font-size="9" fill="#64748b" text-anchor="middle">25%</text>
 
           <!-- Shaded CI Band -->
-          {% set ci_band_w = [ci_high_x - ci_low_x, 4]|max %}
-          <rect x="{{ [ci_low_x, left_pad]|max }}" y="{{ top_pad }}" width="{{ ci_band_w }}" height="{{ usable_y }}" fill="#0284c7" opacity="0.12" />
+          {% set ci_band_w = [[ci_high_x, right_pad]|min - [ci_low_x, left_pad]|max, 0]|max %}
+          {% if ci_band_w > 0 %}<rect x="{{ [ci_low_x, left_pad]|max }}" y="{{ top_pad }}" width="{{ ci_band_w }}" height="{{ usable_y }}" fill="#0284c7" opacity="0.12" />{% endif %}
 
           <!-- PPV Curve Path -->
           <path d="M {% for pt in batch_prevalence.curve_points %}{{ left_pad + ((pt.pi - 0.005) / 0.245) * usable_x }} {{ bot_pad - (pt.ppv * usable_y) }}{% if not loop.last %} L {% endif %}{% endfor %}" fill="none" stroke="#0284c7" stroke-width="2.5" />
 
-          <!-- Vertical Marker at pi_hat -->
+          {% if left_pad <= hat_x <= right_pad %}
           <line x1="{{ hat_x }}" y1="{{ top_pad }}" x2="{{ hat_x }}" y2="{{ bot_pad }}" stroke="#0f172a" stroke-width="1.5" stroke-dasharray="3,3" />
           <circle cx="{{ hat_x }}" cy="{{ hat_y }}" r="4" fill="#0f172a" />
           <text x="{{ hat_x }}" y="{{ [hat_y - 8, top_pad + 10]|max }}" font-size="9" font-weight="bold" fill="#0f172a" text-anchor="middle">
             {{ "%.1f"|format(batch_prevalence.pi_hat * 100) }}% (PPV: {{ "%.1f"|format(batch_prevalence.ppv_hat * 100) }}%)
           </text>
+          {% endif %}
         </svg>
+        {% if hat_x < left_pad or hat_x > right_pad %}<p class="fine">The batch estimate falls outside the plotted range.</p>{% endif %}
       </div>
     {% endif %}
   {% else %}
-    <p class="fine" style="margin: 0; color: var(--text-muted, #666);">
+    <p class="fine">
       ℹ️ {{ batch_prevalence.note }}
     </p>
   {% endif %}
 </section>
 {% endif %}
 
-<div class="toolbar">
-  <nav class="tabs" aria-label="Filter review queue">
-    <a href="/queue"{% if scope == "all" %} aria-current="page"{% endif %}>All isolates</a>
-    <a href="/queue?scope=unresolved"{% if scope == "unresolved" %} aria-current="page"{% endif %}>Unresolved</a>
-    {% if scope == "import" %}<span aria-current="page">Imported list</span>{% endif %}
-  </nav>
-  {% if scope != "import" %}<a href="/queue?scope={{ scope|urlencode }}&amp;download=true">Download view</a>{% endif %}
+  </div>
 </div>
-<div class="table-scroll" tabindex="0" role="region" aria-label="Recorded isolate review queue">
-  <table>
-    <thead><tr><th scope="col" class="num">Priority</th><th scope="col">Isolate</th><th scope="col">Call</th><th scope="col" class="num">Model probability</th><th scope="col">Lab phenotype</th></tr></thead>
-    <tbody>{% for row in rows %}
-      <tr><td class="num">{{ row.rank if row.rank else "—" }}</td><th scope="row"><a class="id" href="/result?sample_id={{ row.sample_id|urlencode }}">{{ row.sample_id }}</a>{% if row.patient_id and row.n_visits %}<a href="/patient/{{ row.patient_id|urlencode }}" class="badge" style="font-size: 0.72rem; margin-left: 6px; text-decoration: none; background: #e0f2fe; color: #0369a1; border-radius: 4px; padding: 1px 5px;" title="View longitudinal serial timeline">{{ row.n_visits }} visits{% if row.has_longitudinal_alerts %} ⚠️{% endif %}</a>{% endif %}</th><td><span class="status status-{{ row.call }}">{{ row.call_label }}</span></td><td class="num">{{ "%.1f"|format(row.probability * 100) }}%</td><td>{{ row.phenotype }}</td></tr>
-    {% else %}<tr><td colspan="5">No isolates match this view.</td></tr>{% endfor %}</tbody>
-  </table>
-</div>
-<details class="section panel import-panel"{% if error %} open{% endif %}>
-  <summary>Review a CSV of recorded isolate IDs</summary>
-  <p><a href="/replay-samples.csv">Download the replay roster</a> and remove any rows you want to leave out.</p>
-  <form action="/queue" method="post" class="form-stack">
-    <label for="csv-file">Open a CSV, TSV, or JSON file</label>
-    <input id="csv-file" type="file" accept=".csv,.tsv,.json,text/csv,text/tab-separated-values,application/json" data-max-bytes="{{ max_csv_bytes }}" aria-describedby="file-status">
-    <p id="file-status" class="fine" role="status"></p>
-    <label for="csv">CSV contents</label>
-    <textarea id="csv" name="csv" rows="4" required>sample_id</textarea>
-    <label for="queue-assay">Sequencing assay / tNGS panel</label>
-    <select id="queue-assay" name="assay" class="select-field" style="width: 100%; max-width: 450px; padding: 0.4rem 0.6rem; border-radius: 4px; border: 1px solid var(--border, #ccc); font-size: 0.9rem;">
-      <option value="wgs" selected>Whole Genome Sequencing (WGS) — All 5 loci</option>
-      <option value="deeplex_myc_tb">GenoScreen Deeplex Myc-TB (Rv0678 only)</option>
-      <option value="deeplex_xl">Deeplex Myc-TB XL (All 5 loci)</option>
-      <option value="ampore_tb">ONT AmPORE-TB (Rv0678 + atpE)</option>
-      <option value="icmr_nirt_minion">ICMR-NIRT India MinION Pilot (Rv0678 only)</option>
-    </select>
-    <button type="submit">Review listed isolates</button>
-  </form>
-</details>
 {% endblock %}

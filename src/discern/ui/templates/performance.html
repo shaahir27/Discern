@@ -1,52 +1,120 @@
 {% extends "base.html" %}
 {% block content %}
-<header class="page-heading">
-  <h1>Performance archive</h1>
-  <p>Browse saved experiments, acceptance checks, and the tables that support them.</p>
-</header>
-<nav class="tabs study-links" aria-label="Study resources"><a href="/model-card">Model card</a><a href="/priority">Variant priorities</a><a href="/about">About Discern</a></nav>
-<form class="toolbar report-picker" method="get" action="/performance">
-  <div class="field"><label for="report">Evaluation report</label>
-    <select id="report" name="report">
-      {% for key, approach in approaches.items() %}
-        <optgroup label="{{ approach.name }}">
-          {% for test in approach.tests %}{% set option = key ~ '/' ~ test %}
-          <option value="{{ option }}"{% if option == report %} selected{% endif %}>{{ test|replace('_', ' ') }}</option>
+{% set report_titles = {
+    'catalogue/e03_s1_catalogue_cv': 'Catalogue performance on held-out cases',
+    'lr_model/e04_s1_patient_cv': 'Model performance on held-out cases',
+    'lr_model/e05_ablation': 'Which model inputs matter',
+    'lr_model/e06_cross_source': 'Performance across study sources',
+    'lr_model/e07_loso': 'Performance across study sites',
+    'prevalence_correction/e10_prevalence_shift': 'Adjusting for different resistance rates',
+    'predictive_values/e13_ppv_npv': 'Predictive values by resistance rate'
+} %}
+{% set labels = {
+    'firm': 'Firm calls',
+    'sens_firm': 'Sensitivity among firm calls',
+    'spec_firm': 'Specificity among firm calls',
+    'sens_U_as_S': 'Sensitivity, unresolved counted as susceptible',
+    'spec_U_as_S': 'Specificity, unresolved counted as susceptible',
+    'sens_U_as_R': 'Sensitivity, unresolved counted as resistant',
+    'spec_U_as_R': 'Specificity, unresolved counted as resistant',
+    'n_U': 'Unresolved isolates',
+    'n_U_resistant': 'Resistant among unresolved isolates'
+} %}
+{% set catalogue_overview = report == 'catalogue/e03_s1_catalogue_cv' %}
+<article class="study-report">
+  <header class="page-heading">
+    <h1>Study results</h1>
+    <p>See how Discern performed on archived samples, then inspect the measurements behind each result.</p>
+  </header>
+
+  <form class="report-select-bar" method="get" action="/performance">
+    <div class="field"><label for="report">Choose an evaluation</label>
+      <select id="report" name="report">
+        {% for key, approach in approaches.items() %}
+          <optgroup label="{{ approach.name }}">
+            {% for test in approach.tests %}{% set option = key ~ '/' ~ test %}
+              <option value="{{ option }}"{% if option == report %} selected{% endif %}>{{ report_titles.get(option, test|replace('_', ' ')|capitalize) }}</option>
+            {% endfor %}
+          </optgroup>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="secondary">Open evaluation</button>
+  </form>
+
+  <section class="study-reading" aria-labelledby="report-heading">
+    <div class="section-heading">
+      <h2 id="report-heading">{{ report_titles.get(report, record.test|replace('_', ' ')|capitalize) }}</h2>
+      <span class="status {{ 'status-S' if record.pass_all is sameas true else 'status-R' if record.pass_all is sameas false else '' }}">{{ "Reproduction check passed" if record.pass_all is sameas true else "Reproduction check failed" if record.pass_all is sameas false else "Descriptive evaluation" }}</span>
+    </div>
+
+    {% if catalogue_overview %}
+      <section class="cohort-comparison" aria-labelledby="comparison-title" data-cohort-comparison>
+        {% set firm = record.observed.firm %}
+        <div class="comparison-header">
+          <h3 id="comparison-title">Catalogue calls versus lab results</h3>
+          <p><data value="{{ firm }}">{{ "%.1f"|format((firm * 1000)|int / 10) }}%</data> of cases received a firm call</p>
+        </div>
+        <fieldset class="comparison-options" hidden>
+          <legend>Unresolved cases</legend>
+          {% for suffix, label in [('firm', 'Exclude'), ('U_as_S', 'Count as susceptible'), ('U_as_R', 'Count as resistant')] %}
+            <label>
+              <input type="radio" name="denominator" value="{{ suffix }}"
+                data-sens="{{ record.observed['sens_' ~ suffix] }}" data-spec="{{ record.observed['spec_' ~ suffix] }}"{% if loop.first %} checked{% endif %}>
+              <span>{{ label }}</span>
+            </label>
           {% endfor %}
-        </optgroup>
-      {% endfor %}
-    </select>
-  </div>
-  <button type="submit">Open report</button>
-</form>
-<section class="panel report-summary" aria-labelledby="report-heading">
-  <div class="section-heading">
-    <h2 id="report-heading">{{ record.test|replace('_', ' ') }}</h2>
-    <span class="status {{ 'status-S' if record.pass_all is sameas true else 'status-R' if record.pass_all is sameas false else '' }}">{{ "Acceptance passed" if record.pass_all is sameas true else "Acceptance failed" if record.pass_all is sameas false else "Descriptive" }}</span>
-  </div>
-  {% if record.method %}<p>{{ record.method }}</p>{% endif %}
-  {% if record.caveats %}<p class="fine">{{ record.caveats }}</p>{% endif %}
-</section>
-<section class="section" aria-labelledby="observed-title">
-  <h2 id="observed-title">Observed metrics</h2>
-  <div class="table-scroll" tabindex="0" role="region" aria-label="Observed metrics">
-    <table><thead><tr><th scope="col">Metric</th><th scope="col" class="num">Observed</th><th scope="col" class="num">Expected</th><th scope="col" class="num">Tolerance</th></tr></thead>
-      <tbody>{% for metric, value in record.observed.items() %}
-        {% if value is not mapping and (value is string or not value is iterable) %}
-          <tr><th scope="row">{{ metric }}</th><td class="num">{{ value if value is not none else "—" }}</td><td class="num">{{ record.expected.get(metric, "—") }}</td><td class="num">{{ record.tolerance.get(metric, "—") }}</td></tr>
+        </fieldset>
+        <div class="comparison-rows" aria-live="polite">
+          {% for key, label in [('sens', 'Resistant cases detected'), ('spec', 'Susceptible cases identified')] %}
+            {% set value = record.observed[key ~ '_firm'] %}
+            <div class="comparison-row" data-compare-metric="{{ key }}">
+              <strong>{{ label }}</strong>
+              <meter min="0" max="1" value="{{ value }}" aria-label="{{ label }}">{{ value }}</meter>
+              <data value="{{ value }}">{{ "%.1f"|format((value * 1000)|int / 10) }}%</data>
+            </div>
+          {% endfor %}
+        </div>
+        <p class="fine comparison-note">A firm call is Resistant or Susceptible. The default comparison excludes unresolved cases.</p>
+      </section>
+    {% endif %}
+
+    <details class="report-audit panel" id="observed-title"{% if not catalogue_overview %} open{% endif %}>
+      <summary>Observed metrics and acceptance limits</summary>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Observed metrics">
+        <table class="metric-table">
+          <thead><tr><th scope="col">Metric</th><th scope="col" class="num">Observed</th><th scope="col" class="num">Expected</th><th scope="col" class="num">Tolerance</th></tr></thead>
+          <tbody>
+            {% for metric, value in record.observed.items() %}
+              {% if value is not mapping and (value is string or not value is iterable) %}
+                <tr><th scope="row">{{ labels.get(metric, metric|replace('_', ' ')) }}</th><td class="{{ 'num observed-value' if value is number else '' }}">{{ value if value is not none else "—" }}</td><td class="num">{{ record.expected.get(metric, "—") }}</td><td class="num">{{ record.tolerance.get(metric, "—") }}</td></tr>
+              {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    {% if names and not (catalogue_overview and names == ['metrics.csv']) %}
+      <section class="section" aria-labelledby="table-title">
+        <h3 id="table-title">Supporting tables</h3>
+        {% if names|length > 1 %}
+        <nav class="tabs" aria-label="Supporting tables">
+          {% for name in names %}<a href="/performance?report={{ report|urlencode }}&amp;table={{ name|urlencode }}#table-title"{% if name == table %} aria-current="page"{% endif %}>{{ name|replace('.csv', '')|replace('_', ' ') }}</a>{% endfor %}
+        </nav>
         {% endif %}
-      {% endfor %}</tbody>
-    </table>
-  </div>
-</section>
-{% if names %}
-  <section class="section" aria-labelledby="table-title">
-    <div class="section-heading"><h2 id="table-title">Supporting tables</h2></div>
-    <nav class="tabs" aria-label="Supporting tables">
-      {% for name in names %}<a href="/performance?report={{ report|urlencode }}&amp;table={{ name|urlencode }}"{% if name == table %} aria-current="page"{% endif %}>{{ name|replace('.csv', '')|replace('_', ' ') }}</a>{% endfor %}
-    </nav>
-    {% set table_label = table %}{% include "table.html" %}
-    {% if page > 1 or more %}<nav class="pager" aria-label="Supporting table pages">{% if page > 1 %}<a href="/performance?report={{ report|urlencode }}&amp;table={{ table|urlencode }}&amp;page={{ page - 1 }}">Previous</a>{% endif %}<span>Page {{ page }}</span>{% if more %}<a href="/performance?report={{ report|urlencode }}&amp;table={{ table|urlencode }}&amp;page={{ page + 1 }}">Next</a>{% endif %}</nav>{% endif %}
+        {% set table_label = table %}{% include "table.html" %}
+        {% if page > 1 or more %}<nav class="pager" aria-label="Supporting table pages">{% if page > 1 %}<a href="/performance?report={{ report|urlencode }}&amp;table={{ table|urlencode }}&amp;page={{ page - 1 }}#table-title">Previous</a>{% endif %}<span>Page {{ page }}</span>{% if more %}<a href="/performance?report={{ report|urlencode }}&amp;table={{ table|urlencode }}&amp;page={{ page + 1 }}#table-title">Next</a>{% endif %}</nav>{% endif %}
+      </section>
+    {% endif %}
+
+    {% if record.method or record.caveats %}
+      <details class="report-audit panel study-method">
+        <summary>Study method and limitations</summary>
+        {% if record.method %}<p>{{ record.method }}</p>{% endif %}
+        {% if record.caveats %}<p>{{ record.caveats }}</p>{% endif %}
+      </details>
+    {% endif %}
   </section>
-{% endif %}
+</article>
 {% endblock %}

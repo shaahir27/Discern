@@ -15,7 +15,7 @@ discern = "discern.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-discern = ["ui/templates/*.html", "ui/static/*.css", "ui/static/*.js"]
+discern = ["ui/templates/*.html", "ui/static/*.css", "ui/static/*.js", "ui/static/*.svg"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

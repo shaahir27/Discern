@@ -2,10 +2,16 @@
 .venv
 **/__pycache__
 .pytest_cache
+.pytest_cache_local
 .ruff_cache
+scratch/
 data/
 models/**
 !models/lr_model/
+!models/lr_model/catalogue_bdq.csv
+!models/lr_model/catalogue_version.json
 !models/lr_model/evidence_store.csv
 !models/lr_model/metadata.json
-**/*.joblib
+!models/lr_model/bdq_lr.joblib
+!models/lr_mechanism/
+!models/lr_mechanism/lof_effects.csv

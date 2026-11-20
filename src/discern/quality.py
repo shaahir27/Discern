@@ -12,7 +12,7 @@ import re
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from .grammar import classify
+from .grammar import valid_mutation
 
 REQUIRED_PROFILE_COLUMNS = ["sample_id", "gene", "mutation", "frs"]
 ALLOWED_GENES = {"Rv0678", "atpE", "pepQ", "mmpL5", "mmpS5"}
@@ -127,7 +127,8 @@ def check_csv_quality(payload: bytes | str) -> dict[str, Any]:
         }
 
     headers = [col.strip() for col in raw_header]
-    if headers and headers[-1] == "banner":
+    has_banner = headers[-1:] == ["banner"]
+    if has_banner:
         headers = headers[:-1]
 
     # Determine required columns
@@ -203,6 +204,8 @@ def check_csv_quality(payload: bytes | str) -> dict[str, Any]:
     rows_with_issues: set[int] = set()
 
     for line_idx, vals in rows_data:
+        if has_banner and len(vals) == len(headers) + 1:
+            vals = vals[:-1]
         # Check column count
         if len(vals) < len(headers):
             issues.append({
@@ -239,7 +242,8 @@ def check_csv_quality(payload: bytes | str) -> dict[str, Any]:
 
         # Check duplicates
         exact_key = tuple(row_dict.get(h, "") for h in headers)
-        if exact_key in seen_exact_rows:
+        exact_duplicate = exact_key in seen_exact_rows
+        if exact_duplicate:
             prior_line = seen_exact_rows[exact_key]
             issues.append({
                 "line": line_idx,
@@ -255,13 +259,13 @@ def check_csv_quality(payload: bytes | str) -> dict[str, Any]:
         if csv_format == "profile" and "sample_id" in row_dict and "gene" in row_dict and "mutation" in row_dict:
             var_key = (row_dict["sample_id"], row_dict["gene"], row_dict["mutation"])
             if all(k != "" for k in var_key):
-                if var_key in seen_variants and exact_key not in seen_exact_rows:
+                if var_key in seen_variants and not exact_duplicate:
                     prior_line = seen_variants[var_key]
                     issues.append({
                         "line": line_idx,
                         "type": "duplicate",
                         "field": "variant",
-                        "message": f"Line {line_idx}: duplicate variant {var_key[1]}@{var_key[2]} for sample '{var_key[0]}' (earlier at line {prior_line})",
+                        "message": f"Line {line_idx}: repeated variant for this sample (earlier at line {prior_line})",
                     })
                     rows_with_issues.add(line_idx)
                 elif var_key not in seen_variants:
@@ -270,15 +274,14 @@ def check_csv_quality(payload: bytes | str) -> dict[str, Any]:
         # Check formatting of specific fields
         # 1. sample_id
         sid = row_dict.get("sample_id", "")
-        if sid != "":
-            if not SAMPLE_ID_REGEX.match(sid):
-                issues.append({
-                    "line": line_idx,
-                    "type": "format",
-                    "field": "sample_id",
-                    "message": f"Line {line_idx}: invalid sample_id formatting (alphanumeric, hyphens, underscores up to 64 chars)",
-                })
-                rows_with_issues.add(line_idx)
+        if sid and not SAMPLE_ID_REGEX.fullmatch(sid):
+            issues.append({
+                "line": line_idx,
+                "type": "format",
+                "field": "sample_id",
+                "message": f"Line {line_idx}: use up to 64 letters, digits, dots, hyphens, or underscores",
+            })
+            rows_with_issues.add(line_idx)
 
         # 2. gene
         if "gene" in headers:
@@ -288,7 +291,7 @@ def check_csv_quality(payload: bytes | str) -> dict[str, Any]:
                     "line": line_idx,
                     "type": "format",
                     "field": "gene",
-                    "message": f"Line {line_idx}: invalid gene '{gene}' (must be one of: {', '.join(sorted(ALLOWED_GENES))})",
+                    "message": f"Line {line_idx}: expected one of {', '.join(sorted(ALLOWED_GENES))}",
                 })
                 rows_with_issues.add(line_idx)
 
@@ -296,17 +299,13 @@ def check_csv_quality(payload: bytes | str) -> dict[str, Any]:
         if "mutation" in headers:
             mut = row_dict.get("mutation", "")
             if mut != "":
-                suf = mut.split("@")[-1]
-                flags = classify(suf)
-                is_valid_mut = any(flags.get(k) for k in [
-                    "is_mis", "is_indel", "is_stop", "is_prom", "IS_SYN", "IS_NULL"
-                ])
-                if not is_valid_mut:
+                prefix, sep, suffix = mut.partition("@")
+                if (sep and prefix != row_dict.get("gene")) or not valid_mutation(suffix if sep else prefix):
                     issues.append({
                         "line": line_idx,
                         "type": "format",
                         "field": "mutation",
-                        "message": f"Line {line_idx}: invalid mutation syntax '{mut}'",
+                        "message": f"Line {line_idx}: invalid mutation syntax",
                     })
                     rows_with_issues.add(line_idx)
 
@@ -344,7 +343,7 @@ def check_csv_quality(payload: bytes | str) -> dict[str, Any]:
                         "line": line_idx,
                         "type": "format",
                         "field": "collection_date",
-                        "message": f"Line {line_idx}: invalid collection_date '{cdate}' (expected YYYY-MM-DD or day offset like '0', '28', 'Day 0')",
+                        "message": f"Line {line_idx}: enter a YYYY-MM-DD date or a non-negative day offset",
                     })
                     rows_with_issues.add(line_idx)
 

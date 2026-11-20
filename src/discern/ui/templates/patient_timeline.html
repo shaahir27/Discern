@@ -1,56 +1,41 @@
 {% extends "base.html" %}
 {% block content %}
+{% set first_visit = timeline.timepoints[0] %}
 <header class="page-heading">
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
-    <div>
-      <nav class="breadcrumb" style="font-size: 0.85rem; margin-bottom: 0.5rem; color: var(--text-muted, #666);">
-        <a href="/queue">Review queue</a> &rsaquo; <span>Longitudinal tracking</span>
-      </nav>
-      <h1>Patient Serial Timeline: <span class="patient-id-display">{{ patient_id }}</span></h1>
-      <p>Serial-isolate tracking of subclonal heteroresistance, clonal replacement, and treatment-emergent mutations.</p>
-    </div>
-    <div>
-      <a href="/queue" class="button secondary" style="font-size: 0.85rem;">&larr; Back to queue</a>
-    </div>
-  </div>
+  <a class="breadcrumb" href="/queue?batch={{ batch_id|urlencode }}">Review queue</a>
+  <h1>Patient timeline</h1>
+  <p>{% if illustrative %}<strong>Illustrative example</strong> &middot; {% endif %}{{ patient_id }} &middot; {{ timeline.n_visits }} dated visits</p>
 </header>
 
-{% if timeline.has_alerts %}
-<section class="panel longitudinal-alerts-panel" style="margin-bottom: 1.5rem; border-left: 4px solid #b91c1c; background: rgba(185, 28, 28, 0.04); padding: 1rem 1.25rem; border-radius: 4px;">
-  <h2 style="font-size: 1.15rem; margin-top: 0; margin-bottom: 0.5rem; color: #991b1b;">⚠️ Longitudinal Resistance Alerts</h2>
-  <ul style="margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.92rem; line-height: 1.5;">
-    {% for alert in timeline.alerts %}
-      <li>
-        <strong>{{ alert.code|replace('_', ' ') }}:</strong> {{ alert.message }}
-      </li>
+<section class="visit-picker" aria-labelledby="visit-picker-title" hidden>
+  <div class="section-heading">
+    <h2 id="visit-picker-title">Select a visit</h2>
+    <div class="timeline-controls">
+      <button type="button" id="btn-prev-visit" class="secondary" aria-label="Previous visit">Previous</button>
+      <button type="button" id="btn-play-pause" class="secondary" aria-pressed="false">Play</button>
+      <button type="button" id="btn-next-visit" class="secondary" aria-label="Next visit">Next</button>
+      <span id="active-visit-label" class="fine">1 of {{ timeline.n_visits }}</span>
+    </div>
+  </div>
+  <div class="visit-dates">
+    {% for visit in timeline.timepoints %}
+      <button type="button" class="visit-date secondary" data-visit-index="{{ loop.index0 }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">
+        <strong>{{ visit.date_display }}</strong>
+        <span>{{ visit.call_label }}</span>
+      </button>
     {% endfor %}
-  </ul>
+  </div>
+  <input type="range" id="visit-scrubber" min="0" max="{{ timeline.n_visits - 1 }}" value="0" step="1" aria-label="Browse dated visits">
 </section>
-{% endif %}
 
-<!-- Interactive Clonal-Ribbon Timeline Section -->
-<section class="panel timeline-card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
-  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
-    <div>
-      <h2 style="font-size: 1.1rem; margin: 0;">Muller Clonal-Ribbon Trajectory</h2>
-      <p class="fine" style="margin: 0.2rem 0 0;">Subclonal allele frequencies (0.0 to 1.0) tracked across {{ timeline.n_visits }} serial visits.</p>
-    </div>
-    <!-- Scrubber and playback controls -->
-    <div class="timeline-controls" style="display: flex; align-items: center; gap: 0.5rem;">
-      <button type="button" id="btn-prev-visit" class="secondary" style="padding: 0.3rem 0.6rem; font-size: 0.85rem;" title="Previous visit">&larr; Prev</button>
-      <button type="button" id="btn-play-pause" class="secondary" style="padding: 0.3rem 0.8rem; font-size: 0.85rem;" title="Play or pause animation">▶ Play</button>
-      <button type="button" id="btn-next-visit" class="secondary" style="padding: 0.3rem 0.6rem; font-size: 0.85rem;" title="Next visit">Next &rarr;</button>
-      <span style="font-size: 0.85rem; margin-left: 0.5rem; color: var(--text-muted, #666);">Visit: <strong id="active-visit-label">1 of {{ timeline.n_visits }}</strong></span>
-    </div>
-  </div>
-
-  <div style="margin-bottom: 0.75rem;">
-    <input type="range" id="visit-scrubber" min="0" max="{{ timeline.n_visits - 1 }}" value="0" step="1" style="width: 100%;" aria-label="Serial visit scrubber">
-  </div>
+<div class="timeline-layout">
+<section class="panel timeline-card">
+  <h2>Reported allele fractions</h2>
+  <p class="fine">Each line marks a dated visit.</p>
 
   <!-- SVG Muller Canvas Container -->
-  <div id="muller-canvas-container" style="background: var(--bg-canvas, #fafafa); border: 1px solid var(--border, #e2e8f0); border-radius: 6px; padding: 0.5rem; position: relative;">
-    <svg id="muller-svg" viewBox="0 0 760 280" width="100%" height="280" style="display: block; overflow: visible;" aria-label="Muller clonal trajectory plot">
+  <div id="muller-canvas-container" class="chart-frame">
+    <svg id="muller-svg" viewBox="0 0 760 280" width="100%" role="img" aria-label="Reported allele fractions at dated visits">
       <!-- Grid lines -->
       <line x1="60" y1="20" x2="720" y2="20" stroke="#e2e8f0" stroke-dasharray="4,4" />
       <line x1="60" y1="75" x2="720" y2="75" stroke="#e2e8f0" stroke-dasharray="4,4" />
@@ -59,11 +44,11 @@
       <line x1="60" y1="240" x2="720" y2="240" stroke="#cbd5e1" stroke-width="1.5" />
 
       <!-- Y axis labels -->
-      <text x="50" y="24" font-size="10" fill="#64748b" text-anchor="end">1.00</text>
-      <text x="50" y="79" font-size="10" fill="#64748b" text-anchor="end">0.75</text>
-      <text x="50" y="134" font-size="10" fill="#64748b" text-anchor="end">0.50</text>
-      <text x="50" y="189" font-size="10" fill="#64748b" text-anchor="end">0.25</text>
-      <text x="50" y="244" font-size="10" fill="#64748b" text-anchor="end">0.00</text>
+      <text x="50" y="24" font-size="10" fill="#64748b" text-anchor="end">100%</text>
+      <text x="50" y="79" font-size="10" fill="#64748b" text-anchor="end">75%</text>
+      <text x="50" y="134" font-size="10" fill="#64748b" text-anchor="end">50%</text>
+      <text x="50" y="189" font-size="10" fill="#64748b" text-anchor="end">25%</text>
+      <text x="50" y="244" font-size="10" fill="#64748b" text-anchor="end">0%</text>
 
       <!-- Ribbons group rendered by script / static fallback -->
       <g id="ribbons-group"></g>
@@ -75,49 +60,60 @@
   </div>
 
   <!-- Legend -->
-  <div id="timeline-legend" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.75rem; font-size: 0.8rem; align-items: center;">
-    <div style="display: flex; align-items: center; gap: 0.35rem;">
-      <span style="display: inline-block; width: 12px; height: 12px; background: #94a3b8; border-radius: 2px;"></span>
-      <span>Wild-type remainder</span>
+  <div id="timeline-legend">
+    <div>
+      <span class="legend-color-box legend-remainder"></span>
+      <span>Remainder</span>
     </div>
     {% for var in timeline.variants %}
-      <div style="display: flex; align-items: center; gap: 0.35rem;">
-        <span class="legend-color-box" data-variant="{{ var }}" style="display: inline-block; width: 12px; height: 12px; border-radius: 2px;"></span>
+      <div>
+        <span class="legend-color-box" data-variant="{{ var }}"></span>
         <span><code>{{ var }}</code></span>
       </div>
     {% endfor %}
   </div>
+  <p class="fine">Read fractions can overlap. The plotted sum is capped at 100%.</p>
 </section>
 
 <!-- Active Visit Detail Card -->
-<section id="active-visit-card" class="panel" style="margin-bottom: 1.5rem; padding: 1.25rem;">
-  <h2 style="font-size: 1.1rem; margin-top: 0; margin-bottom: 0.75rem;">Active Visit Inspection: <span id="visit-date-title">—</span></h2>
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+<section id="active-visit-card" class="panel">
+  <h2>Visit details <span id="visit-date-title">{{ first_visit.date_display }}</span></h2>
+  <div class="visit-summary">
     <div>
-      <span class="fine" style="display: block;">Sample ID</span>
-      <strong id="visit-sample-id" style="font-size: 1.1rem;">—</strong>
-      <div style="margin-top: 0.25rem;">
-        <a id="visit-sample-link" href="#" style="font-size: 0.85rem; text-decoration: underline;">View single-sample report &rarr;</a>
+      <span class="fine">Sample ID</span>
+      <strong id="visit-sample-id" class="id">{{ first_visit.sample_id }}</strong>
+      <div>
+        <a id="visit-sample-link" href="/result?sample_id={{ first_visit.sample_id|urlencode }}&amp;batch={{ batch_id|urlencode }}">Open sample result</a>
       </div>
     </div>
     <div>
-      <span class="fine" style="display: block;">Catalogue Call</span>
-      <span id="visit-call-badge" class="badge" style="font-size: 0.95rem; padding: 3px 8px;">—</span>
+      <span class="fine">Catalogue call</span>
+      <span id="visit-call-badge" class="status status-{{ first_visit.call }}">{{ first_visit.call_label }}</span>
     </div>
     <div>
-      <span class="fine" style="display: block;">Calibrated Model Probability</span>
-      <strong id="visit-prob-display" style="font-size: 1.1rem;">—</strong>
+      <span class="fine">Model score</span>
+      <strong id="visit-prob-display">{{ "%.1f"|format(first_visit.probability * 100) if first_visit.probability is number else "—" }}{% if first_visit.probability is number %}%{% endif %}</strong>
     </div>
   </div>
   <div>
-    <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem;">Allele Frequencies at this Visit</h3>
-    <div id="visit-variant-bars" style="display: flex; flex-direction: column; gap: 0.4rem;"></div>
+    <h3>Variants at this visit</h3>
+    <div id="visit-variant-bars"></div>
+    <ul id="active-visit-alerts" aria-live="polite"></ul>
   </div>
 </section>
 
-<!-- Accessible Semantic Table (Fallback & Screen Readers) -->
-<section class="panel" aria-labelledby="fallback-table-heading" style="padding: 1.25rem;">
-  <h2 id="fallback-table-heading" style="font-size: 1.1rem; margin-top: 0; margin-bottom: 0.75rem;">Serial Visits Data Table</h2>
+</div>
+
+{% set undated_alerts = timeline.alerts|rejectattr("visit_idx", "defined")|list %}
+{% if undated_alerts %}
+<details class="panel longitudinal-alerts-panel">
+  <summary>Findings across visits</summary>
+  <ul>{% for alert in undated_alerts %}<li>{{ alert.message }}</li>{% endfor %}</ul>
+</details>
+{% endif %}
+
+<section class="panel" aria-labelledby="fallback-table-heading">
+  <h2 id="fallback-table-heading">Visit records</h2>
   <div class="table-scroll" tabindex="0">
     <table class="data-table">
       <thead>
@@ -135,16 +131,16 @@
         <tr>
           <td>Visit {{ loop.index }}</td>
           <td><strong>{{ tp.date_display }}</strong></td>
-          <td><a class="id" href="/result?sample_id={{ tp.sample_id|urlencode }}">{{ tp.sample_id }}</a></td>
+          <td><a class="id" href="/result?sample_id={{ tp.sample_id|urlencode }}{% if batch_id %}&amp;batch={{ batch_id|urlencode }}{% endif %}">{{ tp.sample_id }}</a></td>
           <td><span class="status status-{{ tp.call }}">{{ tp.call_label }}</span></td>
           <td class="num">{% if tp.probability is number %}{{ "%.1f"|format(tp.probability * 100) }}%{% else %}—{% endif %}</td>
           <td>
             {% if tp.variants %}
               {% for v in tp.variants %}
-                <span class="badge" style="margin-right: 4px; font-size: 0.8rem;">{{ v.gene }}@{{ v.mutation }} ({{ "%.1f"|format(v.frs * 100) }}%)</span>
+                <span class="badge">{{ v.gene }}@{{ v.mutation }} ({{ "%.1f"|format(v.frs * 100) }}%)</span>
               {% endfor %}
             {% else %}
-              <span style="color: var(--text-muted, #666); font-style: italic;">Wild-type (0 variants)</span>
+              <span>No retained variants</span>
             {% endif %}
           </td>
         </tr>
@@ -155,7 +151,7 @@
 </section>
 
 <!-- Safe JSON Payload for interactive JS (No inline scripts, strict CSP safe) -->
-<script type="application/json" id="timeline-data">
+<script type="application/json" id="timeline-data" data-batch="{{ batch_id }}">
 {{ timeline|tojson }}
 </script>
 {% endblock %}

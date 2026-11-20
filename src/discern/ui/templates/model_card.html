@@ -1,5 +1,22 @@
 {% extends "base.html" %}
 {% block content %}
-<header class="page-heading"><h1>Model card</h1><p>Intended use, evidence, and the limits of the archived evaluation.</p></header>
-<article class="prose">{% for heading, paragraphs in sections %}<section><h2>{{ heading }}</h2>{% for paragraph in paragraphs %}<p>{{ paragraph }}</p>{% endfor %}</section>{% endfor %}</article>
+<header class="page-heading">
+  <h1>Model card</h1>
+  <p>Intended use, evidence, and the limits of the archived evaluation.</p>
+</header>
+<div class="reading-layout">
+  <article class="prose">
+    {% for heading, paragraphs in sections %}
+      <section id="section-{{ loop.index }}">
+        <h2>{{ heading }}</h2>
+        {% for paragraph in paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+      </section>
+    {% endfor %}
+  </article>
+  <nav class="context-aside" aria-label="On this page">
+    <h2>On this page</h2>
+    {% for heading, paragraphs in sections %}<a href="#section-{{ loop.index }}">{{ heading }}</a>{% endfor %}
+    <a href="/performance">Open supporting results</a>
+  </nav>
+</div>
 {% endblock %}

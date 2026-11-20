@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import datetime
+import math
 import re
 from typing import Any
+
+from .grammar import classify, suffix_of
 
 CORE_GENES = {"Rv0678", "atpE", "pepQ"}
 
@@ -13,6 +16,8 @@ def parse_timepoint_date(val: Any) -> tuple[float | None, str]:
     if val is None:
         return None, ""
     if isinstance(val, (int, float)):
+        if isinstance(val, bool) or not math.isfinite(val) or val < 0 or val != int(val):
+            return None, ""
         return float(val), f"Day {int(val)}"
     
     s = str(val).strip()
@@ -21,9 +26,9 @@ def parse_timepoint_date(val: Any) -> tuple[float | None, str]:
 
     # Integer or Day X
     m_day = re.match(r"^(?:day\s*)?(\d+)$", s, re.IGNORECASE)
-    if m_day:
-        d = float(m_day.group(1))
-        return d, f"Day {int(d)}"
+    if m_day and len(m_day.group(1)) <= 9:
+        d = int(m_day.group(1))
+        return float(d), f"Day {d}"
 
     # ISO date: YYYY-MM-DD
     m_iso = re.match(r"^(\d{4})-(\d{2})-(\d{2})$", s)
@@ -56,16 +61,26 @@ def analyze_patient_timelines(sample_records: list[dict]) -> dict[str, dict]:
         parsed_records = []
         for r in records:
             d_key, d_disp = parse_timepoint_date(r.get("collection_date"))
+            if d_key is None:
+                continue
+            variants = []
+            for variant in r.get("variants", []):
+                mutation = suffix_of(variant.get("mutation", ""))
+                flags = classify(mutation)
+                if mutation and not (flags["IS_SYN"] or flags["IS_NULL"]):
+                    variants.append({**variant, "mutation": mutation})
             parsed_records.append({
-                "sort_key": d_key if d_key is not None else float("inf"),
-                "date_display": d_disp or (r.get("collection_date") or "Unknown"),
+                "sort_key": d_key,
+                "date_display": d_disp,
                 "sample_id": r.get("sample_id", ""),
                 "call": r.get("call", "U"),
                 "call_label": r.get("call_label", ""),
                 "probability": r.get("probability"),
-                "variants": r.get("variants", []),
+                "variants": variants,
             })
 
+        if len(parsed_records) < 2 or len({r["date_display"].startswith("Day ") for r in parsed_records}) > 1:
+            continue
         parsed_records.sort(key=lambda x: (x["sort_key"], x["sample_id"]))
 
         # Identify all distinct variants seen across timepoints

@@ -1,12 +1,16 @@
 """Serve the fixed research archive and the local Jinja interface."""
 
+from collections import OrderedDict
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
-from decimal import Decimal, InvalidOperation
+from dataclasses import dataclass
 from pathlib import Path
+from secrets import token_urlsafe
 from urllib.parse import parse_qs, urlencode
 
+import numpy as np
 from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -16,6 +20,9 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from ..decision import Predictor
 from ..documentation import model_card
 from ..importers import detect_and_parse_upload
+from ..label_shift import deduplicate_patient_probabilities, estimate_prevalence_mlls
+from ..longitudinal import analyze_patient_timelines
+from ..panels import PANELS, audit_sample_panel
 from ..prevalence import adjust, archived_predictive_values
 from ..quality import check_csv_quality
 from ..research import (
@@ -28,21 +35,46 @@ from ..research import (
     UploadError,
     csv_text,
     read_batch,
+    read_json,
     workspace,
 )
+from ..surveillance import batch_recurrence_audit
 
 UI = Path(__file__).resolve().parents[1] / "ui"
+
+
+def asset_url(name: str) -> str:
+    version = (UI / "static" / name).stat().st_mtime_ns
+    return f"/static/{name}?v={version}"
+
+
 templates = Jinja2Templates(directory=UI / "templates")
-templates.env.globals.update(banner=BANNER, mode=MODE, max_csv_bytes=MAX_CSV_BYTES)
+templates.env.globals.update(banner=BANNER, mode=MODE, max_csv_bytes=MAX_CSV_BYTES, asset_url=asset_url)
+UPLOAD_COOKIE = "discern_upload"
+DEFAULT_PREVALENCE = 0.05
+
+
+@dataclass
+class UploadedBatch:
+    id: str
+    owner: str
+    quality: dict
+    records: dict[str, dict]
+    timelines: dict[str, dict]
+    prevalence: dict
+    rows: list[dict]
+    alerts: list[dict]
+    illustrative: bool
 
 
 @asynccontextmanager
 async def lifespan(api: FastAPI) -> AsyncIterator[None]:
-    api.state.archive = Archive(workspace())
-    api.state.predictor = Predictor()
-    api.state.live_results = {}
-    api.state.live_quality = {}
+    root = workspace()
+    api.state.archive = Archive(root)
+    api.state.predictor = Predictor(root / "models/lr_model", root / "results", config_path=root / "config.yaml")
+    api.state.uploads = OrderedDict()
     yield
+    api.state.uploads.clear()
 
 
 app = FastAPI(title="Discern Research Explorer", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
@@ -55,6 +87,8 @@ async def research_header(request: Request, call_next: Callable[[Request], Await
     response.headers["X-Research-Use"] = BANNER
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Content-Security-Policy"] = "default-src 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'"
+    if request.method == "POST" or "batch" in request.query_params or request.url.path.startswith(("/result", "/patient/", "/api/patient/")):
+        response.headers["Cache-Control"] = "no-store"
     return response
 
 
@@ -169,7 +203,7 @@ async def form_csv(request: Request) -> tuple[bytes, str]:
                         keep_blank_values=True, errors="strict")
     except ValueError:
         raise UploadError("invalid_form", "Open the CSV upload form and submit the file again.") from None
-    if not (set(form) == {"csv"} or set(form) == {"csv", "assay"}):
+    if set(form) not in ({"csv"}, {"csv", "assay"}) or any(len(values) != 1 for values in form.values()):
         raise UploadError("invalid_form", "Open the CSV upload form and submit the file again.")
     raw_csv = form["csv"][0].encode("utf-8")
     assay = form.get("assay", ["wgs"])[0].strip() or "wgs"
@@ -178,532 +212,300 @@ async def form_csv(request: Request) -> tuple[bytes, str]:
 
 @app.post("/review", response_class=HTMLResponse)
 async def review(request: Request) -> Response:
+    return await review_upload(request, single_redirect=True)
+
+
+@app.post("/queue", response_class=HTMLResponse)
+async def queue_import(request: Request) -> Response:
+    return await review_upload(request, single_redirect=False)
+
+
+@app.post("/longitudinal-example")
+async def open_longitudinal_example(request: Request) -> Response:
+    return await review_upload(request, single_redirect=False, illustrative=True)
+
+
+async def review_upload(request: Request, *, single_redirect: bool, illustrative: bool = False) -> Response:
     data = archive(request)
-    pred_service = request.app.state.predictor
     try:
-        raw_csv, assay = await form_csv(request)
-    except UploadError as error:
-        return sample_home(request, error)
-
-    parsed = detect_and_parse_upload(raw_csv)
-    sample_meta: dict[str, dict] = {}
-    if parsed["format"] not in ("discern_csv", "empty"):
-        if assay == "wgs" and parsed["inferred_assay"] != "wgs":
-            assay = parsed["inferred_assay"]
-        rows_by_sample: dict[str, list[dict]] = {}
-        for r in parsed["rows"]:
-            sid = r["sample_id"]
-            sample_meta.setdefault(sid, {})
-            if "patient_id" in r and r["patient_id"]:
-                sample_meta[sid]["patient_id"] = r["patient_id"]
-            if "collection_date" in r and r["collection_date"]:
-                sample_meta[sid]["collection_date"] = r["collection_date"]
-            rows_by_sample.setdefault(sid, []).append({
-                "gene": r["gene"],
-                "mutation": r["mutation"],
-                "frs": float(r["frs"]),
-            })
-        for sid in parsed.get("sample_ids", []):
-            rows_by_sample.setdefault(sid, [])
-        quality = {
-            "completeness_score": 100.0,
-            "total_rows": len(parsed["rows"]),
-            "valid_rows": len(parsed["rows"]),
-            "missing_count": 0,
-            "duplicate_count": 0,
-            "formatting_count": 0,
-            "total_issues": 0,
-            "issues": [],
-            "is_valid": True,
-            "summary": f"Imported {len(parsed['rows'])} variants from {parsed['format'].replace('_', ' ').title()}.",
-            "format": parsed["format"],
-            "headers": ["sample_id", "gene", "mutation", "frs"],
-        }
-    else:
-        try:
-            quality = check_csv_quality(raw_csv)
-            headers, rows = read_batch(raw_csv)
-        except UploadError as error:
-            return sample_home(request, error)
-
-        first_lines: dict[str, int] = {}
-        for line, row in rows:
-            first_lines.setdefault(row["sample_id"], line)
-
-        all_known = all(sid in data.roster for sid in first_lines)
-        if all_known:
-            try:
-                ids = data.imported_ids(raw_csv)
-            except UploadError as error:
-                return sample_home(request, error)
-            for sid in ids:
-                request.app.state.live_quality[sid] = quality
-            if len(ids) == 1:
-                destination = "/result?" + urlencode({"sample_id": ids[0]})
-                return RedirectResponse(destination, status_code=303)
-            return render(request, "queue", title="Review queue", active="queue", rows=data.queue(ids), scope="import", upload_quality=quality)
-
-        # Live scoring for new isolate uploads
-        rows_by_sample = {}
-        if headers == PROFILE_COLUMNS or (len(headers) >= 4 and headers[:4] == PROFILE_COLUMNS):
-            for line, row in rows:
-                sid = row["sample_id"]
-                sample_meta.setdefault(sid, {})
-                if "patient_id" in row and row["patient_id"]:
-                    sample_meta[sid]["patient_id"] = row["patient_id"]
-                if "collection_date" in row and row["collection_date"]:
-                    sample_meta[sid]["collection_date"] = row["collection_date"]
-                try:
-                    fraction = Decimal(row["frs"])
-                except InvalidOperation:
-                    fraction = Decimal("NaN")
-                if not fraction.is_finite() or not 0 <= fraction <= 1:
-                    return sample_home(
-                        request,
-                        UploadError("invalid_fraction", "Enter a number between zero and one.", line=line, column="frs"),
-                    )
-                rows_by_sample.setdefault(sid, []).append({
-                    "gene": row["gene"],
-                    "mutation": row["mutation"],
-                    "frs": float(fraction),
-                })
+        if illustrative:
+            payload, assay = longitudinal_example_path().read_bytes(), "wgs"
         else:
-            for line, row in rows:
-                sid = row["sample_id"]
-                rows_by_sample.setdefault(sid, [])
+            payload, assay = await form_csv(request)
+        parsed = await run_in_threadpool(parse_upload, payload, assay, data)
+        rows, quality, archived = parsed
+        if archived:
+            if single_redirect and len(rows) == 1:
+                destination = "/result?" + urlencode({"sample_id": next(iter(rows))})
+                return RedirectResponse(destination, status_code=303)
+            return render(request, "queue", title="Review queue", active="queue",
+                          rows=data.queue(list(rows)), scope="import", upload_quality=quality)
+        predictor = request.app.state.predictor
+        records, queue_rows, timelines, prevalence, alerts = await run_in_threadpool(
+            score_upload, rows, predictor,
+        )
+    except UploadError as error:
+        if single_redirect:
+            return sample_home(request, error)
+        return render(request, "queue", status=error.status, title="Review queue", active="queue", scope="all",
+                      rows=data.queue(list(data.roster)), error=str(error))
 
-    new_rows = []
-    sample_records_for_longitudinal = []
-    for sid, variants in rows_by_sample.items():
-        meta = sample_meta.get(sid, {})
-        pred = pred_service.predict(variants, prevalence=0.05, sample_id=sid, assay=assay)
-        evidence = []
-        for card, var in zip(pred["evidence"], variants):
-            evidence.append({**card, "frs": float(var.get("frs", 1.0))})
-        if not evidence and pred["evidence"]:
-            evidence = pred["evidence"]
+    uploads = request.app.state.uploads
+    batch_id = token_urlsafe(18)
+    previous = uploaded_batch(request)
+    owner = previous.owner if previous else token_urlsafe(24)
+    uploads[batch_id] = UploadedBatch(
+        batch_id, owner, quality, records, timelines, prevalence, queue_rows, alerts, illustrative,
+    )
+    # shortcut: per-process cache for the local, single-worker explorer, use shared storage for multi-worker hosting.
+    if len(uploads) > 16:
+        uploads.popitem(last=False)
+    if illustrative and timelines:
+        patient_id = min(timelines)
+        destination = request.url_for("patient_timeline_view", patient_id=patient_id)
+        response = RedirectResponse(str(destination.include_query_params(batch=batch_id)), status_code=303)
+    elif single_redirect and len(records) == 1:
+        destination = "/result?" + urlencode({"sample_id": next(iter(records)), "batch": batch_id})
+        response = RedirectResponse(destination, status_code=303)
+    else:
+        response = render_uploaded_queue(request, uploads[batch_id], batch_id)
+    response.set_cookie(UPLOAD_COOKIE, owner, httponly=True, samesite="strict",
+                        secure=request.url.scheme == "https")
+    return response
 
-        record = {
+
+def parse_upload(payload: bytes, assay: str, data: Archive) -> tuple[dict[str, dict], dict, bool]:
+    parsed = detect_and_parse_upload(payload)
+    if parsed["format"] in ("discern_csv", "empty"):
+        headers, rows = read_batch(payload)
+        quality = check_csv_quality(payload)
+        if all(row["sample_id"] in data.roster for _, row in rows):
+            return {sid: {} for sid in data.imported_ids(payload)}, quality, True
+        for issue in quality["issues"]:
+            if issue["type"] != "duplicate":
+                raise UploadError("invalid_profile", "Check this field in the uploaded profile.",
+                                  line=issue["line"], column=issue["field"])
+        inferred_assay = assay
+        sample_ids: list[str] = []
+    else:
+        sample_ids = parsed["sample_ids"]
+        rows = list(enumerate(parsed["rows"], 2))
+        headers = PROFILE_COLUMNS
+        inferred_assay = parsed["inferred_assay"] if assay == "wgs" else assay
+        quality = check_csv_quality(
+            csv_text(PROFILE_COLUMNS, parsed["rows"]) if rows
+            else csv_text(["sample_id"], [{"sample_id": sid} for sid in sample_ids]),
+        )
+        for issue in quality["issues"]:
+            if issue["type"] != "duplicate":
+                raise UploadError("invalid_profile", "Check this field in the uploaded profile.",
+                                  line=issue["line"], column=issue["field"])
+        quality["format"] = parsed["format"]
+    samples: dict[str, dict] = {}
+    for sample_id in sample_ids:
+        samples[sample_id] = {"variants": [], "assay": inferred_assay}
+    for line, row in rows:
+        sample_id = row["sample_id"]
+        sample = samples.setdefault(sample_id, {"variants": [], "assay": inferred_assay})
+        for field in ("patient_id", "collection_date", "assay"):
+            value = row.get(field, "")
+            if not value:
+                continue
+            if field == "assay" and value not in PANELS:
+                raise UploadError("invalid_assay", "Choose a supported assay.",
+                                  line=line, column=field)
+            if field == "patient_id" and (len(value) > 64 or "/" in value or value in {".", ".."}):
+                raise UploadError("invalid_patient_id", "Use a patient identifier without path separators.",
+                                  line=line, column=field)
+            if field in sample and (field != "assay" or sample.get("assay_in_file")) and sample[field] != value:
+                raise UploadError("inconsistent_metadata", "Use the same metadata on all rows for this sample.",
+                                  line=line, column=field)
+            sample[field] = value
+            if field == "assay":
+                sample["assay_in_file"] = True
+        if headers != ["sample_id"]:
+            sample["variants"].append({
+                "gene": row["gene"], "mutation": row["mutation"], "frs": float(row["frs"]),
+            })
+    return samples, quality, False
+
+
+def score_upload(samples: dict[str, dict], predictor: Predictor) -> tuple[dict, list, dict, dict, list]:
+    records = {}
+    queue_rows = []
+    visits = []
+    for sid, sample in samples.items():
+        variants = sample["variants"]
+        assay = sample["assay"]
+        pred = predictor.predict(variants, prevalence=DEFAULT_PREVALENCE, sample_id=sid, assay=assay)
+        model = pred["model"]
+        fractions: dict[str, float] = {}
+        for variant in variants:
+            key = variant["gene"] + "@" + variant["mutation"].split("@")[-1]
+            fractions[key] = max(fractions.get(key, 0.0), variant["frs"])
+        basic_record = {
             "sample_id": sid,
             "call": pred["call"],
             "call_label": pred["call_label"],
-            "probability": pred["model"]["probability_at_prevalence"],
-            "probability_train": pred["model"]["probability_train_prevalence"],
-            "score_raw": pred["model"]["score_raw"],
+            "probability": model["probability_at_prevalence"],
             "fold": "Live",
-            "source": "Uploaded CSV",
+            "source": "Uploaded profile",
             "phenotype": "Live prediction",
-            "evidence": evidence,
+            "is_live": True,
+            "patient_id": sample.get("patient_id"),
+        }
+        queue_rows.append(basic_record)
+        records[sid] = {
+            **basic_record,
+            "probability_train": model["probability_train_prevalence"],
+            "score_raw": model["score_raw"],
+            "evidence": [{**card, "frs": fractions[card["variant"]]} for card in pred["evidence"]],
             "tier_a": pred["tier_a"],
-            "clinical_reflex": pred.get("clinical_reflex", []),
-            "panel_audit": pred.get("panel_audit"),
-            "assay": assay,
+            "clinical_reflex": pred["clinical_reflex"],
+            "panel_audit": pred["panel_audit"],
             "mode": "Live model evaluation (Discern Tier A + Tier B)",
             "banner": BANNER,
             "score_context": {
-                "reference_prevalence": pred_service.pi_tr,
+                "reference_prevalence": predictor.pi_tr,
                 "uncertainty": None,
                 "uncertainty_status": "live",
             },
             "warnings": pred["warnings"],
-            "is_live": True,
-            "raw_variants": variants,
         }
-        request.app.state.live_results[sid] = record
-        request.app.state.live_quality[sid] = quality
-        new_rows.append({
-            "sample_id": sid,
-            "call": pred["call"],
-            "call_label": pred["call_label"],
-            "probability": pred["model"]["probability_at_prevalence"],
-            "fold": "Live",
-            "source": "Uploaded CSV",
-            "phenotype": "Live prediction",
-            "is_live": True,
-        })
-        sample_records_for_longitudinal.append({
-            "sample_id": sid,
-            "patient_id": meta.get("patient_id"),
-            "collection_date": meta.get("collection_date"),
-            "call": pred["call"],
-            "call_label": pred["call_label"],
-            "probability": pred["model"]["probability_at_prevalence"],
+        visits.append({
+            **basic_record,
+            "collection_date": sample.get("collection_date"),
+            "probability_train": model["probability_train_prevalence"],
             "variants": variants,
         })
 
-    from ..longitudinal import analyze_patient_timelines
-    timelines = analyze_patient_timelines(sample_records_for_longitudinal)
-    if not hasattr(request.app.state, "live_timelines"):
-        request.app.state.live_timelines = {}
-    request.app.state.live_timelines.update(timelines)
+    timelines = analyze_patient_timelines(visits)
+    for row in queue_rows:
+        if timeline := timelines.get(row["patient_id"]):
+            row["n_visits"] = timeline["n_visits"]
+            row["has_longitudinal_alerts"] = timeline["has_alerts"]
+            records[row["sample_id"]]["longitudinal_timeline"] = timeline
+    alerts = batch_recurrence_audit(
+        {sid: row["variants"] for sid, row in samples.items()}, predictor.ev,
+        patient_map={sid: row.get("patient_id") or sid for sid, row in samples.items()},
+    )
 
-    for sid in rows_by_sample:
-        meta = sample_meta.get(sid, {})
-        pid = meta.get("patient_id")
-        if pid:
-            request.app.state.live_results[sid]["patient_id"] = pid
-            if pid in request.app.state.live_timelines:
-                request.app.state.live_results[sid]["longitudinal_timeline"] = request.app.state.live_timelines[pid]
+    probabilities = deduplicate_patient_probabilities(visits)
+    prevalence = estimate_prevalence_mlls(probabilities, predictor.pi_tr)
+    if prevalence["status"] == "estimated":
+        metrics = predictor.cat_metrics
+        prevalence["ppv_hat"], prevalence["npv_hat"] = archived_predictive_values(metrics, prevalence["pi_hat"])
+        prevalence["ppv_low"], prevalence["npv_high"] = archived_predictive_values(metrics, prevalence["ci95_low"])
+        prevalence["ppv_high"], prevalence["npv_low"] = archived_predictive_values(metrics, prevalence["ci95_high"])
+        prevalence["curve_points"] = [
+            {"pi": float(pi), "ppv": archived_predictive_values(metrics, float(pi))[0]}
+            for pi in np.linspace(0.005, 0.25, 40)
+        ]
+    queue_rows.sort(key=lambda row: (row["call"] != "U", -row["probability"], row["sample_id"]))
+    for rank, row in enumerate(queue_rows, 1):
+        row["rank"] = rank if row["call"] == "U" else None
+    return records, queue_rows, timelines, prevalence, alerts
 
-    for r in new_rows:
-        meta = sample_meta.get(r["sample_id"], {})
-        pid = meta.get("patient_id")
-        if pid:
-            r["patient_id"] = pid
-            if pid in request.app.state.live_timelines:
-                r["n_visits"] = request.app.state.live_timelines[pid]["n_visits"]
-                r["has_longitudinal_alerts"] = request.app.state.live_timelines[pid]["has_alerts"]
 
-    from ..label_shift import deduplicate_patient_probabilities, estimate_prevalence_mlls
-    from ..surveillance import batch_recurrence_audit
-
-    patient_map = {sid: sample_meta.get(sid, {}).get("patient_id") or sid for sid in rows_by_sample}
-    recurrence_alerts = batch_recurrence_audit(rows_by_sample, pred_service.ev, patient_map=patient_map)
-    request.app.state.recurrence_alerts = recurrence_alerts
-
-    deduped_probs = deduplicate_patient_probabilities(sample_records_for_longitudinal)
-    batch_prev = estimate_prevalence_mlls(deduped_probs, pred_service.pi_tr)
-    if batch_prev["status"] == "estimated":
-        p_hat = batch_prev["pi_hat"]
-        ppv_hat, npv_hat = archived_predictive_values(pred_service.cat_metrics, p_hat)
-        batch_prev["ppv_hat"] = ppv_hat
-        batch_prev["npv_hat"] = npv_hat
-        ppv_low, _ = archived_predictive_values(pred_service.cat_metrics, batch_prev["ci95_low"])
-        ppv_high, _ = archived_predictive_values(pred_service.cat_metrics, batch_prev["ci95_high"])
-        batch_prev["ppv_low"] = ppv_low
-        batch_prev["ppv_high"] = ppv_high
-        curve_pts = []
-        for x_val in np.linspace(0.005, 0.25, 40):
-            px, _ = archived_predictive_values(pred_service.cat_metrics, float(x_val))
-            curve_pts.append({"pi": float(x_val), "ppv": float(px)})
-        batch_prev["curve_points"] = curve_pts
-    request.app.state.batch_prevalence = batch_prev
-
-    if len(rows_by_sample) == 1:
-        sid = next(iter(rows_by_sample))
-        destination = "/result?" + urlencode({"sample_id": sid})
-        return RedirectResponse(destination, status_code=303)
-
-    new_rows.sort(key=lambda r: (r["call"] != "U", -r["probability"], r["sample_id"]))
-    for rank, r in enumerate(new_rows, 1):
-        r["rank"] = rank if r["call"] == "U" else None
-
-    return render(request, "queue", title="Review queue", active="queue", rows=new_rows, scope="import",
-                  upload_quality=quality, batch_prevalence=batch_prev, recurrence_alerts=recurrence_alerts)
+def uploaded_batch(request: Request, batch_id: str | None = None) -> UploadedBatch | None:
+    uploads = request.app.state.uploads
+    owner = request.cookies.get(UPLOAD_COOKIE)
+    if not owner:
+        return None
+    if batch_id is not None:
+        batch = uploads.get(batch_id)
+        return batch if batch and batch.owner == owner else None
+    return next((batch for batch in reversed(uploads.copy().values()) if batch.owner == owner), None)
 
 
 @app.get("/result", response_class=HTMLResponse)
-def result(request: Request, sample_id: str, prevalence: float = Query(0.05, ge=0.001, le=0.5)) -> Response:
+def result(
+    request: Request, sample_id: str, batch: str | None = None,
+    prevalence: float | None = Query(None, ge=0.001, le=0.5),
+) -> Response:
     data = archive(request)
-    pred_service = request.app.state.predictor
-    upload_quality = getattr(request.app.state, "live_quality", {}).get(sample_id)
-    batch_prev = getattr(request.app.state, "batch_prevalence", None)
-    prefilled_from_batch = False
-    if prevalence == 0.05 and batch_prev and batch_prev.get("status") == "estimated":
-        prevalence = batch_prev["pi_hat"]
-        prefilled_from_batch = True
-
-    if sample_id in getattr(request.app.state, "live_results", {}):
-        record = request.app.state.live_results[sample_id].copy()
-        p_train = record["probability_train"]
-        p_adj = float(adjust(p_train, pred_service.pi_tr, prevalence))
-        record["probability"] = p_adj
-        ppv, npv = archived_predictive_values(pred_service.cat_metrics, prevalence)
+    manual_prevalence = prevalence
+    prevalence = DEFAULT_PREVALENCE if prevalence is None else prevalence
+    if batch is not None:
+        upload = uploaded_batch(request, batch)
+        if upload is None or sample_id not in upload.records:
+            return render(request, "error", status=404, title="Upload unavailable", active="home",
+                          detail="Open the result from your upload or submit the file again.")
+        predictor = request.app.state.predictor
+        record = upload.records[sample_id].copy()
+        estimated = upload.prevalence.get("pi_hat")
+        prefilled = manual_prevalence is None and estimated is not None and upload.prevalence["converged"]
+        if prefilled:
+            prevalence = min(0.5, max(0.001, estimated))
+        record["probability"] = float(adjust(record["probability_train"], predictor.pi_tr, prevalence))
+        ppv, npv = archived_predictive_values(predictor.cat_metrics, prevalence)
         return render(request, "result", active="home", title="Bedaquiline result", record=record,
-                      prevalence=prevalence, ppv=ppv, npv=npv, upload_quality=upload_quality,
-                      prefilled_from_batch=prefilled_from_batch)
+                      prevalence=prevalence, ppv=ppv, npv=npv, upload_quality=upload.quality,
+                      prefilled_from_batch=prefilled, batch_id=batch)
 
     try:
         record = data.replay(sample_id)
     except KeyError:
         return render(request, "error", status=404, title="Recorded isolate unavailable", active="home",
                       detail="Choose an isolate from the replay collection.")
-    if "panel_audit" not in record:
-        from ..panels import audit_sample_panel
-        v_list = [{"gene": item["variant"].split("@")[0], "mutation": item["variant"].split("@")[-1], "frs": float(item.get("frs", 1.0))} for item in record.get("evidence", []) if "@" in item.get("variant", "")]
-        record["panel_audit"] = audit_sample_panel(v_list, "wgs")
-    cat = data.reports.observed("catalogue")
-    ppv, npv = archived_predictive_values(cat, prevalence)
+    record["panel_audit"] = audit_sample_panel(data.profile(sample_id), "wgs")
+    ppv, npv = archived_predictive_values(data.reports.observed("catalogue"), prevalence)
     return render(request, "result", active="home", title="Bedaquiline result", record=record,
-                  prevalence=prevalence, ppv=ppv, npv=npv, upload_quality=upload_quality,
-                  prefilled_from_batch=prefilled_from_batch)
+                  prevalence=prevalence, ppv=ppv, npv=npv)
 
 
 @app.get("/queue", response_class=HTMLResponse)
-def queue(request: Request, scope: str = "all", download: bool = False) -> Response:
+def queue(request: Request, scope: str = "all", download: bool = False, batch: str | None = None) -> Response:
+    if batch is not None:
+        upload = uploaded_batch(request, batch)
+        if upload is None:
+            return render(request, "error", status=404, title="Upload unavailable", active="queue",
+                          detail="Open the queue from your upload or submit the file again.")
+        return render_uploaded_queue(request, upload, batch)
     data = archive(request)
     ids = [sid for sid, row in data.roster.items() if scope != "unresolved" or row["call"] == "U"]
     rows = data.queue(ids)
     if download:
         return queue_csv(rows)
-    batch_prevalence = getattr(request.app.state, "batch_prevalence", None)
-    recurrence_alerts = getattr(request.app.state, "recurrence_alerts", [])
-    return render(request, "queue", title="Review queue", active="queue", rows=rows, scope=scope,
-                  batch_prevalence=batch_prevalence, recurrence_alerts=recurrence_alerts)
+    return render(request, "queue", title="Review queue", active="queue", rows=rows, scope=scope)
 
 
-@app.post("/queue", response_class=HTMLResponse)
-async def queue_import(request: Request) -> Response:
-    data = archive(request)
-    pred_service = request.app.state.predictor
-    try:
-        raw_csv, assay = await form_csv(request)
-    except UploadError as error:
-        return render(request, "queue", status=error.status, title="Review queue", active="queue", scope="all",
-                      rows=data.queue(list(data.roster)), error=str(error))
-
-    parsed = detect_and_parse_upload(raw_csv)
-    sample_meta: dict[str, dict] = {}
-    if parsed["format"] not in ("discern_csv", "empty"):
-        if assay == "wgs" and parsed["inferred_assay"] != "wgs":
-            assay = parsed["inferred_assay"]
-        rows_by_sample: dict[str, list[dict]] = {}
-        for r in parsed["rows"]:
-            sid = r["sample_id"]
-            sample_meta.setdefault(sid, {})
-            if "patient_id" in r and r["patient_id"]:
-                sample_meta[sid]["patient_id"] = r["patient_id"]
-            if "collection_date" in r and r["collection_date"]:
-                sample_meta[sid]["collection_date"] = r["collection_date"]
-            rows_by_sample.setdefault(sid, []).append({
-                "gene": r["gene"],
-                "mutation": r["mutation"],
-                "frs": float(r["frs"]),
-            })
-        for sid in parsed.get("sample_ids", []):
-            rows_by_sample.setdefault(sid, [])
-        quality = {
-            "completeness_score": 100.0,
-            "total_rows": len(parsed["rows"]),
-            "valid_rows": len(parsed["rows"]),
-            "missing_count": 0,
-            "duplicate_count": 0,
-            "formatting_count": 0,
-            "total_issues": 0,
-            "issues": [],
-            "is_valid": True,
-            "summary": f"Imported {len(parsed['rows'])} variants from {parsed['format'].replace('_', ' ').title()}.",
-            "format": parsed["format"],
-            "headers": ["sample_id", "gene", "mutation", "frs"],
-        }
-    else:
-        try:
-            quality = check_csv_quality(raw_csv)
-            headers, batch_rows = read_batch(raw_csv)
-        except UploadError as error:
-            return render(request, "queue", status=error.status, title="Review queue", active="queue", scope="all",
-                          rows=data.queue(list(data.roster)), error=str(error))
-
-        first_lines: dict[str, int] = {}
-        for line, row in batch_rows:
-            first_lines.setdefault(row["sample_id"], line)
-
-        all_known = all(sid in data.roster for sid in first_lines)
-        if all_known:
-            try:
-                ids = data.imported_ids(raw_csv)
-                rows = data.queue(ids)
-            except UploadError as error:
-                return render(request, "queue", status=error.status, title="Review queue", active="queue", scope="all",
-                              rows=data.queue(list(data.roster)), error=str(error))
-            return render(request, "queue", title="Review queue", active="queue", rows=rows, scope="import", upload_quality=quality)
-
-        # Live scoring for batch
-        rows_by_sample = {}
-        if headers == PROFILE_COLUMNS or (len(headers) >= 4 and headers[:4] == PROFILE_COLUMNS):
-            for line, row in batch_rows:
-                sid = row["sample_id"]
-                sample_meta.setdefault(sid, {})
-                if "patient_id" in row and row["patient_id"]:
-                    sample_meta[sid]["patient_id"] = row["patient_id"]
-                if "collection_date" in row and row["collection_date"]:
-                    sample_meta[sid]["collection_date"] = row["collection_date"]
-                try:
-                    fraction = Decimal(row["frs"])
-                except InvalidOperation:
-                    fraction = Decimal("NaN")
-                if not fraction.is_finite() or not 0 <= fraction <= 1:
-                    return render(
-                        request, "queue", status=422, title="Review queue", active="queue", scope="all",
-                        rows=data.queue(list(data.roster)),
-                        error=f"CSV line {line}, column frs. Enter a number between zero and one.",
-                    )
-                rows_by_sample.setdefault(sid, []).append({
-                    "gene": row["gene"],
-                    "mutation": row["mutation"],
-                    "frs": float(fraction),
-                })
-        else:
-            for line, row in batch_rows:
-                sid = row["sample_id"]
-                rows_by_sample.setdefault(row["sample_id"], [])
-
-    new_rows = []
-    sample_records_for_longitudinal = []
-    for sid, variants in rows_by_sample.items():
-        meta = sample_meta.get(sid, {})
-        pred = pred_service.predict(variants, prevalence=0.05, sample_id=sid, assay=assay)
-        evidence = [{**card, "frs": float(var.get("frs", 1.0))} for card, var in zip(pred["evidence"], variants)]
-        if not evidence and pred["evidence"]:
-            evidence = pred["evidence"]
-        record = {
-            "sample_id": sid,
-            "call": pred["call"],
-            "call_label": pred["call_label"],
-            "probability": pred["model"]["probability_at_prevalence"],
-            "probability_train": pred["model"]["probability_train_prevalence"],
-            "score_raw": pred["model"]["score_raw"],
-            "fold": "Live",
-            "source": "Uploaded CSV",
-            "phenotype": "Live prediction",
-            "evidence": evidence,
-            "tier_a": pred["tier_a"],
-            "clinical_reflex": pred.get("clinical_reflex", []),
-            "panel_audit": pred.get("panel_audit"),
-            "assay": assay,
-            "mode": "Live model evaluation (Discern Tier A + Tier B)",
-            "banner": BANNER,
-            "score_context": {
-                "reference_prevalence": pred_service.pi_tr,
-                "uncertainty": None,
-                "uncertainty_status": "live",
-            },
-            "warnings": pred["warnings"],
-            "is_live": True,
-            "raw_variants": variants,
-        }
-        request.app.state.live_results[sid] = record
-        request.app.state.live_quality[sid] = quality
-        new_rows.append({
-            "sample_id": sid,
-            "call": pred["call"],
-            "call_label": pred["call_label"],
-            "probability": pred["model"]["probability_at_prevalence"],
-            "fold": "Live",
-            "source": "Uploaded CSV",
-            "phenotype": "Live prediction",
-            "is_live": True,
-        })
-        sample_records_for_longitudinal.append({
-            "sample_id": sid,
-            "patient_id": meta.get("patient_id"),
-            "collection_date": meta.get("collection_date"),
-            "call": pred["call"],
-            "call_label": pred["call_label"],
-            "probability": pred["model"]["probability_at_prevalence"],
-            "variants": variants,
-        })
-
-    from ..longitudinal import analyze_patient_timelines
-    timelines = analyze_patient_timelines(sample_records_for_longitudinal)
-    if not hasattr(request.app.state, "live_timelines"):
-        request.app.state.live_timelines = {}
-    request.app.state.live_timelines.update(timelines)
-
-    for sid in rows_by_sample:
-        meta = sample_meta.get(sid, {})
-        pid = meta.get("patient_id")
-        if pid:
-            request.app.state.live_results[sid]["patient_id"] = pid
-            if pid in request.app.state.live_timelines:
-                request.app.state.live_results[sid]["longitudinal_timeline"] = request.app.state.live_timelines[pid]
-
-    for r in new_rows:
-        meta = sample_meta.get(r["sample_id"], {})
-        pid = meta.get("patient_id")
-        if pid:
-            r["patient_id"] = pid
-            if pid in request.app.state.live_timelines:
-                r["n_visits"] = request.app.state.live_timelines[pid]["n_visits"]
-                r["has_longitudinal_alerts"] = request.app.state.live_timelines[pid]["has_alerts"]
-
-    from ..label_shift import deduplicate_patient_probabilities, estimate_prevalence_mlls
-    from ..surveillance import batch_recurrence_audit
-
-    patient_map = {sid: sample_meta.get(sid, {}).get("patient_id") or sid for sid in rows_by_sample}
-    recurrence_alerts = batch_recurrence_audit(rows_by_sample, pred_service.ev, patient_map=patient_map)
-    request.app.state.recurrence_alerts = recurrence_alerts
-
-    deduped_probs = deduplicate_patient_probabilities(sample_records_for_longitudinal)
-    batch_prev = estimate_prevalence_mlls(deduped_probs, pred_service.pi_tr)
-    if batch_prev["status"] == "estimated":
-        p_hat = batch_prev["pi_hat"]
-        ppv_hat, npv_hat = archived_predictive_values(pred_service.cat_metrics, p_hat)
-        batch_prev["ppv_hat"] = ppv_hat
-        batch_prev["npv_hat"] = npv_hat
-        ppv_low, _ = archived_predictive_values(pred_service.cat_metrics, batch_prev["ci95_low"])
-        ppv_high, _ = archived_predictive_values(pred_service.cat_metrics, batch_prev["ci95_high"])
-        batch_prev["ppv_low"] = ppv_low
-        batch_prev["ppv_high"] = ppv_high
-        curve_pts = []
-        for x_val in np.linspace(0.005, 0.25, 40):
-            px, _ = archived_predictive_values(pred_service.cat_metrics, float(x_val))
-            curve_pts.append({"pi": float(x_val), "ppv": float(px)})
-        batch_prev["curve_points"] = curve_pts
-    request.app.state.batch_prevalence = batch_prev
-
-    new_rows.sort(key=lambda r: (r["call"] != "U", -r["probability"], r["sample_id"]))
-    for rank, r in enumerate(new_rows, 1):
-        r["rank"] = rank if r["call"] == "U" else None
-
-    return render(request, "queue", title="Review queue", active="queue", rows=new_rows, scope="import",
-                  upload_quality=quality, batch_prevalence=batch_prev, recurrence_alerts=recurrence_alerts)
+def render_uploaded_queue(request: Request, upload: UploadedBatch, batch_id: str) -> Response:
+    return render(request, "queue", title="Review queue", active="queue", rows=upload.rows, scope="import",
+                  upload_quality=upload.quality, batch_prevalence=upload.prevalence,
+                  recurrence_alerts=upload.alerts, batch_id=batch_id, illustrative=upload.illustrative)
 
 
 @app.get("/patient/{patient_id}", response_class=HTMLResponse)
-def patient_timeline_view(request: Request, patient_id: str) -> Response:
-    timelines = getattr(request.app.state, "live_timelines", {})
-    if patient_id not in timelines:
-        from ..longitudinal import analyze_patient_timelines
-        demo_csv = Path(__file__).resolve().parents[3] / "demo/longitudinal_example.csv"
-        if demo_csv.is_file():
-            import csv
-            by_sid = {}
-            meta = {}
-            with demo_csv.open(encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    sid = row["sample_id"]
-                    by_sid.setdefault(sid, []).append({"gene": row["gene"], "mutation": row["mutation"], "frs": float(row["frs"])})
-                    meta[sid] = {"patient_id": row["patient_id"], "collection_date": row["collection_date"]}
-            demo_rows = []
-            for sid, vars in by_sid.items():
-                pred = request.app.state.predictor.predict(vars, sample_id=sid)
-                demo_rows.append({
-                    "sample_id": sid,
-                    "patient_id": meta[sid]["patient_id"],
-                    "collection_date": meta[sid]["collection_date"],
-                    "call": pred["call"],
-                    "call_label": pred["call_label"],
-                    "probability": pred["model"]["probability_at_prevalence"],
-                    "variants": vars,
-                })
-            timelines.update(analyze_patient_timelines(demo_rows))
-            if not hasattr(request.app.state, "live_timelines"):
-                request.app.state.live_timelines = {}
-            request.app.state.live_timelines.update(timelines)
-
-    if patient_id not in timelines:
+def patient_timeline_view(request: Request, patient_id: str, batch: str | None = None) -> Response:
+    upload = uploaded_batch(request, batch)
+    if upload is None or patient_id not in upload.timelines:
         return render(request, "error", status=404, title="Patient timeline unavailable", active="queue",
-                      detail=f"No multi-visit longitudinal data recorded for patient {patient_id}.")
-    return render(request, "patient_timeline", title=f"Patient Timeline — {patient_id}", active="queue",
-                  timeline=timelines[patient_id], patient_id=patient_id)
+                      detail="Choose a patient with multiple visits from your uploaded queue.")
+    return render(request, "patient_timeline", title=f"Patient timeline for {patient_id}", active="queue",
+                  timeline=upload.timelines[patient_id], patient_id=patient_id, batch_id=upload.id,
+                  illustrative=upload.illustrative)
 
 
 @app.get("/api/patient/{patient_id}")
-def api_patient_timeline(request: Request, patient_id: str) -> dict:
-    timelines = getattr(request.app.state, "live_timelines", {})
-    if patient_id not in timelines:
-        raise HTTPException(404, f"Patient {patient_id} not found in longitudinal registry.")
-    return timelines[patient_id]
+def api_patient_timeline(request: Request, patient_id: str, batch: str | None = None) -> dict:
+    upload = uploaded_batch(request, batch)
+    if upload is None or patient_id not in upload.timelines:
+        raise HTTPException(404, "Patient timeline unavailable.")
+    return {**upload.timelines[patient_id], "banner": BANNER}
+
+
+def longitudinal_example_path() -> Path:
+    demo_csv = workspace() / "demo/longitudinal_example.csv"
+    if not demo_csv.is_file():
+        raise HTTPException(404, "Longitudinal example CSV not found.")
+    return demo_csv
 
 
 @app.get("/longitudinal-example.csv")
-def longitudinal_example_csv(request: Request) -> Response:
-    demo_csv = Path(__file__).resolve().parents[3] / "demo/longitudinal_example.csv"
-    if not demo_csv.is_file():
-        raise HTTPException(404, "Longitudinal example CSV not found.")
-    return csv_response(demo_csv.read_text(encoding="utf-8"), "discern-longitudinal-example.csv")
+def longitudinal_example_csv() -> Response:
+    return csv_response(longitudinal_example_path().read_text(encoding="utf-8"),
+                        "discern-longitudinal-example.csv")
 
 
 @app.get("/priority", response_class=HTMLResponse)
@@ -740,25 +542,11 @@ def card(request: Request) -> Response:
 
 @app.get("/panels", response_class=HTMLResponse)
 def panels_page(request: Request) -> Response:
-    panels_json_path = Path("results/approaches/panel_audit/e24_panel_coverage/results.json")
-    if panels_json_path.is_file():
-        with open(panels_json_path, encoding="utf-8") as f:
-            panels_data = json.load(f)
-    else:
-        from ..panels import PANELS, compute_cohort_panel_coverage
-        panels_data = {
-            "panels": {
-                k: {
-                    "panel_label": p.label,
-                    "platform": p.platform,
-                    "vaf_floor": p.vaf_floor,
-                    "covered_genes": ",".join(sorted(list(p.covered_genes))),
-                    "notes": p.notes,
-                    **compute_cohort_panel_coverage(p.covered_genes),
-                }
-                for k, p in PANELS.items()
-            }
-        }
+    panels_json_path = workspace() / "results/approaches/panel_audit/e24_panel_coverage/results.json"
+    if not panels_json_path.is_file():
+        return render(request, "error", status=404, title="Panel coverage unavailable", active="panels",
+                      detail="The saved panel coverage report is missing.")
+    panels_data = read_json(panels_json_path)
     return render(request, "panels", title="Panel coverage", active="panels", panels_data=panels_data)
 
 

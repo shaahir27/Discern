@@ -11,6 +11,8 @@ from typing import Any
 
 import numpy as np
 
+from .longitudinal import parse_timepoint_date
+
 MIN_BATCH_N = 30
 PI_MIN = 1e-4
 PI_MAX = 0.99
@@ -89,16 +91,19 @@ def estimate_prevalence_mlls(
 
 def deduplicate_patient_probabilities(records: Sequence[dict[str, Any]]) -> list[float]:
     """Extract exactly one baseline probability per distinct patient to avoid longitudinal bias."""
-    seen_patients: set[str] = set()
-    probs: list[float] = []
+    baselines: dict[tuple[bool, str], tuple[tuple[float, str], float]] = {}
     for r in records:
-        pid = str(r.get("patient_id") or r.get("sample_id") or "").strip()
-        if not pid or pid in seen_patients:
+        sid = str(r.get("sample_id") or "").strip()
+        patient = str(r.get("patient_id") or "").strip()
+        if not patient and not sid:
             continue
-        seen_patients.add(pid)
         p = r.get("probability_train")
         if p is None:
             p = r.get("probability")
         if p is not None:
-            probs.append(float(p))
-    return probs
+            date, _ = parse_timepoint_date(r.get("collection_date"))
+            key = (bool(patient), patient or sid)
+            order = (date if date is not None else float("inf"), sid)
+            if key not in baselines or order < baselines[key][0]:
+                baselines[key] = (order, float(p))
+    return [probability for _, probability in baselines.values()]

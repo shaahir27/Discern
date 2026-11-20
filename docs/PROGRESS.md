@@ -281,3 +281,14 @@ Implemented the 5 high-impact, test-driven additions without altering golden mod
 14/14 acceptance tests passed.
 61 passed in 12.14s (0 warnings, 0 failures)
 ```
+
+## Upload and interface review (2026-11-20)
+
+Verified the five additions through the shared upload handler. The checks cover native export validation, panel report loading, dated timelines, independent browser sessions, and batch prevalence rendering. The release check read the saved evaluation artifacts.
+
+```text
+14/14 acceptance tests passed.
+75 passed in 16.87s
+```
+
+Chrome checks at desktop, tablet, and phone widths exercised CSV and JSON intake, the queue filters, selectable timeline dates, and the performance comparison. The run recorded zero external requests or browser console errors. The local server responded on port 8000 under Python 3.12. The first container build timed out downloading dependencies, and a retry used the cached base layer.

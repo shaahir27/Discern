@@ -2,14 +2,36 @@
 {% block content %}
 <header class="page-heading">
   <h1>Variant evidence priorities</h1>
-  <p>Archived variant sets ordered by carrier count among unresolved cross-validation cases.</p>
+  <p>Variant sets ranked by frequency among isolates the catalogue left unresolved in cross-validation.</p>
 </header>
-<dl class="summary-strip">
-  <div><dt>Unresolved isolates</dt><dd>{{ overview.n_U }}</dd></div>
-  <div><dt>Distinct variant sets</dt><dd>{{ overview.n_distinct_sets }}</dd></div>
-</dl>
-{% set table_label = "Unresolved variant sets by carrier count" %}
-{% set columns = ["Variant set", "Carriers", "Resistant carriers", "Resistant fraction"] %}
-{% include "table.html" %}
-{% if page > 1 or more %}<nav class="pager" aria-label="Variant table pages">{% if page > 1 %}<a href="/priority?page={{ page - 1 }}">Previous</a>{% endif %}<span>Page {{ page }}</span>{% if more %}<a href="/priority?page={{ page + 1 }}">Next</a>{% endif %}</nav>{% endif %}
+<div class="reading-layout priority-layout">
+  <section aria-labelledby="priority-table-title">
+    <h2 id="priority-table-title">Unresolved variant sets</h2>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Unresolved variant sets by carrier count">
+      <table class="priority-table">
+        <thead><tr><th scope="col">Variant set</th><th scope="col" class="num">Carriers</th><th scope="col" class="num">Resistant carriers</th><th scope="col" class="num">Resistant fraction</th></tr></thead>
+        <tbody>
+          {% for variants, carriers, resistant, fraction in rows %}
+            <tr>
+              <th scope="row"><div class="variant-set">{% for variant in variants.split('|') %}<code>{{ variant }}</code>{% endfor %}</div></th>
+              <td class="num observed-value">{{ carriers }}</td>
+              <td class="num">{{ resistant }}</td>
+              <td class="num">{{ "%.1f"|format(fraction|float * 100) ~ "%" if fraction else "—" }}</td>
+            </tr>
+          {% else %}<tr><td colspan="4">No variant sets on this page.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if page > 1 or more %}<nav class="pager" aria-label="Variant table pages">{% if page > 1 %}<a href="/priority?page={{ page - 1 }}">Previous</a>{% endif %}<span>Page {{ page }}</span>{% if more %}<a href="/priority?page={{ page + 1 }}">Next</a>{% endif %}</nav>{% endif %}
+  </section>
+  <aside class="context-aside">
+    <h2>Evaluation cohort</h2>
+    <dl class="facts">
+      <div><dt>Unresolved isolates</dt><dd>{{ overview.n_U }}</dd></div>
+      <div><dt>Distinct variant sets</dt><dd>{{ overview.n_distinct_sets }}</dd></div>
+    </dl>
+    <p>Resistant fraction describes carriers in the archive. The queue ranks individual samples using their model scores.</p>
+    <a href="/queue?scope=unresolved">Open unresolved queue</a>
+  </aside>
+</div>
 {% endblock %}
