@@ -1,8 +1,65 @@
+// Real-Time Client-Side Prevalence Recalculation (F4)
 const slider = document.getElementById("prevalence");
 if (slider) {
   const output = document.getElementById("prevalence-value");
+  const calcNode = document.getElementById("prevalence-recalculator");
+  const readingEl = document.getElementById("score-reading") || document.querySelector(".reading");
+  const meterEl = document.getElementById("score-meter") || document.querySelector(".result-score meter");
+  const notePrevEl = document.getElementById("note-prevalence");
+  const ppvEl = document.getElementById("metric-ppv-val");
+  const npvEl = document.getElementById("metric-npv-val");
+
   slider.addEventListener("input", () => {
-    output.value = (Number(slider.value) * 100).toFixed(1) + "%";
+    const rawPi = parseFloat(slider.value);
+    if (isNaN(rawPi)) return;
+    if (output) {
+      output.textContent = (rawPi * 100).toFixed(1) + "%";
+      output.value = (rawPi * 100).toFixed(1) + "%";
+    }
+    if (notePrevEl) notePrevEl.textContent = (rawPi * 100).toFixed(1) + "%";
+
+    if (!calcNode) return;
+
+    // Numerical boundary clipping matching prevalence.py
+    const pi = Math.min(Math.max(rawPi, 1e-9), 1 - 1e-9);
+
+    // Live model score odds-ratio adjustment
+    const isLive = calcNode.dataset.isLive === "true";
+    const pTr = parseFloat(calcNode.dataset.probTrain);
+    const piTr = parseFloat(calcNode.dataset.piTr);
+
+    if (isLive && !isNaN(pTr) && !isNaN(piTr)) {
+      const pSafe = Math.min(Math.max(pTr, 1e-9), 1 - 1e-9);
+      const piTrSafe = Math.min(Math.max(piTr, 1e-9), 1 - 1e-9);
+      const oddsTr = pSafe / (1 - pSafe);
+      const oddsAdj = (oddsTr / (piTrSafe / (1 - piTrSafe))) * (pi / (1 - pi));
+      const pAdj = oddsAdj / (1 + oddsAdj);
+
+      if (readingEl) readingEl.textContent = (pAdj * 100).toFixed(1) + "%";
+      if (meterEl) {
+        meterEl.value = pAdj;
+        meterEl.textContent = pAdj.toString();
+      }
+    }
+
+    // Exact Ternary Predictive Values matching prevalence.py:archived_predictive_values
+    const sensUasS = parseFloat(calcNode.dataset.sensUAsS);
+    const specUasS = parseFloat(calcNode.dataset.specUAsS);
+    const sensUasR = parseFloat(calcNode.dataset.sensUAsR);
+    const specUasR = parseFloat(calcNode.dataset.specUAsR);
+
+    if (!isNaN(sensUasS) && !isNaN(specUasS) && !isNaN(sensUasR) && !isNaN(specUasR)) {
+      const trueR = pi * sensUasS;
+      const falseR = (1 - pi) * (1 - specUasS);
+      const ppv = trueR / (trueR + falseR);
+
+      const trueS = (1 - pi) * specUasR;
+      const falseS = pi * (1 - sensUasR);
+      const npv = trueS / (trueS + falseS);
+
+      if (ppvEl) ppvEl.textContent = (ppv * 100).toFixed(1) + "%";
+      if (npvEl) npvEl.textContent = (npv * 100).toFixed(1) + "%";
+    }
   });
 }
 
@@ -45,8 +102,10 @@ const cohortComparison = document.querySelector("[data-cohort-comparison]");
 if (cohortComparison) {
   const options = cohortComparison.querySelector(".comparison-options");
   const rows = cohortComparison.querySelectorAll("[data-compare-metric]");
+  const explainer = document.getElementById("comparison-explanation");
   options.hidden = false;
   options.addEventListener("change", event => {
+    const val = event.target.value;
     for (const row of rows) {
       const value = Number(event.target.dataset[row.dataset.compareMetric]);
       row.querySelector("meter").value = value;
@@ -56,6 +115,15 @@ if (cohortComparison) {
       if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
         output.getAnimations().forEach(animation => animation.cancel());
         output.animate([{opacity: .5}, {opacity: 1}], {duration: 160, easing: "ease-out"});
+      }
+    }
+    if (explainer) {
+      if (val === "firm") {
+        explainer.innerHTML = "<strong>Firm calls only (Default):</strong> Evaluates only samples where the catalogue gave a definitive Resistant or Susceptible answer (excludes unresolved cases, which are sent for phenotypic culture). Sensitivity: <strong>79.2%</strong>.";
+      } else if (val === "U_as_S") {
+        explainer.innerHTML = "<strong>Strict clinical penalty:</strong> Treats every 'Send for lab test' case as if the tool failed to detect resistance (sensitivity drops to <strong>60.4%</strong>).";
+      } else if (val === "U_as_R") {
+        explainer.innerHTML = "<strong>Cautionary triage rule:</strong> Treats every 'Send for lab test' case as a safety flag for resistance (sensitivity rises to <strong>84.2%</strong>, but specificity drops to 94.3%).";
       }
     }
   });
@@ -801,6 +869,171 @@ function initLongitudinalTimeline() {
   document.querySelector(".visit-picker").hidden = false;
 }
 
+
+// Interactive Column Sorting for Batch Review Queue (F6)
+function initQueueTableSorting() {
+  const table = document.querySelector(".queue-table");
+  if (!table) return;
+
+  const headers = table.querySelectorAll("th[data-sortable]");
+  const tbody = table.querySelector("tbody");
+  if (!tbody) return;
+
+  headers.forEach(header => {
+    header.addEventListener("click", () => {
+      const colIdx = Array.from(header.parentNode.children).indexOf(header);
+      const currentSort = header.getAttribute("aria-sort");
+      const isAsc = currentSort !== "ascending";
+      const sortType = header.dataset.sortable || "text";
+
+      const rows = Array.from(tbody.querySelectorAll("tr[data-sample-id]"));
+      if (!rows.length) return;
+
+      rows.sort((a, b) => {
+        let aVal = "";
+        let bVal = "";
+
+        if (colIdx === 1) {
+          aVal = a.dataset.sampleId || "";
+          bVal = b.dataset.sampleId || "";
+        } else {
+          const aCell = a.children[colIdx];
+          const bCell = b.children[colIdx];
+          aVal = aCell ? aCell.textContent.trim() : "";
+          bVal = bCell ? bCell.textContent.trim() : "";
+        }
+
+        if (sortType === "number") {
+          const aNum = parseFloat(aVal.replace(/[^0-9.-]/g, ""));
+          const bNum = parseFloat(bVal.replace(/[^0-9.-]/g, ""));
+          if (!isNaN(aNum) && !isNaN(bNum)) {
+            return isAsc ? aNum - bNum : bNum - aNum;
+          }
+        }
+        return isAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      });
+
+      headers.forEach(h => {
+        h.setAttribute("aria-sort", "none");
+        const ind = h.querySelector(".sort-indicator");
+        if (ind) ind.textContent = "↕";
+      });
+      header.setAttribute("aria-sort", isAsc ? "ascending" : "descending");
+      const ind = header.querySelector(".sort-indicator");
+      if (ind) ind.textContent = isAsc ? "↑" : "↓";
+
+      const emptyRow = tbody.querySelector("[data-queue-empty]");
+      rows.forEach(row => tbody.appendChild(row));
+      if (emptyRow) tbody.appendChild(emptyRow);
+    });
+  });
+}
+
+// Quick Manual Variant Entry (F7)
+function initManualVariantEntry() {
+  const panel = document.getElementById("manual-entry-panel");
+  if (!panel) return;
+
+  const sampleIdInput = document.getElementById("manual-sample-id");
+  const geneSelect = document.getElementById("manual-gene");
+  const mutationInput = document.getElementById("manual-mutation");
+  const frsInput = document.getElementById("manual-frs");
+  const btnAdd = document.getElementById("btn-add-variant");
+  const btnAnalyze = document.getElementById("btn-analyze-manual");
+  const tagsContainer = document.getElementById("manual-variant-tags");
+  const csvTextarea = document.getElementById("csv");
+  const form = panel.closest("form");
+
+  const variants = [];
+
+  function syncToCsv() {
+    if (!csvTextarea) return;
+    const sampleId = sampleIdInput ? sampleIdInput.value.trim() || "SAMPLE-001" : "SAMPLE-001";
+    if (variants.length === 0) {
+      csvTextarea.value = "";
+    } else {
+      let csv = "sample_id,gene,mutation,frs\n";
+      for (const v of variants) {
+        csv += `${sampleId},${v.gene},${v.mutation},${v.frs}\n`;
+      }
+      csvTextarea.value = csv;
+    }
+    csvTextarea.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  function renderTags() {
+    if (!tagsContainer) return;
+    tagsContainer.innerHTML = "";
+    variants.forEach((v, idx) => {
+      const tag = document.createElement("span");
+      tag.className = "variant-tag";
+      tag.textContent = `${v.gene}@${v.mutation} (FRS: ${v.frs})`;
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.innerHTML = "&times;";
+      removeBtn.title = "Remove variant";
+      removeBtn.setAttribute("aria-label", `Remove ${v.gene}@${v.mutation}`);
+      removeBtn.addEventListener("click", () => {
+        variants.splice(idx, 1);
+        renderTags();
+        syncToCsv();
+      });
+
+      tag.appendChild(removeBtn);
+      tagsContainer.appendChild(tag);
+    });
+  }
+
+  function addCurrentVariant() {
+    if (!geneSelect || !mutationInput || !frsInput) return false;
+    const gene = geneSelect.value.trim();
+    const mutation = mutationInput.value.trim();
+    const frsVal = parseFloat(frsInput.value);
+    const frs = isNaN(frsVal) ? 1.0 : Math.min(Math.max(frsVal, 0.0), 1.0);
+
+    if (!mutation) {
+      mutationInput.focus();
+      return false;
+    }
+
+    variants.push({ gene, mutation, frs });
+    mutationInput.value = "";
+    frsInput.value = "1.0";
+    renderTags();
+    syncToCsv();
+    return true;
+  }
+
+  btnAdd?.addEventListener("click", () => {
+    addCurrentVariant();
+  });
+
+  mutationInput?.addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      addCurrentVariant();
+    }
+  });
+
+  sampleIdInput?.addEventListener("input", () => {
+    syncToCsv();
+  });
+
+  btnAnalyze?.addEventListener("click", () => {
+    if (mutationInput && mutationInput.value.trim()) {
+      addCurrentVariant();
+    }
+    if (variants.length === 0) {
+      if (mutationInput) mutationInput.focus();
+      return;
+    }
+    if (form) form.requestSubmit();
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initLongitudinalTimeline();
+  initQueueTableSorting();
+  initManualVariantEntry();
 });

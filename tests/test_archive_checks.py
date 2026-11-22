@@ -84,4 +84,14 @@ def test_public_pages_and_reports_have_the_banner_and_registered_values() -> Non
         assert "Retrospective comparison of variant sets" in queue.text
         assert "unrevealed counted as resolved" in queue.text.lower()
         assert client.get("/evidence/pepQ/G197R").json()["banner"] == BANNER
-        assert client.post("/predict", json={"variants": []}).status_code == 404
+        predict_res = client.post("/predict", json={"variants": []})
+        assert predict_res.status_code == 200
+        predict_data = predict_res.json()
+        assert predict_data["banner"] == BANNER
+        assert predict_data["call"] in ("R", "S", "U")
+        assert "model" in predict_data
+        assert "tier_a" in predict_data
+        assert "predictive_values" in predict_data
+        assert "evidence" in predict_data
+        assert "warnings" in predict_data
+        assert "versions" in predict_data

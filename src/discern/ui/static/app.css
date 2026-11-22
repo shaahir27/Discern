@@ -1,25 +1,58 @@
 :root {
   color-scheme: light;
-  --frame: #e9eef1;
-  --sheet: #fff;
-  --tint: #f2f6f8;
-  --masthead: #182d42;
-  --ink: #172b3b;
-  --muted: #4c626d;
-  --accent: #14536e;
-  --accent-hover: #103950;
-  --accent-soft: #e3eff4;
-  --selected: #ecf0b4;
-  --rule: #d8e2e8;
-  --control: #849aa6;
-  --notice: #f8f6e7;
-  --notice-ink: #564b20;
-  --pass: #245e4e;
-  --pass-bg: #e2f1e8;
-  --referral: #714d11;
-  --referral-bg: #f8edcc;
-  --alert: #902849;
-  --alert-bg: #f8e5ec;
+
+  /* Surface & Base (Tailwind Slate / Radix Primitives) */
+  --background: #f8fafc;        /* Slate-50 */
+  --foreground: #0f172a;        /* Slate-900 */
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --border: #e2e8f0;            /* Slate-200 */
+  --ring: #0284c7;              /* Sky-600 */
+  --radius: 0.5rem;             /* 8px */
+
+  /* Semantic UI Tokens */
+  --frame: #f8fafc;             /* Slate-50 */
+  --sheet: #ffffff;
+  --tint: #f1f5f9;              /* Slate-100 */
+  --masthead: #0f172a;          /* Slate-900 */
+  --ink: #0f172a;               /* Slate-900 */
+  --muted: #475569;             /* Slate-600 */
+  --muted-foreground: #64748b;  /* Slate-500 */
+  --rule: #e2e8f0;              /* Slate-200 */
+  --control: #94a3b8;           /* Slate-400 */
+  --selected: #e0f2fe;          /* Sky-100 */
+
+  /* Accents */
+  --accent: #0284c7;            /* Sky-600 */
+  --accent-hover: #0369a1;      /* Sky-700 */
+  --accent-soft: #f0f9ff;       /* Sky-50 */
+
+  /* Clinical Status Tokens (WCAG 2.1 AA Compliant >= 7:1) */
+  --status-s-text: #065f46;     /* Emerald-800: Contrast 7.29:1 */
+  --status-s-bg: #ecfdf5;       /* Emerald-50 */
+  --status-s-border: #a7f3d0;   /* Emerald-200 */
+  --pass: #065f46;
+  --pass-bg: #ecfdf5;
+  --pass-border: #a7f3d0;
+
+  --status-r-text: #991b1b;     /* Red-800: Contrast 7.60:1 */
+  --status-r-bg: #fef2f2;       /* Red-50 */
+  --status-r-border: #fecaca;   /* Red-200 */
+  --alert: #991b1b;
+  --alert-bg: #fef2f2;
+  --alert-border: #fecaca;
+
+  --status-u-text: #78350f;     /* Amber-900: Contrast 8.75:1 */
+  --status-u-bg: #fffbeb;       /* Amber-50 */
+  --status-u-border: #fde68a;   /* Amber-200 */
+  --referral: #78350f;
+  --referral-bg: #fffbeb;
+  --referral-border: #fde68a;
+
+  --notice: #fffbeb;
+  --notice-ink: #78350f;
+
+  /* Layout Spacing */
   --gap: 24px;
   --rounded: 8px;
   --width: 1460px;
@@ -154,10 +187,10 @@ tbody tr:last-child > * { border-bottom: 0; }
 tbody th { font-weight: 550; }
 tbody tr:hover > * { background: #f8f9f3; }
 .num { text-align: right; }
-.status { display: inline-block; color: var(--muted); background: var(--tint); border-radius: 4px; padding: 3px 8px; font-size: .8rem; font-weight: 650; white-space: nowrap; }
-.status-S { color: var(--pass); background: var(--pass-bg); }
-.status-U { color: var(--referral); background: var(--referral-bg); }
-.status-R { color: var(--alert); background: var(--alert-bg); }
+.status { display: inline-block; color: var(--muted); background: var(--tint); border-radius: 4px; padding: 3px 8px; font-size: .8rem; font-weight: 650; white-space: nowrap; border: 1px solid transparent; }
+.status-S { color: var(--status-s-text); background: var(--status-s-bg); border-color: var(--status-s-border); }
+.status-U { color: var(--status-u-text); background: var(--status-u-bg); border-color: var(--status-u-border); }
+.status-R { color: var(--status-r-text); background: var(--status-r-bg); border-color: var(--status-r-border); }
 .id { font-family: ui-monospace, Consolas, monospace; font-size: .89em; overflow-wrap: anywhere; }
 .result-heading { display: flex; align-items: center; justify-content: space-between; gap: 11px 18px; flex-wrap: wrap; }
 .verdict .call-display { font-size: clamp(1.8rem, 3.6vw, 2.46rem); letter-spacing: -.034em; line-height: 1.12; font-weight: 710; margin-top: 11px; }
@@ -619,9 +652,9 @@ thead th.num { text-align: right; }
 .queue-table thead th:nth-child(4) { width: 10rem; }
 .queue-table thead th:nth-child(5) { width: 12rem; }
 .status { color: var(--muted); font-weight: 650; }
-.status-R { color: var(--alert); }
-.status-S { color: var(--pass); }
-.status-U { color: var(--referral); }
+.status-R { color: var(--status-r-text); }
+.status-S { color: var(--status-s-text); }
+.status-U { color: var(--status-u-text); }
 .visit-date[aria-pressed="true"] { background: var(--selected); border-color: var(--accent); }
 .legend-remainder { background: #afc3ca; }
 .timeline-layout > #active-visit-card { margin: 0; }
@@ -834,4 +867,155 @@ thead th.num { text-align: right; }
 @media (max-width: 420px) {
   .workspace-nav nav > .nav-group a { padding-inline: 3px; gap: 4px; font-size: .75rem; }
   .workspace-nav nav > .nav-group svg { width: 13px; height: 13px; flex-basis: 13px; }
+}
+
+/* Laboratory Action Protocol Card (F2) */
+.clinical-action-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: var(--rounded);
+  margin-block: 18px;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+.clinical-action-card.action-R {
+  border-left: 5px solid var(--status-r-text);
+  background: var(--status-r-bg);
+}
+.clinical-action-card.action-S {
+  border-left: 5px solid var(--status-s-text);
+  background: var(--status-s-bg);
+}
+.clinical-action-card.action-U {
+  border-left: 5px solid var(--status-u-text);
+  background: var(--status-u-bg);
+}
+.clinical-action-card .action-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.action-R .action-icon { color: var(--status-r-text); }
+.action-S .action-icon { color: var(--status-s-text); }
+.action-U .action-icon { color: var(--status-u-text); }
+.clinical-action-card .action-content h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.action-R .action-content h3 { color: var(--status-r-text); }
+.action-S .action-content h3 { color: var(--status-s-text); }
+.action-U .action-content h3 { color: var(--status-u-text); }
+.clinical-action-card .action-content p {
+  font-size: 0.92rem;
+  color: var(--foreground);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Critical Safety Alerts Stack (F3) */
+.critical-alerts-stack {
+  display: grid;
+  gap: 12px;
+  margin-block: 16px;
+}
+.alert-critical {
+  background: var(--status-r-bg);
+  border: 1px solid var(--status-r-border);
+  border-left: 4px solid var(--status-r-text);
+  color: var(--foreground);
+  padding: 12px 16px;
+  border-radius: var(--rounded);
+}
+.alert-critical .alert-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.alert-critical .alert-badge {
+  background: var(--status-r-text);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+.alert-critical p {
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+  color: var(--foreground);
+}
+
+/* Quick Manual Variant Entry (F7) */
+.manual-variant-entry {
+  margin-block: 12px;
+  background: var(--tint);
+  border: 1px solid var(--rule);
+}
+.manual-variant-entry summary {
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+.manual-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  align-items: end;
+  margin-top: 14px;
+}
+.manual-form-grid input, .manual-form-grid select {
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--control);
+  border-radius: 6px;
+  background: var(--sheet);
+  font: inherit;
+  width: 100%;
+}
+.manual-actions {
+  display: flex;
+  gap: 8px;
+  grid-column: 1 / -1;
+  margin-top: 6px;
+}
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.variant-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+}
+.variant-tag button {
+  background: none;
+  border: none;
+  color: var(--alert);
+  cursor: pointer;
+  padding: 0 4px;
+  font-weight: 700;
+  min-height: auto;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Table sorting cursor */
+th[data-sortable] {
+  user-select: none;
+}
+.sort-indicator {
+  font-size: 0.8em;
+  opacity: 0.65;
+  margin-left: 4px;
 }

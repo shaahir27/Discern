@@ -58,7 +58,15 @@
     <p class="fine queue-count" aria-live="polite" data-queue-count>{{ rows|length }} samples</p>
     <div class="table-scroll" tabindex="0" role="region" aria-label="Queued samples">
       <table class="queue-table">
-        <thead><tr><th scope="col" class="num">Rank</th><th scope="col">Sample ID</th><th scope="col">Catalogue call</th><th scope="col" class="num">Model score</th><th scope="col">{{ "Source" if batch_id else "Lab finding" }}</th></tr></thead>
+        <thead>
+          <tr>
+            <th scope="col" class="num">Rank</th>
+            <th scope="col" data-sortable="text" style="cursor: pointer;" aria-sort="none">Sample ID <span class="sort-indicator" aria-hidden="true">↕</span></th>
+            <th scope="col" data-sortable="text" style="cursor: pointer;" aria-sort="none">Catalogue call <span class="sort-indicator" aria-hidden="true">↕</span></th>
+            <th scope="col" class="num" data-sortable="number" style="cursor: pointer;" aria-sort="none">Model score <span class="sort-indicator" aria-hidden="true">↕</span></th>
+            <th scope="col">{{ "Source" if batch_id else "Lab finding" }}</th>
+          </tr>
+        </thead>
         <tbody>
         {% for row in rows %}
           <tr data-sample-id="{{ row.sample_id }}">

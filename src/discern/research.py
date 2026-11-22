@@ -4,6 +4,7 @@ import csv
 import io
 import json
 import os
+import re
 from collections import Counter
 from decimal import Decimal, InvalidOperation
 from itertools import islice
@@ -124,9 +125,12 @@ class Reports:
             for approach, section in self.approaches.items()
             for test, record in section["tests"].items()
         }
+        self._cache: dict[str, dict] = {}
 
     def get(self, key: str) -> dict:
-        return read_json(self.paths[key])
+        if key not in self._cache:
+            self._cache[key] = read_json(self.paths[key])
+        return self._cache[key]
 
     def observed(self, name: str) -> dict:
         return self.get(REPORTS[name])["observed"]
@@ -157,6 +161,11 @@ class Archive:
         model = root / "models/lr_model"
         self.evidence = EvidenceStore(model / "evidence_store.csv")
         self.versions = read_json(model / "metadata.json")["package_versions"]
+        effects_path = root / "models/lr_mechanism/lof_effects.csv"
+        self.lof_effects: dict[str, dict] = {}
+        if effects_path.is_file():
+            eff_df = pd.read_csv(effects_path)
+            self.lof_effects = {row["MUT"]: row.to_dict() for _, row in eff_df.iterrows()}
         demo = pd.read_csv(root / "demo/held_out_samples.csv", dtype={"frs": str}, keep_default_na=False)
         oof = pd.read_parquet(self.reports.root / "oof_predictions.parquet").set_index("UNIQUEID")
         prep = self.reports.observed("prep")
@@ -248,7 +257,19 @@ class Archive:
         evidence = []
         group = self.groups.get_group(sid)
         for item in group.drop_duplicates(["gene", "mutation"]).itertuples():
-            evidence.append({**self.card(f"{item.gene}@{item.mutation}"), "frs": float(item.frs)})
+            card_data = self.card(f"{item.gene}@{item.mutation}")
+            pos_match = re.search(r"^[A-Z](\d+)[A-Z]$", item.mutation)
+            pos_val = int(pos_match.group(1)) if pos_match else None
+            if pos_val is None:
+                m_digits = re.search(r"(\d+)", item.mutation)
+                if m_digits:
+                    pos_val = int(m_digits.group(1))
+            evidence.append({
+                **card_data,
+                "frs": float(item.frs),
+                "pos": pos_val,
+                "lof_annotation": self.lof_effects.get(f"{item.gene}@{item.mutation}"),
+            })
         return {
             **row, "evidence": evidence, "mode": MODE, "banner": BANNER,
             "score_context": self.score_contexts[row["fold"]].copy(),

@@ -9,17 +9,26 @@ Discern is an offline research explorer for archived evaluations of bedaquiline 
 From the repository root, using the Discern Python environment:
 
 ```bash
+# 1. Install dependencies
 python -m pip install -r requirements.txt
 python -m pip install -e . --no-deps
-python -m uvicorn discern.api.app:app --host 127.0.0.1 --port 8000 --no-access-log
+
+# 2. Launch using the shortcut:
+make app
+
+# Or run directly:
+python -m uvicorn discern.api.app:app --app-dir src --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
 Open [the local explorer](http://127.0.0.1:8000/). On **Check a sample**, upload the example CSV or open a saved example directly. The result shows the catalogue call, saved model score, and lab finding. **Review queue** organizes recorded cases and **Study results** contains the evaluation tables.
 
-On Windows, start the server with the Python interpreter from the `discern` Conda environment. The Windows `py` launcher can select a system Python with a different set of dependencies.
+On Windows PowerShell, use the included shortcut script:
 
 ```powershell
 conda activate discern
+.\serve.ps1
+
+# Or run directly:
 python -m uvicorn discern.api.app:app --app-dir src --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
@@ -35,7 +44,7 @@ discern batch discern-example.csv ranked.csv
 discern verify
 ```
 
-The explorer API offers `GET /health`, `GET /replay/{sample_id}`, `GET /example.csv`, `GET /replay-samples.csv`, `GET /evidence/{gene}/{mutation}`, and `POST /batch` with a `text/csv` body. Batches retrieve saved results for the bundled cohort.
+The explorer API offers `GET /health`, `POST /predict` (single-sample JSON prediction with Pydantic validation), `GET /replay/{sample_id}`, `GET /example.csv`, `GET /replay-samples.csv`, `GET /evidence/{gene}/{mutation}`, and `POST /batch` (prioritized triage queue CSV).
 
 ## Docker
 

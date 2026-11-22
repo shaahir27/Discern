@@ -1,4 +1,4 @@
-PYTHON ?= python3.12
+PYTHON ?= python
 PYTEST_ARGS ?= -q
 
 .PHONY: verify test docs app

@@ -8,9 +8,27 @@
     'lr_model/e07_loso': 'Performance across study sites',
     'prevalence_correction/e10_prevalence_shift': 'Adjusting scores with known target prevalence',
     'voi_queue/e15_label_reveal_sim': 'Retrospective comparison of variant sets',
-    'predictive_values/e13_ppv_npv': 'Predictive values by resistance rate'
+    'predictive_values/e13_ppv_npv': 'Predictive values by resistance rate',
+    'lr_model/e11_imbalance_learning_curve': 'Sample size & class imbalance learning curve',
+    'structure_test/e08_novel_variant': 'Novel-variant structure test (negative result)',
+    'external_km/e_km_validation': 'External validation: KwaZulu-Natal cohort',
+    'head_to_head/e05b_comparison': 'Head-to-head model comparison',
+    'who_baseline/e02_who_as_is_frs0.1': 'WHO v2 catalogue baseline (FRS >= 0.1)',
+    'who_baseline/e02_who_as_is_frs0.75': 'WHO v2 catalogue baseline (FRS >= 0.75)'
 } %}
 {% set labels = {
+    'auc': 'Area under ROC Curve (ROC AUC)',
+    'auprc': 'Area under Precision-Recall Curve (PR AUC)',
+    'binary_sens': 'Binary Sensitivity (optimal threshold)',
+    'binary_spec': 'Binary Specificity (optimal threshold)',
+    'ternary_firm': 'Firm calls (Resistant or Susceptible)',
+    'ternary_sens_among_firm': 'Sensitivity among firm calls',
+    'ternary_spec_among_firm': 'Specificity among firm calls',
+    'sens_at_spec_0.95': 'Sensitivity at 95% Specificity',
+    'sens_at_spec_0.97': 'Sensitivity at 97% Specificity',
+    'sens_at_spec_0.98': 'Sensitivity at 98% Specificity (low false alarms)',
+    'sens_at_spec_0.985': 'Sensitivity at 98.5% Specificity',
+    'n_features_all_data': 'Genetic features used by model',
     'firm': 'Firm calls',
     'sens_firm': 'Sensitivity among firm calls',
     'spec_firm': 'Specificity among firm calls',
@@ -19,14 +37,35 @@
     'sens_U_as_R': 'Sensitivity, unresolved counted as resistant',
     'spec_U_as_R': 'Specificity, unresolved counted as resistant',
     'n_U': 'Unresolved isolates',
-    'n_U_resistant': 'Resistant among unresolved isolates'
+    'n_U_resistant': 'Resistant among unresolved isolates',
+    'pooled_sens': 'Cross-site pooled sensitivity',
+    'pooled_spec': 'Cross-site pooled specificity',
+    'per_site_spec_min_n300': 'Minimum specificity across sites (N >= 300)',
+    'per_site_spec_max_n300': 'Maximum specificity across sites (N >= 300)',
+    'CRyPTIC_to_NICD_ece_raw': 'Calibration Error: CRyPTIC to NICD (Raw)',
+    'CRyPTIC_to_NICD_ece_adj': 'Calibration Error: CRyPTIC to NICD (Prevalence Adjusted)',
+    'CRyPTIC_to_NICD_brier_raw': 'Brier Score: CRyPTIC to NICD (Raw)',
+    'CRyPTIC_to_NICD_brier_adj': 'Brier Score: CRyPTIC to NICD (Prevalence Adjusted)',
+    'NICD_to_CRyPTIC_ece_raw': 'Calibration Error: NICD to CRyPTIC (Raw)',
+    'NICD_to_CRyPTIC_ece_adj': 'Calibration Error: NICD to CRyPTIC (Prevalence Adjusted)',
+    'NICD_to_CRyPTIC_brier_raw': 'Brier Score: NICD to CRyPTIC (Raw)',
+    'NICD_to_CRyPTIC_brier_adj': 'Brier Score: NICD to CRyPTIC (Prevalence Adjusted)'
 } %}
 {% set catalogue_overview = report == 'catalogue/e03_s1_catalogue_cv' %}
+{% set model_overview = report == 'lr_model/e04_s1_patient_cv' %}
 <article class="study-report">
   <header class="page-heading">
     <h1>Study results</h1>
     <p>See how Discern performed on archived samples, then inspect the measurements behind each result.</p>
   </header>
+
+  <div class="panel" style="margin-bottom: 20px; background: var(--tint); border-left: 4px solid var(--accent); padding: 14px 18px;">
+    <strong style="color: var(--ink);">How to read the Study Results:</strong>
+    <p style="margin: 6px 0 0; font-size: 0.9rem; color: var(--muted); line-height: 1.5;">
+      This page is the <strong>Scientific Evidence Harness</strong> verifying every number in the Discern study.
+      Use the dropdown below to switch between the <strong>WHO Catalogue Baseline (Tier A)</strong>, the <strong>Calibrated Machine Learning Model (Tier B)</strong>, <strong>Real-World Clinic Prevalence Shifts</strong>, and <strong>Site Generalization Tests</strong>.
+    </p>
+  </div>
 
   <form class="report-select-bar" method="get" action="/performance">
     <div class="field"><label for="report">Choose an evaluation</label>
@@ -65,8 +104,8 @@
           <p><data value="{{ firm }}">{{ "%.1f"|format((firm * 1000)|int / 10) }}%</data> of cases received a firm call</p>
         </div>
         <fieldset class="comparison-options" hidden>
-          <legend>Unresolved cases</legend>
-          {% for suffix, label in [('firm', 'Exclude'), ('U_as_S', 'Count as susceptible'), ('U_as_R', 'Count as resistant')] %}
+          <legend>How to count unresolved cases ("Send for lab test"):</legend>
+          {% for suffix, label in [('firm', 'Firm calls only (Default: 79.2% sens)'), ('U_as_S', 'Count as susceptible / missed (60.4% sens)'), ('U_as_R', 'Count as resistant / flagged (84.2% sens)')] %}
             <label>
               <input type="radio" name="denominator" value="{{ suffix }}"
                 data-sens="{{ record.observed['sens_' ~ suffix] }}" data-spec="{{ record.observed['spec_' ~ suffix] }}"{% if loop.first %} checked{% endif %}>
@@ -75,7 +114,7 @@
           {% endfor %}
         </fieldset>
         <div class="comparison-rows" aria-live="polite">
-          {% for key, label in [('sens', 'Resistant cases detected'), ('spec', 'Susceptible cases identified')] %}
+          {% for key, label in [('sens', 'Resistant cases detected (Sensitivity)'), ('spec', 'Susceptible cases identified (Specificity)')] %}
             {% set value = record.observed[key ~ '_firm'] %}
             <div class="comparison-row" data-compare-metric="{{ key }}">
               <strong>{{ label }}</strong>
@@ -84,7 +123,45 @@
             </div>
           {% endfor %}
         </div>
-        <p class="fine comparison-note">A firm call is Resistant or Susceptible. The default comparison excludes unresolved cases.</p>
+        <p id="comparison-explanation" class="fine comparison-note">
+          <strong>Firm calls only:</strong> Evaluates only samples where the catalogue gave a definitive Resistant or Susceptible answer (excludes unresolved cases, which are sent for phenotypic culture).
+        </p>
+      </section>
+    {% endif %}
+
+    {% if model_overview %}
+      <section class="cohort-comparison" aria-labelledby="model-overview-title">
+        <div class="comparison-header">
+          <h3 id="model-overview-title">Model Performance on Held-Out Patients</h3>
+          <p>5-fold patient-grouped cross-validation across 11,868 clinical isolates</p>
+        </div>
+        <div class="summary-strip" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin-block: 16px;">
+          <div>
+            <dt>Discrimination (AUC)</dt>
+            <dd>{{ "%.3f"|format(record.observed.auc) }}</dd>
+            <p class="fine" style="margin: 4px 0 0;">High ability to rank resistant above susceptible</p>
+          </div>
+          <div>
+            <dt>Precision (PR AUC)</dt>
+            <dd>{{ "%.3f"|format(record.observed.auprc) }}</dd>
+            <p class="fine" style="margin: 4px 0 0;">Accuracy on rare resistant strains</p>
+          </div>
+          <div>
+            <dt>Binary Sensitivity</dt>
+            <dd>{{ "%.1f"|format(record.observed.binary_sens * 100) }}%</dd>
+            <p class="fine" style="margin: 4px 0 0;">Resistant cases caught at Youden threshold</p>
+          </div>
+          <div>
+            <dt>Binary Specificity</dt>
+            <dd>{{ "%.1f"|format(record.observed.binary_spec * 100) }}%</dd>
+            <p class="fine" style="margin: 4px 0 0;">Susceptible cases correctly confirmed</p>
+          </div>
+          <div>
+            <dt>Sens @ 98% Spec</dt>
+            <dd>{{ "%.1f"|format(record.observed['sens_at_spec_0.98'] * 100) }}%</dd>
+            <p class="fine" style="margin: 4px 0 0;">Sensitivity under strict false-alarm budget (&lt;2%)</p>
+          </div>
+        </div>
       </section>
     {% endif %}
 

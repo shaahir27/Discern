@@ -53,6 +53,39 @@
       </section>
 
       <noscript><p class="fine">Paste the CSV text to submit with JavaScript turned off.</p></noscript>
+      <!-- Quick Manual Variant Entry (F7) -->
+      <details class="manual-variant-entry panel" id="manual-entry-panel">
+        <summary>Quick manual entry (single isolate)</summary>
+        <div class="manual-form-grid">
+          <div>
+            <label for="manual-sample-id">Sample ID</label>
+            <input type="text" id="manual-sample-id" placeholder="e.g. PATIENT-001" value="SAMPLE-001">
+          </div>
+          <div>
+            <label for="manual-gene">Gene</label>
+            <select id="manual-gene">
+              <option value="Rv0678" selected>Rv0678</option>
+              <option value="atpE">atpE</option>
+              <option value="pepQ">pepQ</option>
+              <option value="mmpL5">mmpL5</option>
+              <option value="mmpS5">mmpS5</option>
+            </select>
+          </div>
+          <div>
+            <label for="manual-mutation">Mutation</label>
+            <input type="text" id="manual-mutation" placeholder="e.g. 141_ins_c or R50Q">
+          </div>
+          <div>
+            <label for="manual-frs">Allele fraction (FRS)</label>
+            <input type="number" id="manual-frs" min="0" max="1" step="0.05" value="1.0">
+          </div>
+          <div class="manual-actions">
+            <button type="button" id="btn-add-variant" class="secondary">Add variant</button>
+            <button type="button" id="btn-analyze-manual">Analyze sample</button>
+          </div>
+        </div>
+        <div id="manual-variant-tags" class="tag-list" aria-live="polite"></div>
+      </details>
       <details class="paste-input">
         <summary>Paste file contents instead</summary>
         <label for="csv">File contents</label>

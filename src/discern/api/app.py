@@ -17,8 +17,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from ..decision import Predictor
+from ..decision import GENES, Predictor
 from ..documentation import model_card
+from ..grammar import valid_mutation
 from ..importers import detect_and_parse_upload
 from ..label_shift import deduplicate_patient_probabilities, estimate_prevalence_mlls
 from ..longitudinal import analyze_patient_timelines
@@ -39,6 +40,7 @@ from ..research import (
     workspace,
 )
 from ..surveillance import batch_recurrence_audit
+from .schemas import PredictRequest
 
 UI = Path(__file__).resolve().parents[1] / "ui"
 
@@ -93,7 +95,17 @@ async def research_header(request: Request, call_next: Callable[[Request], Await
 
 
 @app.exception_handler(StarletteHTTPException)
-async def http_error(_request: Request, error: StarletteHTTPException) -> JSONResponse:
+async def http_error(request: Request, error: StarletteHTTPException) -> Response:
+    accept = request.headers.get("accept", "")
+    if "text/html" in accept:
+        title = "Page not found" if error.status_code == 404 else f"Error {error.status_code}"
+        response = render(
+            request, "error", status=error.status_code,
+            title=title, detail=str(error.detail), active="home",
+        )
+        if error.headers:
+            response.headers.update(error.headers)
+        return response
     return JSONResponse(
         {"detail": error.detail, "banner": BANNER}, status_code=error.status_code, headers=error.headers,
     )
@@ -119,7 +131,23 @@ async def server_error(_request: Request, _error: Exception) -> JSONResponse:
 
 
 def archive(request: Request) -> Archive:
+    if not hasattr(request.app.state, "archive"):
+        root = workspace()
+        request.app.state.archive = Archive(root)
     return request.app.state.archive
+
+
+def get_predictor(request: Request) -> Predictor:
+    if not hasattr(request.app.state, "predictor"):
+        root = workspace()
+        request.app.state.predictor = Predictor(root / "models/lr_model", root / "results", config_path=root / "config.yaml")
+    return request.app.state.predictor
+
+
+def get_uploads(request: Request) -> OrderedDict:
+    if not hasattr(request.app.state, "uploads"):
+        request.app.state.uploads = OrderedDict()
+    return request.app.state.uploads
 
 
 def render(request: Request, name: str, *, status: int = 200, **context: object) -> Response:
@@ -171,15 +199,52 @@ def example(request: Request) -> Response:
 def evidence(request: Request, gene: str, mutation: str) -> dict:
     if len(gene) > 12 or len(mutation) > 512:
         raise HTTPException(422, "Use a gene and variant from an archived evidence card.")
-    return {**archive(request).card(f"{gene}@{mutation}"), "banner": BANNER}
+    prefix, separator, suffix = mutation.strip().partition("@")
+    if separator and prefix != gene:
+        raise HTTPException(422, "Mutation prefix must match the gene.")
+    mut_suffix = suffix if separator else prefix
+    if gene not in GENES:
+        raise HTTPException(422, f"Gene must be one of {sorted(GENES)}")
+    if not valid_mutation(mut_suffix):
+        raise HTTPException(422, "Mutation must be standard variant notation.")
+    card = archive(request).evidence.card(f"{gene}@{mut_suffix}")
+    if card is None:
+        raise HTTPException(404, f"Evidence card for {gene}@{mut_suffix} not found in the archive.")
+    return {**card, "banner": BANNER}
+
+
+@app.post("/predict")
+async def predict_api(request: Request, payload: PredictRequest) -> dict:
+    predictor: Predictor = get_predictor(request)
+    variants = [{"gene": v.gene, "mutation": v.mutation, "frs": v.frs} for v in payload.variants]
+    result = predictor.predict(
+        variants=variants,
+        prevalence=payload.prevalence,
+        sample_id=payload.sample_id,
+        assay=getattr(payload, "assay", "wgs") or "wgs",
+    )
+    result["banner"] = BANNER
+    return result
 
 
 @app.post("/batch")
 async def batch(request: Request) -> Response:
     if request.headers.get("content-type", "").split(";", 1)[0].strip().lower() != "text/csv":
-        raise UploadError("unsupported_media_type", "Send a text/csv body containing recorded sample IDs.", status=415)
+        raise UploadError("unsupported_media_type", "Send a text/csv body containing recorded sample IDs or variant profiles.", status=415)
     data = archive(request)
-    return queue_csv(data.queue(data.imported_ids(await small_body(request))))
+    payload = await small_body(request)
+    parsed = await run_in_threadpool(parse_upload, payload, "wgs", data)
+    samples, _quality, archived = parsed
+    if archived:
+        return queue_csv(data.queue(data.imported_ids(payload)))
+    headers, _ = read_batch(payload)
+    if headers == ["sample_id"]:
+        return queue_csv(data.queue(data.imported_ids(payload)))
+    predictor: Predictor = get_predictor(request)
+    _records, queue_rows, _timelines, _prevalence, _alerts = await run_in_threadpool(
+        score_upload, samples, predictor,
+    )
+    return queue_csv(queue_rows)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -250,7 +315,7 @@ async def review_upload(request: Request, *, single_redirect: bool, illustrative
                 return RedirectResponse(destination, status_code=303)
             return render(request, "queue", title="Review queue", active="queue",
                           rows=data.queue(list(rows)), scope="import", upload_quality=quality, replay_assay=assay)
-        predictor = request.app.state.predictor
+        predictor = get_predictor(request)
         records, queue_rows, timelines, prevalence, alerts = await run_in_threadpool(
             score_upload, rows, predictor,
         )
@@ -260,7 +325,7 @@ async def review_upload(request: Request, *, single_redirect: bool, illustrative
         return render(request, "queue", status=error.status, title="Review queue", active="queue", scope="all",
                       rows=data.queue(list(data.roster)), error=str(error))
 
-    uploads = request.app.state.uploads
+    uploads = get_uploads(request)
     batch_id = token_urlsafe(18)
     previous = uploaded_batch(request)
     owner = previous.owner if previous else token_urlsafe(24)
@@ -418,7 +483,7 @@ def score_upload(samples: dict[str, dict], predictor: Predictor) -> tuple[dict, 
 
 
 def uploaded_batch(request: Request, batch_id: str | None = None) -> UploadedBatch | None:
-    uploads = request.app.state.uploads
+    uploads = get_uploads(request)
     owner = request.cookies.get(UPLOAD_COOKIE)
     if not owner:
         return None
@@ -442,7 +507,7 @@ def result(
         if upload is None or sample_id not in upload.records:
             return render(request, "error", status=404, title="Upload unavailable", active="home",
                           detail="Open the result from your upload or submit the file again.")
-        predictor = request.app.state.predictor
+        predictor = get_predictor(request)
         record = upload.records[sample_id].copy()
         estimated = upload.prevalence.get("pi_hat")
         prefilled = manual_prevalence is None and estimated is not None and upload.prevalence["converged"]

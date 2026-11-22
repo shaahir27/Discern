@@ -45,9 +45,9 @@
     <div class="result-score">
       <h2 class="readout-label" id="probability">{{ "Live model score" if record.is_live else "Saved model score" }}</h2>
       {% if record.probability is number %}
-        <strong class="reading">{{ "%.1f"|format(record.probability * 100) }}%</strong>
-        <meter min="0" max="1" value="{{ record.probability }}" aria-labelledby="probability">{{ record.probability }}</meter>
-        <p>{% if record.is_live %}Estimated chance of resistance at {{ "%.1f"|format(prevalence * 100) }}% assumed resistance prevalence.{% else %}Estimated chance of resistance from the original study fold.{% endif %}</p>
+        <strong class="reading" id="score-reading">{{ "%.1f"|format(record.probability * 100) }}%</strong>
+        <meter min="0" max="1" value="{{ record.probability }}" id="score-meter" aria-labelledby="probability">{{ record.probability }}</meter>
+        <p id="score-note">{% if record.is_live %}Estimated chance of resistance at <span id="note-prevalence">{{ "%.1f"|format(prevalence * 100) }}%</span> assumed resistance prevalence.{% else %}Estimated chance of resistance from the original study fold.{% endif %}</p>
       {% else %}<p>No model score was saved for this case.</p>{% endif %}
     </div>
   </section>
@@ -58,6 +58,29 @@
       {% for driver in drivers %}<span><code>{{ driver.variant }}</code> {{ call_roles[driver.role] }}</span>{% endfor %}
     </div>
   {% endif %}
+
+  <!-- Laboratory Action Protocol Card (F2) -->
+  <section class="clinical-action-card action-{{ record.call }}" aria-labelledby="action-heading">
+    <div class="action-icon" aria-hidden="true">
+      {% if record.call == 'R' %}
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      {% elif record.call == 'S' %}
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      {% else %}
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      {% endif %}
+    </div>
+    <div class="action-content">
+      <h3 id="action-heading">What this means for laboratory triage</h3>
+      {% if record.call == 'R' %}
+        <p><strong>Predicted Resistant.</strong> Strong genomic evidence of bedaquiline resistance in core targets. <em>Action:</em> Reflex to culture-based phenotypic DST (MGIT960 BDQ MIC). Flag for high-priority laboratory review.</p>
+      {% elif record.call == 'S' %}
+        <p><strong>Predicted Susceptible.</strong> No characterized resistance-conferring mutations in core targets. <em>Action:</em> Report standard laboratory triage call. Note: ~16% of phenotypically resistant strains carry no canonical mutations (invisible resistance).</p>
+      {% else %}
+        <p><strong>Send for Lab Test (Referral).</strong> Mutation profile unclassified in deterministic catalogue. <em>Action:</em> Rapid referral for phenotypic DST. Laboratory queue priority: Rank {{ record.queue_rank_percentile|default('High') }}.</p>
+      {% endif %}
+    </div>
+  </section>
 <section class="case-evidence" aria-labelledby="evidence">
   <h2 id="evidence">Observed gene changes</h2>
   {% if record.evidence %}
@@ -109,22 +132,26 @@
               <span><strong>Rv0678 Domain Track</strong> (165 aa)</span>
               <span>Position: <strong>aa {{ codon_num }}</strong></span>
             </div>
-            <svg viewBox="0 0 330 38" width="100%" height="38" aria-label="Rv0678 domain map showing variant at position {{ codon_num }}">
-              <!-- N-term (1-33) -->
-              <rect x="10" y="4" width="62" height="12" rx="2" fill="#94a3b8" />
-              <text x="41" y="13" font-size="7" fill="#fff" text-anchor="middle" font-weight="bold">N-term</text>
-              <!-- DBD (34-99) -->
-              <rect x="74" y="4" width="122" height="12" rx="2" fill="#538595" />
-              <text x="135" y="13" font-size="7" fill="#fff" text-anchor="middle" font-weight="bold">DNA-Binding (34–99)</text>
-              <!-- Dimerization (100-160) -->
-              <rect x="198" y="4" width="112" height="12" rx="2" fill="#21546c" />
-              <text x="254" y="13" font-size="7" fill="#fff" text-anchor="middle" font-weight="bold">Dimerization (100–160)</text>
+            <svg viewBox="0 0 330 38" width="100%" height="38" aria-label="Rv0678 protein domain map showing variant at position {{ codon_num }}">
+              <!-- N-term (1-33): Dark text on light slate, Contrast: 12.0:1 (PASS >= 4.5:1) -->
+              <rect x="10" y="4" width="62" height="12" rx="2" fill="#cbd5e1" />
+              <text x="41" y="13" font-size="7.5" fill="#0f172a" text-anchor="middle" font-weight="700">N-term</text>
+
+              <!-- DNA-Binding (34-99): Deep Navy rect with white text, Contrast: 11.5:1 (PASS >= 4.5:1) -->
+              <rect x="74" y="4" width="122" height="12" rx="2" fill="#1e3a5f" />
+              <text x="135" y="13" font-size="7.5" fill="#ffffff" text-anchor="middle" font-weight="700">DNA-Binding (34–99)</text>
+
+              <!-- Dimerization (100-160): Teal Navy rect with white text, Contrast: 9.5:1 (PASS >= 4.5:1) -->
+              <rect x="198" y="4" width="112" height="12" rx="2" fill="#0f4c5c" />
+              <text x="254" y="13" font-size="7.5" fill="#ffffff" text-anchor="middle" font-weight="700">Dimerization (100–160)</text>
+
               <!-- C-term (161-165) -->
               <rect x="312" y="4" width="8" height="12" rx="2" fill="#64748b" />
+
               <!-- Marker Pin -->
-              <line x1="{{ pin_x }}" y1="1" x2="{{ pin_x }}" y2="24" stroke="#b91c1c" stroke-width="2" />
-              <circle cx="{{ pin_x }}" cy="2" r="3" fill="#b91c1c" />
-              <text x="{{ pin_x }}" y="34" font-size="8" font-weight="bold" fill="#b91c1c" text-anchor="middle">▲ aa {{ codon_num }}</text>
+              <line x1="{{ pin_x }}" y1="1" x2="{{ pin_x }}" y2="24" stroke="#dc2626" stroke-width="2" />
+              <circle cx="{{ pin_x }}" cy="2" r="3.5" fill="#dc2626" />
+              <text x="{{ pin_x }}" y="34" font-size="8.5" font-weight="700" fill="#dc2626" text-anchor="middle">▲ aa {{ codon_num }}</text>
             </svg>
           </div>
         {% endif %}
@@ -141,24 +168,52 @@
   </div>
   {% else %}<p>No variant records accompany this sample.</p>{% endif %}
 </section>
-{% if record.warnings %}
+{% set critical_warning_codes = ['HETERORESISTANCE_SUBCLONAL', 'MODEL_DISAGREES', 'NOVEL_VARIANT', 'EPISTATIC_PUMP_INACTIVATION'] %}
+{% set high_priority_alerts = record.warnings|select('in', critical_warning_codes)|list if record.warnings else [] %}
+{% set standard_warnings = record.warnings|reject('in', critical_warning_codes)|list if record.warnings else [] %}
+
+{% if high_priority_alerts %}
+<section class="critical-alerts-stack" role="alert" aria-label="High severity safety alerts">
+  {% for w in high_priority_alerts %}
+    <div class="alert alert-critical alert-{{ w|lower }}">
+      <div class="alert-header">
+        <span class="alert-badge">Safety Alert</span>
+        <strong>
+          {% if w == "HETERORESISTANCE_SUBCLONAL" %}
+            Subclonal Heteroresistance Detected (0.10 ≤ FRS &lt; 0.75)
+          {% elif w == "MODEL_DISAGREES" %}
+            Model/Catalogue Disagreement
+          {% elif w == "NOVEL_VARIANT" %}
+            Novel Variant Detected
+          {% elif w == "EPISTATIC_PUMP_INACTIVATION" %}
+            Epistatic Pump Inactivation Rule Applied
+          {% else %}
+            {{ w|replace('_', ' ')|title }}
+          {% endif %}
+        </strong>
+      </div>
+      <p>
+        {% if w == "HETERORESISTANCE_SUBCLONAL" %}
+          Subclonal variant detected (10% ≤ FRS &lt; 75%). Risk of resistance emergence under drug pressure; phenotypic confirmation required.
+        {% elif w == "MODEL_DISAGREES" %}
+          Statistical machine learning model probability strongly diverges from the deterministic catalogue call. Exercise diagnostic caution.
+        {% elif w == "NOVEL_VARIANT" %}
+          One or more variants have not been previously observed in the public training cohort. Triage cannot predict outcome with high statistical confidence.
+        {% elif w == "EPISTATIC_PUMP_INACTIVATION" %}
+          Loss-of-function mutation in efflux pump repressor/components altered triage classification to referral.
+        {% endif %}
+      </p>
+    </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if standard_warnings %}
 <details class="panel warnings-panel">
-  <summary>Review {{ record.warnings|length }} flags</summary>
+  <summary>Review {{ standard_warnings|length }} additional flag{{ 's' if standard_warnings|length > 1 else '' }}</summary>
   <div class="warnings-list">
-    {% for w in record.warnings %}
-      {% if w == "EPISTATIC_PUMP_INACTIVATION" %}
-        <div class="alert alert-info">
-          <strong>Catalogue review rule applied</strong>
-          <p>Discern referred this profile for laboratory confirmation.</p>
-        </div>
-      {% elif w == "HETERORESISTANCE_SUBCLONAL" %}
-        <div class="alert alert-warning">
-          <strong>⚠️ Subclonal Heteroresistance Detected (0.10 ≤ FRS &lt; 0.75)</strong>
-          <p>
-            A contributing variant was reported in a minority of reads. The finding needs laboratory confirmation.
-          </p>
-        </div>
-      {% elif w == "PUMP_DAMAGE_MODIFIER" and not (record.tier_a and record.tier_a.epistatic_veto_applied) and "EPISTATIC_PUMP_INACTIVATION" not in record.warnings %}
+    {% for w in standard_warnings %}
+      {% if w == "PUMP_DAMAGE_MODIFIER" and not (record.tier_a and record.tier_a.epistatic_veto_applied) and "EPISTATIC_PUMP_INACTIVATION" not in record.warnings %}
         <div class="alert alert-secondary">
           <strong>Pump Damage Modifier</strong>: Isolate carries co-occurring variants in <em>Rv0678</em> and <em>mmpL5</em>.
         </div>
@@ -166,21 +221,13 @@
         <div class="alert alert-secondary">
           <strong>Minor Allele Only</strong>: All contributing mutations have read support under 90%.
         </div>
-      {% elif w == "NOVEL_VARIANT" %}
-        <div class="alert alert-info">
-          <strong>Novel Variant</strong>: One or more variants have not been previously observed in the public training cohort.
-        </div>
       {% elif w == "LOW_EVIDENCE" %}
         <div class="alert alert-secondary">
           <strong>Low Evidence</strong>: Variant has fewer than 10 recorded carriers in the evidence store.
         </div>
-      {% elif w == "MODEL_DISAGREES" %}
-        <div class="alert alert-warning">
-          <strong>Model/Catalogue Disagreement</strong>: Statistical model probability strongly diverges from the deterministic catalogue call.
-        </div>
       {% elif w == "NO_VARIANT_INVISIBLE_RESISTANCE_POSSIBLE" %}
         <div class="alert alert-secondary">
-          <strong>No core variants reported</strong>. Phenotypic resistance can occur in profiles like this.
+          <strong>No core variants reported</strong>. Phenotypic resistance can occur in profiles like this (~16% invisible resistance).
         </div>
       {% else %}
         <p class="alert alert-warning">{{ w|replace('_', ' ')|capitalize }}</p>
@@ -228,7 +275,14 @@
 <div class="report-details">
 <details class="panel estimates-panel" id="estimates"{% if request.query_params.get("prevalence") or prefilled_from_batch %} open{% endif %}>
   <summary>Estimate at a different resistance rate</summary>
-  <div class="prevalence">
+  <div class="prevalence" id="prevalence-recalculator"
+       data-is-live="{{ 'true' if record.is_live else 'false' }}"
+       data-prob-train="{{ record.probability_train if record.probability_train is defined and record.probability_train is number else (record.probability if record.probability is number else '') }}"
+       data-pi-tr="{{ record.score_context.reference_prevalence if record.score_context and record.score_context.reference_prevalence is defined else 0.072969 }}"
+       data-sens-u-as-s="0.603926"
+       data-spec-u-as-s="0.984185"
+       data-sens-u-as-r="0.841801"
+       data-spec-u-as-r="0.942829">
   <div>
     <p>Change the assumed proportion of resistant cases. {% if record.is_live %}This also recalculates the live score.{% else %}The archived score stays at its recorded value.{% endif %}</p>
     <form action="/result#estimates" method="get" class="form-stack">
@@ -243,8 +297,8 @@
     </form>
   </div>
   <dl class="figures">
-    <div><dt>Correct among resistant calls</dt><dd>{{ "%.1f"|format(ppv * 100) }}%</dd></div>
-    <div><dt>Correct among susceptible calls</dt><dd>{{ "%.1f"|format(npv * 100) }}%</dd></div>
+    <div><dt>Correct among resistant calls</dt><dd id="metric-ppv-val">{{ "%.1f"|format(ppv * 100) }}%</dd></div>
+    <div><dt>Correct among susceptible calls</dt><dd id="metric-npv-val">{{ "%.1f"|format(npv * 100) }}%</dd></div>
   </dl>
   </div>
 </details>
