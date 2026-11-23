@@ -13,3 +13,8 @@ scratch/
 *.zip
 .env
 prompt.md
+
+# Internal presentation & evaluation preparation
+docs/PITCH_SCRIPT.md
+docs/RESEARCH_REPORT_AND_AI_ROADMAP.md
+tests/test_pitch_script.py

@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%" fill="none">
+  <defs>
+    <!-- Emerald-to-Cyan Clinical Precision Gradients -->
+    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="50%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+
+    <linearGradient id="coreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#34d399" />
+    </linearGradient>
+
+    <filter id="coreGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <style>
+      @keyframes pulseAperture {
+        0%, 100% {
+          transform: scale(1);
+          opacity: 0.92;
+        }
+        50% {
+          transform: scale(1.06);
+          opacity: 1;
+          filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.65));
+        }
+      }
+      @keyframes orbitRotate {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .anim-pulse {
+        transform-origin: 64px 64px;
+        animation: pulseAperture 3.2s ease-in-out infinite;
+      }
+      .anim-orbit {
+        transform-origin: 64px 64px;
+        animation: orbitRotate 24s linear infinite;
+      }
+    </style>
+  </defs>
+
+  <!-- Precision Crosshairs (Alignment Reticles) -->
+  <g stroke="#10b981" stroke-width="1.5" stroke-linecap="round" opacity="0.45">
+    <line x1="64" y1="10" x2="64" y2="22" />
+    <line x1="64" y1="106" x2="64" y2="118" />
+    <line x1="10" y1="64" x2="22" y2="64" />
+    <line x1="106" y1="64" x2="118" y2="64" />
+  </g>
+
+  <!-- Outer Genomic Coordinate Dial (Subtly Rotating Orbit) -->
+  <g class="anim-orbit">
+    <circle cx="64" cy="64" r="48" stroke="url(#ringGrad)" stroke-width="2.5" stroke-dasharray="6 8 14 8" stroke-linecap="round" opacity="0.85" />
+    <!-- Coordinate Nodes -->
+    <circle cx="64" cy="16" r="3" fill="#10b981" />
+    <circle cx="112" cy="64" r="3" fill="#06b6d4" />
+    <circle cx="64" cy="112" r="3" fill="#10b981" />
+    <circle cx="16" cy="64" r="3" fill="#06b6d4" />
+  </g>
+
+  <!-- Middle Hexagonal Aperture (The Epistatic Veto Boundary) -->
+  <polygon points="64,28 95,46 95,82 64,100 33,82 33,46" 
+           stroke="#0d9488" stroke-width="2.5" stroke-linejoin="round" opacity="0.75" />
+
+  <!-- Inner Diamond Focal Gate -->
+  <polygon points="64,38 90,64 64,90 38,64" 
+           stroke="#10b981" stroke-width="2.5" stroke-linejoin="round" opacity="0.9" />
+
+  <!-- Central Triage Decision Core (Animated Breathing Pulse) -->
+  <g class="anim-pulse">
+    <rect x="52" y="52" width="24" height="24" rx="6" fill="url(#coreGrad)" filter="url(#coreGlow)" />
+    <!-- High-Precision Center Nucleus -->
+    <circle cx="64" cy="64" r="4.5" fill="#064e3b" />
+    <circle cx="64" cy="64" r="2" fill="#ffffff" />
+  </g>
+</svg>
