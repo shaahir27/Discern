@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "progress_bar.html" import progress_bar %}
 {% block content %}
 {% set report_titles = {
     'catalogue/e03_s1_catalogue_cv': 'Catalogue performance on held-out cases',
@@ -118,7 +119,10 @@
             {% set value = record.observed[key ~ '_firm'] %}
             <div class="comparison-row" data-compare-metric="{{ key }}">
               <strong>{{ label }}</strong>
-              <meter min="0" max="1" value="{{ value }}" aria-label="{{ label }}">{{ value }}</meter>
+              <div class="comparison-bar">
+                {{ progress_bar(value, label, "sens" if key == "sens" else "spec", "lg") }}
+                <div class="progress-axis" aria-hidden="true"><span>0%</span><span>100%</span></div>
+              </div>
               <data value="{{ value }}">{{ "%.1f"|format((value * 1000)|int / 10) }}%</data>
             </div>
           {% endfor %}

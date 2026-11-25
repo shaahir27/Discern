@@ -1,0 +1,19 @@
+{% macro progress_bar(value, label, variant="accent", size="md", element_id="") -%}
+{% set bar_value = value|float %}
+<progress class="ui-progress ui-progress--{{ variant }} ui-progress--{{ size }}"{% if element_id %} id="{{ element_id }}"{% endif %} value="{{ bar_value }}" max="1" role="progressbar" aria-valuemin="0" aria-valuemax="1" aria-valuenow="{{ bar_value }}" aria-label="{{ label }}">{{ "%.1f"|format(bar_value * 100) }}%</progress>
+{%- endmacro %}
+
+{% macro interval_bar(low, high, value, label) -%}
+{% set low_pct = low|float * 100 %}
+{% set high_pct = high|float * 100 %}
+{% set value_pct = value|float * 100 %}
+<div class="ui-progress ui-progress--interval" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ value_pct }}" aria-valuetext="{{ '%.1f'|format(low_pct) }}% to {{ '%.1f'|format(high_pct) }}%" aria-label="{{ label }}">
+  <svg viewBox="0 0 100 12" aria-hidden="true" focusable="false">
+    <line class="ui-progress__interval-track" x1="0" y1="6" x2="100" y2="6" />
+    <line class="ui-progress__interval-range" x1="{{ low_pct }}" y1="6" x2="{{ high_pct }}" y2="6" />
+    <line class="ui-progress__interval-cap" x1="{{ low_pct }}" y1="2" x2="{{ low_pct }}" y2="10" />
+    <line class="ui-progress__interval-cap" x1="{{ high_pct }}" y1="2" x2="{{ high_pct }}" y2="10" />
+    <circle class="ui-progress__interval-point" cx="{{ value_pct }}" cy="6" r="2.5" />
+  </svg>
+</div>
+{%- endmacro %}

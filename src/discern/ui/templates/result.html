@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "progress_bar.html" import progress_bar, interval_bar %}
 {% block content %}
 {% set catalogue_failed = record.warnings and "CATALOGUE_EVALUATION_FAILED" in record.warnings %}
 {% set review_rule_applied = record.tier_a and record.tier_a.epistatic_veto_applied %}
@@ -46,7 +47,15 @@
       <h2 class="readout-label" id="probability">{{ "Live model score" if record.is_live else "Saved model score" }}</h2>
       {% if record.probability is number %}
         <strong class="reading" id="score-reading">{{ "%.1f"|format(record.probability * 100) }}%</strong>
-        <meter min="0" max="1" value="{{ record.probability }}" id="score-meter" aria-labelledby="probability">{{ record.probability }}</meter>
+        <div class="score-meter-wrap">
+          {{ progress_bar(record.probability, "Model score", "score", "md", "score-meter") }}
+          <div class="score-threshold-ticks" aria-hidden="true"><span class="threshold-low"></span><span class="threshold-high"></span></div>
+          <div class="score-threshold-labels" aria-hidden="true">
+            <span><strong>Susceptible</strong><small>≤5%</small></span>
+            <span><strong>Referral</strong><small>5–80%</small></span>
+            <span><strong>Resistant</strong><small>≥80%</small></span>
+          </div>
+        </div>
         <p id="score-note">{% if record.is_live %}Estimated chance of resistance at <span id="note-prevalence">{{ "%.1f"|format(prevalence * 100) }}%</span> assumed resistance prevalence.{% else %}Estimated chance of resistance from the original study fold.{% endif %}</p>
       {% else %}<p>No model score was saved for this case.</p>{% endif %}
     </div>
@@ -94,65 +103,90 @@
     {% set without_counts = by_name|rejectattr("n_carriers")|list %}
     {% for item in with_counts + without_counts %}
       {% set gene, mutation = item.variant.split("@", 1) %}
-      <article class="panel variant-card">
+      <article class="panel variant-card{% if not item.n_carriers %} variant-card--empty{% endif %}">
         <h3><span class="variant-gene">{{ gene }}</span> <span class="variant-change">{{ mutation }}</span></h3>
         {% if item.by_source %}
-          <dl class="facts cohort-evidence">
+          <div class="facts cohort-evidence">
             {% for source, counts in item.by_source.items() %}
-              <div>
-                <dt>{{ source }}</dt>
-                <dd>{% if counts.n %}<strong>{{ counts.r }} / {{ counts.n }}</strong>{% else %}No carriers recorded{% endif %}</dd>
-              </div>
+              {% set cohort_pct = counts.r / counts.n if counts.n else 0 %}
+              <section class="cohort-card">
+                <span class="cohort-card__badge">{{ "Global baseline" if source == "CRyPTIC" else "SA referral" if source == "NICD" else "Source cohort" }}</span>
+                <h4 class="cohort-card__title">{{ source }}</h4>
+                {% if counts.n %}
+                  {% set z2 = 3.8416 %}
+                  {% set denominator = 1 + z2 / counts.n %}
+                  {% set ci_center = (cohort_pct + z2 / (2 * counts.n)) / denominator %}
+                  {% set ci_margin = (1.96 * ((cohort_pct * (1 - cohort_pct) / counts.n + z2 / (4 * counts.n * counts.n)) ** 0.5)) / denominator %}
+                  {% set ci_low = [0, ci_center - ci_margin]|max %}
+                  {% set ci_high = [1, ci_center + ci_margin]|min %}
+                  <div class="cohort-card__figure">
+                    <strong class="cohort-card__pct">{{ "%.1f"|format(cohort_pct * 100) }}%</strong>
+                    <span class="cohort-card__count">{{ counts.r }} / {{ counts.n }}</span>
+                  </div>
+                  {{ progress_bar(cohort_pct, source ~ " resistant among carriers", "sens", "sm") }}
+                  <div class="cohort-card__ci">
+                    <span class="cohort-card__ci-label">Wilson 95% CI</span>
+                    {{ interval_bar(ci_low, ci_high, cohort_pct, source ~ " Wilson 95% confidence interval") }}
+                    <span class="cohort-card__ci-text">{{ "%.1f"|format(ci_low * 100) }}–{{ "%.1f"|format(ci_high * 100) }}%</span>
+                  </div>
+                {% else %}
+                  <p class="cohort-card__empty">No carriers recorded.</p>
+                {% endif %}
+              </section>
             {% endfor %}
-          </dl>
+            {% if item.n_carriers %}
+              <section class="cohort-card cohort-card--pooled">
+                <span class="cohort-card__badge">Combined 95% CI</span>
+                <h4 class="cohort-card__title">Pooled Archive</h4>
+                <div class="cohort-card__figure">
+                  <strong class="cohort-card__pct">{{ "%.1f"|format(item.pct_resistant * 100) }}%</strong>
+                  <span class="cohort-card__count">{{ item.n_resistant }} / {{ item.n_carriers }}</span>
+                </div>
+                {{ progress_bar(item.pct_resistant, "Pooled archive resistant among carriers", "spec", "sm") }}
+                {% if item.ci95_low is number and item.ci95_high is number %}
+                  <div class="cohort-card__ci">
+                    <span class="cohort-card__ci-label">Wilson 95% CI</span>
+                    {{ interval_bar(item.ci95_low, item.ci95_high, item.pct_resistant, "Pooled archive Wilson 95% confidence interval") }}
+                    <span class="cohort-card__ci-text">{{ "%.1f"|format(item.ci95_low * 100) }}–{{ "%.1f"|format(item.ci95_high * 100) }}%</span>
+                  </div>
+                {% endif %}
+              </section>
+            {% endif %}
+          </div>
         {% else %}
           <p class="cohort-evidence-empty">No carrier evidence in the archive.</p>
         {% endif %}
-        <dl class="facts variant-facts">
-          <div><dt>Reads with this change</dt><dd>{{ "%.1f"|format(item.frs * 100) }}%</dd></div>
-        </dl>
-        {% if item.n_carriers %}
-          <details class="pooled-evidence">
-            <summary>Pooled archive summary<span class="sr-only"> for {{ item.variant }}</span></summary>
-            <dl class="facts">
-              <div><dt>Resistant among carriers</dt><dd>{{ item.n_resistant }} / {{ item.n_carriers }}</dd></div>
-              {% if item.ci95_low is number and item.ci95_high is number %}
-                <div><dt>95% confidence interval</dt><dd>{{ "%.1f"|format(item.ci95_low * 100) }}–{{ "%.1f"|format(item.ci95_high * 100) }}%</dd></div>
-              {% endif %}
-            </dl>
-          </details>
-        {% endif %}
+        <div class="variant-frs-bar">
+          <div class="variant-frs-bar__heading"><strong>Reads with this change</strong><span>{{ "%.1f"|format(item.frs * 100) }}%</span></div>
+          {{ progress_bar(item.frs, "Reads with this change", "accent", "sm") }}
+        </div>
         {% set stop = item.lof_annotation.first_stop_aa if item.lof_annotation else none %}
         {% set domain_position = stop if stop is number and stop > 0 else item.pos if mutation and mutation[0].isupper() else none %}
         {% if gene == "Rv0678" and domain_position is number and 0 < domain_position <= 165 %}
           {% set codon_num = domain_position|int %}
-          {% set pin_x = 10 + (codon_num / 165.0) * 310 %}
+          {% set pin_x = 10 + ((codon_num - 1) / 164.0) * 740 %}
+          {% set pin_label_x = [35, [pin_x, 725]|min]|max %}
           <div class="domain-track-wrapper">
-            <div>
+            <div class="domain-track-heading">
               <span><strong>Rv0678 Domain Track</strong> (165 aa)</span>
               <span>Position: <strong>aa {{ codon_num }}</strong></span>
             </div>
-            <svg viewBox="0 0 330 38" width="100%" height="38" aria-label="Rv0678 protein domain map showing variant at position {{ codon_num }}">
-              <!-- N-term (1-33): Dark text on light slate, Contrast: 12.0:1 (PASS >= 4.5:1) -->
-              <rect x="10" y="4" width="62" height="12" rx="2" fill="#cbd5e1" />
-              <text x="41" y="13" font-size="7.5" fill="#0f172a" text-anchor="middle" font-weight="700">N-term</text>
-
-              <!-- DNA-Binding (34-99): Deep Navy rect with white text, Contrast: 11.5:1 (PASS >= 4.5:1) -->
-              <rect x="74" y="4" width="122" height="12" rx="2" fill="#1e3a5f" />
-              <text x="135" y="13" font-size="7.5" fill="#ffffff" text-anchor="middle" font-weight="700">DNA-Binding (34–99)</text>
-
-              <!-- Dimerization (100-160): Teal Navy rect with white text, Contrast: 9.5:1 (PASS >= 4.5:1) -->
-              <rect x="198" y="4" width="112" height="12" rx="2" fill="#0f4c5c" />
-              <text x="254" y="13" font-size="7.5" fill="#ffffff" text-anchor="middle" font-weight="700">Dimerization (100–160)</text>
-
-              <!-- C-term (161-165) -->
-              <rect x="312" y="4" width="8" height="12" rx="2" fill="#64748b" />
-
-              <!-- Marker Pin -->
-              <line x1="{{ pin_x }}" y1="1" x2="{{ pin_x }}" y2="24" stroke="#dc2626" stroke-width="2" />
-              <circle cx="{{ pin_x }}" cy="2" r="3.5" fill="#dc2626" />
-              <text x="{{ pin_x }}" y="34" font-size="8.5" font-weight="700" fill="#dc2626" text-anchor="middle">▲ aa {{ codon_num }}</text>
+            <svg viewBox="0 0 760 66" width="100%" role="img" aria-label="Rv0678 protein domain map with position {{ codon_num }} marked. Segment details are listed below.">
+              <text x="{{ pin_label_x }}" y="12" font-size="12" font-weight="700" fill="#991b1b" text-anchor="middle">aa {{ codon_num }}</text>
+              <line x1="{{ pin_label_x }}" y1="17" x2="{{ pin_x }}" y2="27" stroke="#991b1b" stroke-width="1.5" />
+              <line x1="{{ pin_x }}" y1="26" x2="{{ pin_x }}" y2="55" stroke="#991b1b" stroke-width="2" />
+              <circle cx="{{ pin_x }}" cy="34" r="4" fill="#991b1b" />
+              <rect x="10" y="34" width="148" height="16" rx="3" fill="#cbd5e1" />
+              <rect x="158" y="34" width="296" height="16" fill="#1e3a5f" />
+              <rect x="454" y="34" width="274" height="16" fill="#0f4c5c" />
+              <rect x="728" y="34" width="22" height="16" rx="3" fill="#475569" />
             </svg>
+            <ul class="domain-track-legend" aria-label="Protein domain segments">
+              <li><span class="domain-swatch domain-swatch--nterm"></span>N-terminal (1–33)</li>
+              <li><span class="domain-swatch domain-swatch--dbd"></span>DNA-binding (34–99)</li>
+              <li><span class="domain-swatch domain-swatch--dimer"></span>Dimerization (100–160)</li>
+              <li><span class="domain-swatch domain-swatch--cterm"></span>C-terminal (161–165)</li>
+            </ul>
           </div>
         {% endif %}
         {% if item.lof_annotation %}
@@ -290,15 +324,32 @@
       {% if batch_id %}<input type="hidden" name="batch" value="{{ batch_id }}">{% endif %}
       {% if replay_assay and replay_assay != "wgs" %}<input type="hidden" name="assay" value="{{ replay_assay }}">{% endif %}
       {% if prefilled_from_batch %}<p class="fine">Pre-filled from batch MLLS estimate. Use the slider to set a different prevalence.</p>{% endif %}
-      <label for="prevalence">Assumed resistance prevalence <output id="prevalence-value" for="prevalence">{{ "%.1f"|format(prevalence * 100) }}%</output></label>
-      <input id="prevalence" type="range" min="0.001" max="0.5" step="0.001" name="prevalence" value="{{ prevalence }}" aria-describedby="prevalence-help">
+      <label class="prevalence-label" for="prevalence">
+        <span>Assumed resistance prevalence</span>
+        <output id="prevalence-value" class="prevalence-value" for="prevalence">{{ "%.1f"|format(prevalence * 100) }}%</output>
+      </label>
+      <div class="range-control">
+        <progress id="prevalence-progress" class="ui-progress ui-progress--slider" value="{{ (prevalence - 0.001) / 0.499 }}" max="1" role="progressbar" aria-valuemin="0.001" aria-valuemax="0.5" aria-valuenow="{{ prevalence }}" aria-label="Assumed resistance prevalence">{{ "%.1f"|format(prevalence * 100) }}%</progress>
+        <input id="prevalence" type="range" min="0.001" max="0.5" step="0.001" name="prevalence" value="{{ prevalence }}" aria-describedby="prevalence-help">
+      </div>
+      <div class="range-scale" aria-hidden="true">
+        <span>0.1%</span><span>10%</span><span>25%</span><span>40%</span><span>50%</span>
+      </div>
       <p class="fine" id="prevalence-help">The starting value is a placeholder for a laboratory estimate.</p>
       <button type="submit" class="secondary">Update estimates</button>
     </form>
   </div>
-  <dl class="figures">
-    <div><dt>Correct among resistant calls</dt><dd id="metric-ppv-val">{{ "%.1f"|format(ppv * 100) }}%</dd></div>
-    <div><dt>Correct among susceptible calls</dt><dd id="metric-npv-val">{{ "%.1f"|format(npv * 100) }}%</dd></div>
+  <dl class="predictive-values">
+    <div>
+      <dt>Correct among resistant calls</dt>
+      <dd id="metric-ppv-val">{{ "%.1f"|format(ppv * 100) }}%</dd>
+      {{ progress_bar(ppv, "Positive predictive value", "pass", "sm", "metric-ppv-bar") }}
+    </div>
+    <div>
+      <dt>Correct among susceptible calls</dt>
+      <dd id="metric-npv-val">{{ "%.1f"|format(npv * 100) }}%</dd>
+      {{ progress_bar(npv, "Negative predictive value", "spec", "sm", "metric-npv-bar") }}
+    </div>
   </dl>
   </div>
 </details>

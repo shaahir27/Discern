@@ -52,7 +52,7 @@ def test_csv_upload_opens_the_saved_score_and_rejects_an_edited_profile() -> Non
         assert "Recorded lab result" in result.text
         assert "Observed gene changes" in result.text
         assert "The archive did not record which variants drove this call." in result.text
-        assert result.text.count('class="panel variant-card"') == len(replay["evidence"])
+        assert result.text.count('class="panel variant-card') == len(replay["evidence"])
         for item in replay["evidence"]:
             gene, mutation = item["variant"].split("@")
             assert f'<span class="variant-gene">{gene}</span>' in result.text

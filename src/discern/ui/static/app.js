@@ -4,17 +4,27 @@ if (slider) {
   const output = document.getElementById("prevalence-value");
   const calcNode = document.getElementById("prevalence-recalculator");
   const readingEl = document.getElementById("score-reading") || document.querySelector(".reading");
-  const meterEl = document.getElementById("score-meter") || document.querySelector(".result-score meter");
+  const scoreProgress = document.getElementById("score-meter") || document.querySelector(".result-score progress");
+  const prevalenceProgress = document.getElementById("prevalence-progress");
   const notePrevEl = document.getElementById("note-prevalence");
   const ppvEl = document.getElementById("metric-ppv-val");
   const npvEl = document.getElementById("metric-npv-val");
+  const ppvProgress = document.getElementById("metric-ppv-bar");
+  const npvProgress = document.getElementById("metric-npv-bar");
 
   slider.addEventListener("input", () => {
     const rawPi = parseFloat(slider.value);
     if (isNaN(rawPi)) return;
+    const minPi = parseFloat(slider.min);
+    const maxPi = parseFloat(slider.max);
+    const sliderProgress = Math.min(1, Math.max(0, (rawPi - minPi) / (maxPi - minPi)));
     if (output) {
       output.textContent = (rawPi * 100).toFixed(1) + "%";
       output.value = (rawPi * 100).toFixed(1) + "%";
+    }
+    if (prevalenceProgress) {
+      prevalenceProgress.value = sliderProgress;
+      prevalenceProgress.setAttribute("aria-valuenow", rawPi.toString());
     }
     if (notePrevEl) notePrevEl.textContent = (rawPi * 100).toFixed(1) + "%";
 
@@ -36,9 +46,10 @@ if (slider) {
       const pAdj = oddsAdj / (1 + oddsAdj);
 
       if (readingEl) readingEl.textContent = (pAdj * 100).toFixed(1) + "%";
-      if (meterEl) {
-        meterEl.value = pAdj;
-        meterEl.textContent = pAdj.toString();
+      if (scoreProgress) {
+        scoreProgress.value = pAdj;
+        scoreProgress.setAttribute("aria-valuenow", pAdj.toString());
+        scoreProgress.textContent = `${(pAdj * 100).toFixed(1)}%`;
       }
     }
 
@@ -59,6 +70,14 @@ if (slider) {
 
       if (ppvEl) ppvEl.textContent = (ppv * 100).toFixed(1) + "%";
       if (npvEl) npvEl.textContent = (npv * 100).toFixed(1) + "%";
+      if (ppvProgress) {
+        ppvProgress.value = ppv;
+        ppvProgress.setAttribute("aria-valuenow", ppv.toString());
+      }
+      if (npvProgress) {
+        npvProgress.value = npv;
+        npvProgress.setAttribute("aria-valuenow", npv.toString());
+      }
     }
   });
 }
@@ -108,7 +127,9 @@ if (cohortComparison) {
     const val = event.target.value;
     for (const row of rows) {
       const value = Number(event.target.dataset[row.dataset.compareMetric]);
-      row.querySelector("meter").value = value;
+      const progress = row.querySelector("progress");
+      progress.value = value;
+      progress.setAttribute("aria-valuenow", value.toString());
       const output = row.querySelector("data");
       output.value = value;
       output.textContent = `${(Math.trunc(value * 1000) / 10).toFixed(1)}%`;
@@ -590,17 +611,21 @@ function initLongitudinalTimeline() {
   const trajectories = timeline.trajectories;
 
   // Series colors distinguish variants independently of the catalogue call.
-  const colorPalette = ["#126580", "#957515", "#567d76", "#6a516d"];
+  const colorPalette = ["#005A7A", "#7A5200", "#6D28D9", "#A61B1B"];
 
   const variantColors = {};
+  const variantColorIndexes = {};
   variants.forEach((v, idx) => {
     variantColors[v] = colorPalette[idx % colorPalette.length];
+    variantColorIndexes[v] = idx % colorPalette.length;
   });
 
   // Color legend boxes
   document.querySelectorAll(".legend-color-box").forEach(el => {
     const v = el.getAttribute("data-variant");
-    if (variantColors[v]) el.style.backgroundColor = variantColors[v];
+    if (variantColorIndexes[v] !== undefined) {
+      el.classList.add(`legend-series-${variantColorIndexes[v]}`);
+    }
   });
 
   const svg = document.getElementById("muller-svg");
@@ -615,12 +640,20 @@ function initLongitudinalTimeline() {
   const btnPlay = document.getElementById("btn-play-pause");
   const visitButtons = Array.from(document.querySelectorAll("[data-visit-index]"));
 
-  const leftX = 60;
+  const leftX = 80;
   const rightX = 720;
   const topY = 20;
   const botY = 240;
   const usableW = rightX - leftX;
   const usableH = botY - topY;
+
+  function fitTimelineLabels() {
+    const scale = svg.getBoundingClientRect().width / 760;
+    if (!scale) return;
+    svg.querySelectorAll("[data-screen-font]").forEach(label => {
+      label.setAttribute("font-size", (Number(label.dataset.screenFont) / scale).toString());
+    });
+  }
 
   const firstDay = visits[0].sort_key;
   const spanDays = visits[n - 1].sort_key - firstDay;
@@ -713,13 +746,16 @@ function initLongitudinalTimeline() {
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
     text.setAttribute("x", x);
     text.setAttribute("y", botY + 18);
-    text.setAttribute("font-size", "10");
-    text.setAttribute("fill", "#475569");
+    text.setAttribute("data-screen-font", "12");
+    text.setAttribute("font-size", "12");
+    text.setAttribute("fill", "#334155");
     text.setAttribute("text-anchor", "middle");
     text.setAttribute("font-weight", "600");
     text.textContent = v.date_display;
     markersGroup.appendChild(text);
   });
+  fitTimelineLabels();
+  window.addEventListener("resize", fitTimelineLabels, { passive: true });
 
   // Active visit update function
   let cursorAnimation;
@@ -774,22 +810,25 @@ function initLongitudinalTimeline() {
         const label = document.createElement("code");
         label.textContent = `${v.gene}@${v.mutation}`;
 
-        const barTrack = document.createElement("div");
-        barTrack.className = "frequency-track";
-
-        const barFill = document.createElement("div");
-        barFill.className = "frequency-fill";
-        barFill.style.width = `${Math.min(100, Math.max(0, v.frs * 100))}%`;
         const mutKey = `${v.gene}@${v.mutation}`;
-        barFill.style.background = variantColors[mutKey] || colorPalette[0];
-
-        barTrack.appendChild(barFill);
+        const colorIndex = variantColorIndexes[mutKey] ?? 0;
+        const bar = document.createElement("progress");
+        const barValue = Math.min(1, Math.max(0, v.frs));
+        bar.className = `ui-progress ui-progress--variant ui-progress--sm legend-series-${colorIndex}`;
+        bar.max = 1;
+        bar.value = barValue;
+        bar.setAttribute("role", "progressbar");
+        bar.setAttribute("aria-valuemin", "0");
+        bar.setAttribute("aria-valuemax", "1");
+        bar.setAttribute("aria-valuenow", barValue.toString());
+        bar.setAttribute("aria-label", `${v.gene}@${v.mutation} allele fraction`);
+        bar.textContent = `${(barValue * 100).toFixed(1)}%`;
 
         const val = document.createElement("strong");
         val.textContent = `${(v.frs * 100).toFixed(1)}%`;
 
         row.appendChild(label);
-        row.appendChild(barTrack);
+        row.appendChild(bar);
         row.appendChild(val);
         barsContainer.appendChild(row);
       });

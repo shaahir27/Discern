@@ -96,11 +96,14 @@ def test_archived_referral_displays_evidence_without_inventing_a_reason() -> Non
         assert "The archive records the referral outcome. The reason was not saved." in html
         assert 'class="facts cohort-evidence"' in html
         assert "Archived carrier counts" in html
-        assert "Pooled archive summary" in html
+        assert "Pooled Archive" in html
         assert 'class="source-breakdown"' not in html
         first_card = html.index('class="panel variant-card"')
         next_card = html.find('class="panel variant-card"', first_card + 1)
         assert 'class="facts cohort-evidence"' in html[first_card:next_card if next_card != -1 else None]
+        assert "Global baseline" in html[first_card:next_card if next_card != -1 else None]
+        assert "Pooled Archive" in html[first_card:next_card if next_card != -1 else None]
+        assert 'role="progressbar"' in html[first_card:next_card if next_card != -1 else None]
 
 
 @pytest.mark.parametrize(("catalogue_response", "reason"), [
@@ -139,7 +142,22 @@ def test_new_upload_score_and_manual_prevalence_match_the_stored_score() -> None
         trained = expected["model"]["probability_train_prevalence"]
         prior_ratio = (0.12 / 0.88) / (predictor.pi_tr / (1 - predictor.pi_tr))
         adjusted_odds = (trained / (1 - trained)) * prior_ratio
-        meter = re.search(r'<meter min="0" max="1" value="([^"]+)"', shown.text)
-        assert meter is not None
-        assert float(meter[1]) == pytest.approx(adjusted_odds / (1 + adjusted_odds), abs=1e-12)
+        progress = re.search(r'<progress\b[^>]*id="score-meter"[^>]*value="([^"]+)"', shown.text)
+        assert progress is not None
+        assert float(progress[1]) == pytest.approx(adjusted_odds / (1 + adjusted_odds), abs=1e-12)
+        assert 'id="score-meter"' in shown.text
+        assert 'aria-valuemin="0"' in shown.text
+        assert 'aria-valuemax="1"' in shown.text
+        assert 'aria-label="Model score"' in shown.text
         assert f'call-display call-{expected["call"]}' in shown.text
+
+
+def test_performance_metrics_keep_accessible_percent_bars() -> None:
+    with TestClient(app) as client:
+        response = client.get("/performance")
+        assert response.status_code == 200
+        assert 'class="ui-progress ui-progress--sens ui-progress--lg"' in response.text
+        assert 'aria-label="Resistant cases detected (Sensitivity)"' in response.text
+        assert 'aria-label="Susceptible cases identified (Specificity)"' in response.text
+        assert 'aria-valuemin="0"' in response.text
+        assert 'aria-valuemax="1"' in response.text
