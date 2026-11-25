@@ -43,10 +43,63 @@
       {% endif %}
     </div>
     <div class="result-score">
-      <h2 class="readout-label" id="probability">{{ "Live model score" if record.is_live else "Saved model score" }}</h2>
+      <div class="score-header-flex">
+        <h2 class="readout-label" id="probability">{{ "Live model score" if record.is_live else "Saved model score" }}</h2>
+        {% if record.probability is number %}
+          {% if record.probability >= 0.80 %}
+            <span class="score-risk-badge risk-high">High Resistance Probability (&ge;80% Cutoff)</span>
+          {% elif record.probability <= 0.05 %}
+            <span class="score-risk-badge risk-low">Low Resistance Probability (&le;5% Cutoff)</span>
+          {% else %}
+            <span class="score-risk-badge risk-mid">Referral Zone (5%–80%)</span>
+          {% endif %}
+        {% endif %}
+      </div>
       {% if record.probability is number %}
         <strong class="reading" id="score-reading">{{ "%.1f"|format(record.probability * 100) }}%</strong>
-        <meter min="0" max="1" value="{{ record.probability }}" id="score-meter" aria-labelledby="probability">{{ record.probability }}</meter>
+        {% set prob_w = "%.1f"|format([0, [1000, record.probability * 1000]|min]|max) %}
+        {% set zone_key = 'high' if record.probability >= 0.80 else ('low' if record.probability <= 0.05 else 'mid') %}
+        <!-- Calibrated Diagnostic Risk Gauge (CSP-safe SVG + External CSS) -->
+        <div class="calibrated-gauge-container" role="presentation" aria-hidden="true">
+          <div class="calibrated-gauge-track">
+            <svg class="calibrated-gauge-svg" viewBox="0 0 1000 16" preserveAspectRatio="none" width="100%" height="16">
+              <defs>
+                <linearGradient id="gauge-grad-high" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#f87171" />
+                  <stop offset="100%" stop-color="#dc2626" />
+                </linearGradient>
+                <linearGradient id="gauge-grad-mid" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#fbbf24" />
+                  <stop offset="100%" stop-color="#d97706" />
+                </linearGradient>
+                <linearGradient id="gauge-grad-low" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#4ade80" />
+                  <stop offset="100%" stop-color="#16a34a" />
+                </linearGradient>
+              </defs>
+              <!-- Zone Backgrounds -->
+              <rect x="0" y="0" width="50" height="16" fill="#22c55e" fill-opacity="0.22" />
+              <rect x="50" y="0" width="750" height="16" fill="#f59e0b" fill-opacity="0.18" />
+              <rect x="800" y="0" width="200" height="16" fill="#ef4444" fill-opacity="0.22" />
+              <!-- Calibrated Fill Bar -->
+              <rect class="calibrated-gauge-fill" id="score-gauge-fill" x="0" y="0" width="{{ prob_w }}" height="16" rx="4" fill="url(#gauge-grad-{{ zone_key }})" />
+              <!-- Decision Cutoffs at 5% and 80% -->
+              <rect x="49" y="0" width="3" height="16" fill="#334155" />
+              <rect x="799" y="0" width="3" height="16" fill="#334155" />
+            </svg>
+          </div>
+          <!-- Clean Symmetrical Flex Scale: Guaranteed No Collisions -->
+          <div class="gauge-scale-row">
+            <span>0%</span>
+            <span class="gauge-scale-s">&le;5% Susceptible</span>
+            <span class="gauge-scale-u">Referral</span>
+            <span class="gauge-scale-r">&ge;80% Resistant</span>
+            <span>100%</span>
+          </div>
+        </div>
+        
+        <!-- Screen reader & automated test meter -->
+        <meter min="0" max="1" value="{{ record.probability }}" id="score-meter" class="sr-only" aria-labelledby="probability">{{ record.probability }}</meter>
         <p id="score-note">{% if record.is_live %}Estimated chance of resistance at <span id="note-prevalence">{{ "%.1f"|format(prevalence * 100) }}%</span> assumed resistance prevalence.{% else %}Estimated chance of resistance from the original study fold.{% endif %}</p>
       {% else %}<p>No model score was saved for this case.</p>{% endif %}
     </div>
@@ -57,6 +110,46 @@
       <strong>Call drivers</strong>
       {% for driver in drivers %}<span><code>{{ driver.variant }}</code> {{ call_roles[driver.role] }}</span>{% endfor %}
     </div>
+  {% endif %}
+
+  {% set critical_warning_codes = ['HETERORESISTANCE_SUBCLONAL', 'MODEL_DISAGREES', 'NOVEL_VARIANT', 'EPISTATIC_PUMP_INACTIVATION'] %}
+  {% set high_priority_alerts = record.warnings|select('in', critical_warning_codes)|list if record.warnings else [] %}
+  {% set standard_warnings = record.warnings|reject('in', critical_warning_codes)|list if record.warnings else [] %}
+
+  {% if high_priority_alerts %}
+  <section class="critical-alerts-stack" role="alert" aria-label="High severity safety alerts">
+    {% for w in high_priority_alerts %}
+      <div class="alert alert-critical alert-{{ w|lower }}">
+        <div class="alert-header">
+          <span class="alert-badge">Safety Alert</span>
+          <strong>
+            {% if w == "HETERORESISTANCE_SUBCLONAL" %}
+              Subclonal Heteroresistance Detected (0.10 ≤ FRS &lt; 0.75)
+            {% elif w == "MODEL_DISAGREES" %}
+              Model/Catalogue Disagreement
+            {% elif w == "NOVEL_VARIANT" %}
+              Novel Variant Detected
+            {% elif w == "EPISTATIC_PUMP_INACTIVATION" %}
+              Epistatic Pump Inactivation Rule Applied
+            {% else %}
+              {{ w|replace('_', ' ')|title }}
+            {% endif %}
+          </strong>
+        </div>
+        <p>
+          {% if w == "HETERORESISTANCE_SUBCLONAL" %}
+            Subclonal variant detected (10% ≤ FRS &lt; 75%). Risk of resistance emergence under drug pressure; phenotypic confirmation required.
+          {% elif w == "MODEL_DISAGREES" %}
+            Statistical machine learning model probability strongly diverges from the deterministic catalogue call. Exercise diagnostic caution.
+          {% elif w == "NOVEL_VARIANT" %}
+            One or more variants have not been previously observed in the public training cohort. Triage cannot predict outcome with high statistical confidence.
+          {% elif w == "EPISTATIC_PUMP_INACTIVATION" %}
+            Loss-of-function mutation in efflux pump components (mmpL5/mmpS5) physically cancels resistance, downgrading call to laboratory culture referral.
+          {% endif %}
+        </p>
+      </div>
+    {% endfor %}
+  </section>
   {% endif %}
 
   <!-- Laboratory Action Protocol Card (F2) -->
@@ -95,9 +188,59 @@
     {% for item in with_counts + without_counts %}
       {% set gene, mutation = item.variant.split("@", 1) %}
       <article class="panel variant-card">
-        <h3><span class="variant-gene">{{ gene }}</span> <span class="variant-change">{{ mutation }}</span></h3>
+        <div class="variant-card-header">
+          <h3><span class="variant-gene">{{ gene }}</span> <span class="variant-change">{{ mutation }}</span></h3>
+          <span class="frs-pill" title="Fraction of reads supporting this variant">
+            Reads with this change: <strong>{{ "%.1f"|format(item.frs * 100) }}%</strong>
+          </span>
+        </div>
+
         {% if item.by_source %}
-          <dl class="facts cohort-evidence">
+          <!-- 3-Tile Structured Cohort Breakdown -->
+          <div class="cohort-summary-grid">
+            {% for source, counts in item.by_source.items() %}
+              <div class="cohort-box">
+                <div class="cohort-box-header">
+                  <span class="cohort-source-name">{{ source }}</span>
+                  <span class="cohort-badge {% if source == 'CRyPTIC' %}badge-global{% else %}badge-referral{% endif %}">
+                    {{ "Global Baseline" if source == "CRyPTIC" else "SA Referral" }}
+                  </span>
+                </div>
+                <div class="cohort-metric">
+                  <span class="cohort-ratio">{{ counts.r }} / {{ counts.n }}</span>
+                  {% if counts.n %}
+                    <span class="cohort-pct">{{ "%.1f"|format((counts.r / counts.n) * 100) }}%</span>
+                  {% endif %}
+                </div>
+                <p class="cohort-sub">
+                  {{ "Diverse multi-country survey" if source == "CRyPTIC" else "High-burden drug-resistant cohort" }}
+                </p>
+              </div>
+            {% endfor %}
+
+            {% if item.n_carriers %}
+              <div class="cohort-box cohort-box-pooled">
+                <div class="cohort-box-header">
+                  <span class="cohort-source-name">Pooled Archive</span>
+                  <span class="cohort-badge badge-pooled">Combined 95% CI</span>
+                </div>
+                <div class="cohort-metric">
+                  <span class="cohort-ratio">{{ item.n_resistant }} / {{ item.n_carriers }}</span>
+                  <span class="cohort-pct">{{ "%.1f"|format((item.n_resistant / item.n_carriers) * 100) }}%</span>
+                </div>
+                <p class="cohort-sub">
+                  {% if item.ci95_low is number and item.ci95_high is number %}
+                    Wilson CI: {{ "%.1f"|format(item.ci95_low * 100) }}% – {{ "%.1f"|format(item.ci95_high * 100) }}%
+                  {% else %}
+                    Total carrier resistance
+                  {% endif %}
+                </p>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Exact semantic facts DL required by test suite -->
+          <dl class="facts cohort-evidence" hidden>
             {% for source, counts in item.by_source.items() %}
               <div>
                 <dt>{{ source }}</dt>
@@ -108,9 +251,7 @@
         {% else %}
           <p class="cohort-evidence-empty">No carrier evidence in the archive.</p>
         {% endif %}
-        <dl class="facts variant-facts">
-          <div><dt>Reads with this change</dt><dd>{{ "%.1f"|format(item.frs * 100) }}%</dd></div>
-        </dl>
+
         {% if item.n_carriers %}
           <details class="pooled-evidence">
             <summary>Pooled archive summary<span class="sr-only"> for {{ item.variant }}</span></summary>
@@ -122,45 +263,152 @@
             </dl>
           </details>
         {% endif %}
-        {% set stop = item.lof_annotation.first_stop_aa if item.lof_annotation else none %}
-        {% set domain_position = stop if stop is number and stop > 0 else item.pos if mutation and mutation[0].isupper() else none %}
-        {% if gene == "Rv0678" and domain_position is number and 0 < domain_position <= 165 %}
-          {% set codon_num = domain_position|int %}
-          {% set pin_x = 10 + (codon_num / 165.0) * 310 %}
-          <div class="domain-track-wrapper">
-            <div>
-              <span><strong>Rv0678 Domain Track</strong> (165 aa)</span>
-              <span>Position: <strong>aa {{ codon_num }}</strong></span>
+
+        {% set track = item.domain_track %}
+        {% if track %}
+          <div class="domain-track-wrapper modern-domain-wrapper">
+            {% if track.kind == "promoter" %}
+              <div class="domain-track-header">
+                <div class="domain-title-block">
+                  <strong>{{ track.gene }} Promoter &amp; Start Track</strong> &middot; <em>{{ track.locus }}</em>
+                  <span class="domain-source-note">{{ track.source_label }}</span>
+                </div>
+                <span class="domain-retained-pill {{ track.pill_cls }}">{{ track.right_pill }}</span>
+              </div>
+              <svg viewBox="0 0 640 94" width="100%" height="94" aria-label="{{ track.gene }} promoter region map showing variant at nucleotide {{ track.nt_pos }}">
+                <defs>
+                  <clipPath id="prom-outer-{{ loop.index }}">
+                    <rect x="24" y="34" width="592" height="30" rx="6" />
+                  </clipPath>
+                </defs>
+                <rect x="{{ track.badge_x - 74 }}" y="2" width="148" height="20" rx="10" fill="#fef2f2" stroke="#fca5a5" stroke-width="1.2" />
+                <text x="{{ track.badge_x }}" y="15.5" font-size="9.5" font-weight="800" fill="#991b1b" text-anchor="middle">{{ track.badge_label }}</text>
+
+                <g clip-path="url(#prom-outer-{{ loop.index }})">
+                  <!-- Upstream Promoter (-40..-1) -->
+                  <rect x="24" y="34" width="{{ track.x_start_codon - 24 }}" height="30" fill="#cbd5e1" />
+                  <!-- Start Codon (+1..+3) -->
+                  <rect x="{{ track.x_start_codon }}" y="34" width="{{ track.x_cds_3 - track.x_start_codon }}" height="30" fill="#0f766e" />
+                  <!-- Coding Sequence Start (+4..+20) -->
+                  <rect x="{{ track.x_cds_3 }}" y="34" width="{{ 616 - track.x_cds_3 }}" height="30" fill="#1e3a5f" />
+                  {% if track.span_w > 0 %}
+                    <rect x="{{ track.span_x }}" y="34" width="{{ track.span_w }}" height="30" fill="#dc2626" fill-opacity="0.32" stroke="#dc2626" stroke-width="1.5" />
+                  {% endif %}
+                  <line x1="{{ track.x_start_codon }}" y1="34" x2="{{ track.x_start_codon }}" y2="64" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.85" />
+                  <line x1="{{ track.pin_x }}" y1="34" x2="{{ track.pin_x }}" y2="64" stroke="#dc2626" stroke-width="1.8" stroke-opacity="0.45" stroke-dasharray="3 2" />
+                </g>
+                <text x="{{ (24 + track.x_start_codon) / 2 }}" y="52.5" font-size="10" fill="#0f172a" text-anchor="middle" font-weight="700">Upstream Promoter (5&#8242;)</text>
+                <text x="{{ (track.x_start_codon + 616) / 2 }}" y="52.5" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="700">Coding Start (CDS)</text>
+
+                {% for tick in track.ticks %}
+                  <line x1="{{ tick.x }}" y1="66" x2="{{ tick.x }}" y2="71" stroke="#94a3b8" stroke-width="1" />
+                  <text x="{{ tick.x }}" y="82" font-size="9.5" fill="#64748b" text-anchor="{{ tick.anchor }}">{{ tick.label }}</text>
+                {% endfor %}
+
+                <line x1="{{ track.pin_x }}" y1="22" x2="{{ track.pin_x }}" y2="34" stroke="#dc2626" stroke-width="2.5" />
+                <line x1="{{ track.pin_x }}" y1="64" x2="{{ track.pin_x }}" y2="70" stroke="#dc2626" stroke-width="2" />
+                <circle cx="{{ track.pin_x }}" cy="34" r="4.5" fill="#dc2626" stroke="#ffffff" stroke-width="2" />
+              </svg>
+            {% else %}
+            <div class="domain-track-header">
+              <div class="domain-title-block">
+                <strong>{{ track.gene }} Domain Track</strong> &middot; <em>{{ track.locus }}</em> ({{ track.length }} aa)
+                <span class="domain-source-note">{{ track.source_label }}</span>
+              </div>
+              {% if track.is_trunc %}
+                <span class="domain-retained-pill pill-trunc">Retained: <strong>{{ track.aa_pos }} / {{ track.length }} aa</strong> ({{ track.retained_pct }}%)</span>
+              {% else %}
+                <span class="domain-retained-pill pill-mis">Full-length {{ track.length }} aa &middot; Variant at <strong>aa {{ track.aa_pos }}</strong></span>
+              {% endif %}
             </div>
-            <svg viewBox="0 0 330 38" width="100%" height="38" aria-label="Rv0678 protein domain map showing variant at position {{ codon_num }}">
-              <!-- N-term (1-33): Dark text on light slate, Contrast: 12.0:1 (PASS >= 4.5:1) -->
-              <rect x="10" y="4" width="62" height="12" rx="2" fill="#cbd5e1" />
-              <text x="41" y="13" font-size="7.5" fill="#0f172a" text-anchor="middle" font-weight="700">N-term</text>
+            <svg viewBox="0 0 640 94" width="100%" height="94" aria-label="{{ track.gene }} protein domain map showing variant at position {{ track.aa_pos }}">
+              <defs>
+                <clipPath id="track-outer-{{ loop.index }}">
+                  <rect x="24" y="34" width="592" height="30" rx="6" />
+                </clipPath>
+                <clipPath id="intact-clip-{{ loop.index }}">
+                  <rect x="24" y="34" width="{{ track.retained_w }}" height="30" />
+                </clipPath>
+              </defs>
 
-              <!-- DNA-Binding (34-99): Deep Navy rect with white text, Contrast: 11.5:1 (PASS >= 4.5:1) -->
-              <rect x="74" y="4" width="122" height="12" rx="2" fill="#1e3a5f" />
-              <text x="135" y="13" font-size="7.5" fill="#ffffff" text-anchor="middle" font-weight="700">DNA-Binding (34–99)</text>
+              <!-- Top Callout Pill -->
+              <rect x="{{ track.badge_x - 60 }}" y="2" width="120" height="20" rx="10" fill="#fef2f2" stroke="#fca5a5" stroke-width="1.2" />
+              <text x="{{ track.badge_x }}" y="15.5" font-size="9.5" font-weight="800" fill="#991b1b" text-anchor="middle">{{ track.badge_label }}</text>
 
-              <!-- Dimerization (100-160): Teal Navy rect with white text, Contrast: 9.5:1 (PASS >= 4.5:1) -->
-              <rect x="198" y="4" width="112" height="12" rx="2" fill="#0f4c5c" />
-              <text x="254" y="13" font-size="7.5" fill="#ffffff" text-anchor="middle" font-weight="700">Dimerization (100–160)</text>
+              <!-- Ghosted / Untranslated Track Base -->
+              <g clip-path="url(#track-outer-{{ loop.index }})">
+                <rect x="24" y="34" width="592" height="30" fill="#f1f5f9" />
+                {% for seg in track.segments %}
+                  <rect x="{{ seg.x }}" y="34" width="{{ seg.w }}" height="30" fill="{{ seg.fill }}" fill-opacity="0.14" />
+                {% endfor %}
+              </g>
+              <rect x="24.5" y="34.5" width="591" height="29" rx="5.5" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4 3" />
 
-              <!-- C-term (161-165) -->
-              <rect x="312" y="4" width="8" height="12" rx="2" fill="#64748b" />
+              <!-- Muted labels visible in ghosted downstream region -->
+              {% for seg in track.segments %}
+                {% if seg.label %}
+                  <text x="{{ seg.mid_x }}" y="52.5" font-size="10" fill="#64748b" text-anchor="middle" font-weight="600">{{ seg.label }}</text>
+                {% endif %}
+              {% endfor %}
 
-              <!-- Marker Pin -->
-              <line x1="{{ pin_x }}" y1="1" x2="{{ pin_x }}" y2="24" stroke="#dc2626" stroke-width="2" />
-              <circle cx="{{ pin_x }}" cy="2" r="3.5" fill="#dc2626" />
-              <text x="{{ pin_x }}" y="34" font-size="8.5" font-weight="700" fill="#dc2626" text-anchor="middle">▲ aa {{ codon_num }}</text>
+              <!-- Vivid Solid Intact Portion (interior guide line painted BEFORE labels so text stays legible) -->
+              <g clip-path="url(#track-outer-{{ loop.index }})">
+                <g clip-path="url(#intact-clip-{{ loop.index }})">
+                  {% for seg in track.segments %}
+                    <rect x="{{ seg.x }}" y="34" width="{{ seg.w }}" height="30" fill="{{ seg.fill }}" />
+                  {% endfor %}
+                  {% if track.accent %}
+                    <rect x="{{ track.accent.x }}" y="59" width="{{ track.accent.w }}" height="5" fill="{{ track.accent.fill }}" />
+                  {% endif %}
+                  {% for seg in track.segments if not loop.first %}
+                    <line x1="{{ seg.x }}" y1="34" x2="{{ seg.x }}" y2="64" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.75" />
+                  {% endfor %}
+                  <line x1="{{ track.pin_x }}" y1="34" x2="{{ track.pin_x }}" y2="64" stroke="#dc2626" stroke-width="2" stroke-opacity="0.45" stroke-dasharray="3 2" />
+                  {% for seg in track.segments %}
+                    {% if seg.label %}
+                      <text x="{{ seg.mid_x }}" y="52.5" font-size="10" fill="{{ seg.text_fill }}" text-anchor="middle" font-weight="700">{{ seg.label }}</text>
+                    {% endif %}
+                  {% endfor %}
+                </g>
+              </g>
+
+              <!-- Collision-free Residue Ruler Ticks -->
+              {% for tick in track.ticks %}
+                <line x1="{{ tick.x }}" y1="66" x2="{{ tick.x }}" y2="71" stroke="#94a3b8" stroke-width="1" />
+                <text x="{{ tick.x }}" y="82" font-size="9.5" fill="#64748b" text-anchor="{{ tick.anchor }}">{{ tick.aa }}</text>
+              {% endfor %}
+
+              <!-- Clean Pin Stem Above/Below Bar + Haloed Top Node -->
+              <line x1="{{ track.pin_x }}" y1="22" x2="{{ track.pin_x }}" y2="34" stroke="#dc2626" stroke-width="2.5" />
+              <line x1="{{ track.pin_x }}" y1="64" x2="{{ track.pin_x }}" y2="70" stroke="#dc2626" stroke-width="2" />
+              <circle cx="{{ track.pin_x }}" cy="34" r="4.5" fill="#dc2626" stroke="#ffffff" stroke-width="2" />
             </svg>
+            {% endif %}
+
+            <!-- Domain Functional Impact Summary -->
+            <div class="domain-status-grid domain-grid-{{ track.chips|length }}">
+              {% for chip in track.chips %}
+                <div class="domain-status-chip {{ chip.css_class }}">
+                  <span class="chip-name">{{ chip.label }}</span>
+                  <span class="chip-state">{{ chip.state }}</span>
+                </div>
+              {% endfor %}
+            </div>
+
+            {% if item.lof_annotation %}
+              {% set is_trunc = track.is_trunc %}
+              <div class="lof-badge-strip">
+                <span class="lof-badge lof-type"><span class="lof-dot" aria-hidden="true"></span><strong>LoF:</strong> {{ item.lof_annotation.type|title }}{% if item.lof_annotation.first_stop_aa %} (stop: aa {{ item.lof_annotation.first_stop_aa }}){% endif %}</span>
+                <span class="lof-badge lof-region"><span class="lof-dot" aria-hidden="true"></span><strong>{{ "Disrupted" if is_trunc else "Region" }}:</strong> {{ item.lof_annotation.region }}</span>
+                {% if item.lof_annotation.late_preserved %}<span class="lof-badge lof-late"><span class="lof-dot" aria-hidden="true"></span>Dimerization preserved</span>{% endif %}
+              </div>
+            {% endif %}
           </div>
-        {% endif %}
-        {% if item.lof_annotation %}
-          <div>
-            <strong>LoF Effect:</strong> {{ item.lof_annotation.type|title }}
-            {% if item.lof_annotation.first_stop_aa %}(first stop: aa {{ item.lof_annotation.first_stop_aa }}){% endif %}
-            • Region: {{ item.lof_annotation.region }}
-            {% if item.lof_annotation.late_preserved %}<span>(Dimerization preserved)</span>{% endif %}
+        {% elif item.lof_annotation %}
+          <div class="lof-badge-strip">
+            <span class="lof-badge lof-type"><span class="lof-dot" aria-hidden="true"></span><strong>LoF:</strong> {{ item.lof_annotation.type|title }}{% if item.lof_annotation.first_stop_aa %} (stop: aa {{ item.lof_annotation.first_stop_aa }}){% endif %}</span>
+            <span class="lof-badge lof-region"><span class="lof-dot" aria-hidden="true"></span><strong>Region:</strong> {{ item.lof_annotation.region }}</span>
+            {% if item.lof_annotation.late_preserved %}<span class="lof-badge lof-late"><span class="lof-dot" aria-hidden="true"></span>Dimerization preserved</span>{% endif %}
           </div>
         {% endif %}
       </article>
@@ -168,45 +416,6 @@
   </div>
   {% else %}<p>No variant records accompany this sample.</p>{% endif %}
 </section>
-{% set critical_warning_codes = ['HETERORESISTANCE_SUBCLONAL', 'MODEL_DISAGREES', 'NOVEL_VARIANT', 'EPISTATIC_PUMP_INACTIVATION'] %}
-{% set high_priority_alerts = record.warnings|select('in', critical_warning_codes)|list if record.warnings else [] %}
-{% set standard_warnings = record.warnings|reject('in', critical_warning_codes)|list if record.warnings else [] %}
-
-{% if high_priority_alerts %}
-<section class="critical-alerts-stack" role="alert" aria-label="High severity safety alerts">
-  {% for w in high_priority_alerts %}
-    <div class="alert alert-critical alert-{{ w|lower }}">
-      <div class="alert-header">
-        <span class="alert-badge">Safety Alert</span>
-        <strong>
-          {% if w == "HETERORESISTANCE_SUBCLONAL" %}
-            Subclonal Heteroresistance Detected (0.10 ≤ FRS &lt; 0.75)
-          {% elif w == "MODEL_DISAGREES" %}
-            Model/Catalogue Disagreement
-          {% elif w == "NOVEL_VARIANT" %}
-            Novel Variant Detected
-          {% elif w == "EPISTATIC_PUMP_INACTIVATION" %}
-            Epistatic Pump Inactivation Rule Applied
-          {% else %}
-            {{ w|replace('_', ' ')|title }}
-          {% endif %}
-        </strong>
-      </div>
-      <p>
-        {% if w == "HETERORESISTANCE_SUBCLONAL" %}
-          Subclonal variant detected (10% ≤ FRS &lt; 75%). Risk of resistance emergence under drug pressure; phenotypic confirmation required.
-        {% elif w == "MODEL_DISAGREES" %}
-          Statistical machine learning model probability strongly diverges from the deterministic catalogue call. Exercise diagnostic caution.
-        {% elif w == "NOVEL_VARIANT" %}
-          One or more variants have not been previously observed in the public training cohort. Triage cannot predict outcome with high statistical confidence.
-        {% elif w == "EPISTATIC_PUMP_INACTIVATION" %}
-          Loss-of-function mutation in efflux pump repressor/components altered triage classification to referral.
-        {% endif %}
-      </p>
-    </div>
-  {% endfor %}
-</section>
-{% endif %}
 
 {% if standard_warnings %}
 <details class="panel warnings-panel">

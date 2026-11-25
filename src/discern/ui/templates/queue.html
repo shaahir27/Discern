@@ -61,20 +61,30 @@
         <thead>
           <tr>
             <th scope="col" class="num">Rank</th>
-            <th scope="col" data-sortable="text" style="cursor: pointer;" aria-sort="none">Sample ID <span class="sort-indicator" aria-hidden="true">↕</span></th>
-            <th scope="col" data-sortable="text" style="cursor: pointer;" aria-sort="none">Catalogue call <span class="sort-indicator" aria-hidden="true">↕</span></th>
-            <th scope="col" class="num" data-sortable="number" style="cursor: pointer;" aria-sort="none">Model score <span class="sort-indicator" aria-hidden="true">↕</span></th>
+            <th scope="col" data-sortable="text" aria-sort="none">Sample ID <span class="sort-indicator" aria-hidden="true">↕</span></th>
+            <th scope="col" data-sortable="text" aria-sort="none">Catalogue call <span class="sort-indicator" aria-hidden="true">↕</span></th>
+            <th scope="col" class="num" data-sortable="number" aria-sort="none">Model score <span class="sort-indicator" aria-hidden="true">↕</span></th>
             <th scope="col">{{ "Source" if batch_id else "Lab finding" }}</th>
           </tr>
         </thead>
         <tbody>
         {% for row in rows %}
+          {% set score_pct = "%.1f"|format(row.probability * 100) %}
+          {% set bar_color = '#dc2626' if row.probability >= 0.80 else ('#16a34a' if row.probability <= 0.05 else '#d97706') %}
           <tr data-sample-id="{{ row.sample_id }}">
-            <td class="num row-rank">{{ row.rank if row.rank else "—" }}</td>
+            <td class="num row-rank">{% if row.rank %}<span class="rank-pill">#{{ row.rank }}</span>{% else %}—{% endif %}</td>
             <th scope="row"><a class="id" href="/result?sample_id={{ row.sample_id|urlencode }}{% if batch_id %}&amp;batch={{ batch_id|urlencode }}{% elif replay_assay and replay_assay != 'wgs' %}&amp;assay={{ replay_assay|urlencode }}{% endif %}">{{ row.sample_id }}</a>
               {% if row.patient_id and row.n_visits %}<a href="/patient/{{ row.patient_id|urlencode }}?batch={{ batch_id|urlencode }}" class="visit-link">{{ row.n_visits }} visits{% if row.has_longitudinal_alerts %} with alerts{% endif %}</a>{% endif %}</th>
             <td><span class="status status-{{ row.call }}">{{ row.call_label }}</span></td>
-            <td class="num">{{ "%.1f"|format(row.probability * 100) }}%</td>
+            <td class="num">
+              <div class="score-cell">
+                <svg class="mini-bar" viewBox="0 0 100 6" width="52" height="6" aria-hidden="true">
+                  <rect x="0" y="0" width="100" height="6" rx="3" fill="#e2e8f0" />
+                  <rect x="0" y="0" width="{{ score_pct }}" height="6" rx="3" fill="{{ bar_color }}" />
+                </svg>
+                <span class="score-cell-num">{{ score_pct }}%</span>
+              </div>
+            </td>
             <td class="row-phenotype">{{ row.source if batch_id else row.phenotype }}</td>
           </tr>
         {% else %}<tr><td colspan="5">No samples in this view.</td></tr>{% endfor %}

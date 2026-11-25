@@ -193,10 +193,34 @@ tbody tr:hover > * { background: #f8f9f3; }
 .status-R { color: var(--status-r-text); background: var(--status-r-bg); border-color: var(--status-r-border); }
 .id { font-family: ui-monospace, Consolas, monospace; font-size: .89em; overflow-wrap: anywhere; }
 .result-heading { display: flex; align-items: center; justify-content: space-between; gap: 11px 18px; flex-wrap: wrap; }
-.verdict .call-display { font-size: clamp(1.8rem, 3.6vw, 2.46rem); letter-spacing: -.034em; line-height: 1.12; font-weight: 710; margin-top: 11px; }
-.verdict .call-S { color: var(--pass); }
-.verdict .call-R { color: var(--alert); }
-.verdict .call-U { color: var(--referral); }
+.verdict .call-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  letter-spacing: -.02em;
+  line-height: 1.15;
+  font-weight: 750;
+  margin-top: 10px;
+  padding: 6px 16px;
+  border-radius: 8px;
+  width: fit-content;
+}
+.verdict .call-S {
+  background: #dcfce7;
+  color: #166534;
+  border: 1.5px solid #86efac;
+}
+.verdict .call-R {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1.5px solid #fca5a5;
+}
+.verdict .call-U {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1.5px solid #fcd34d;
+}
 .verdict .disagreement { color: var(--referral); font-size: .88rem; font-weight: 600; }
 .facts { gap: 0; }
 .facts > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-top: 1px solid var(--rule); padding: 7px 0; }
@@ -218,7 +242,7 @@ meter::-moz-meter-bar { background: #cae3d0; }
 .cohort-evidence > div { display: grid; gap: 3px; padding: 8px 0 0; }
 .cohort-evidence dt, .cohort-evidence-empty { color: var(--muted); font-size: .86rem; }
 .cohort-evidence dd { text-align: left; font-variant-numeric: tabular-nums; }
-.pooled-evidence { font-size: .86rem; }
+.pooled-evidence { font-size: .86rem; margin-top: 10px; }
 .pooled-evidence summary { min-height: 44px; padding-block: 10px; color: var(--accent); }
 .pooled-evidence dl { margin: 0; }
 @media (prefers-reduced-motion: no-preference) {
@@ -528,13 +552,48 @@ tbody tr:focus-within > *, tbody tr:hover > * { background: #edf4f7; }
 .workflow-list dt { font-weight: 650; }
 .workflow-list dd { margin: 4px 0 0; color: var(--muted); }
 .observed-value { font-weight: 675; color: var(--ink); }
-.variant-set { display: flex; flex-wrap: wrap; column-gap: 8px; }
-.variant-set code { overflow-wrap: anywhere; }
+.variant-set { display: flex; flex-wrap: wrap; gap: 5px 6px; }
+.variant-set code {
+  overflow-wrap: anywhere;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-size: 0.82rem;
+  color: var(--ink);
+}
 .coverage-table { min-width: 660px; }
 .coverage-table tbody th { min-width: 12rem; }
-.coverage-cell { display: inline-block; border-radius: 4px; padding: 3px 6px; font-size: .79rem; white-space: nowrap; }
-.coverage-cell.covered { background: #e2eff2; color: #1a5066; }
-.coverage-cell.uncovered { color: #536774; background: #edf2f5; }
+.coverage-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: .78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.coverage-cell.covered {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+.coverage-cell.uncovered {
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+.vaf-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 5px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  font-weight: 650;
+  font-size: 0.82rem;
+  color: var(--ink);
+}
 .cell-detail { display: block; font-size: .82rem; font-weight: 400; color: var(--muted); }
 .panel-footnote { margin-top: var(--gap); }
 .error-state { max-width: 34rem; border-bottom: 1px solid var(--rule); padding-bottom: 22px; }
@@ -643,13 +702,51 @@ tbody tr:focus-within > *, tbody tr:hover > * { background: #edf4f7; }
 .queue-analysis:empty { display: none; }
 .queue-analysis > .panel { margin: 0; }
 .queue-records .sample-count { color: var(--muted); }
-.table-scroll { border-color: #cedde6; }
-thead th { background: #f0f5f8; text-align: left; }
+.table-scroll {
+  border-color: #cbd5e1;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+thead th {
+  background: #f8fafc;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #475569;
+  padding-block: 11px;
+  border-bottom: 1.5px solid #cbd5e1;
+}
 thead th.num { text-align: right; }
-.queue-table tbody td, .queue-table tbody th { padding-block: 11px; }
+tbody td, tbody th {
+  padding: 12px 14px;
+  border-bottom-color: #f1f5f9;
+}
+tbody tr:hover > * { background: #f8fafc; }
+.score-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  white-space: nowrap;
+}
+.mini-bar { display: block; flex-shrink: 0; }
+.score-cell-num { min-width: 3.1rem; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.rank-pill {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.queue-table tbody td, .queue-table tbody th { padding-block: 12px; }
 .queue-table thead th:first-child { width: 5rem; }
 .queue-table thead th:nth-child(3) { width: 12rem; }
-.queue-table thead th:nth-child(4) { width: 10rem; }
+.queue-table thead th:nth-child(4) { width: 11.5rem; }
 .queue-table thead th:nth-child(5) { width: 12rem; }
 .status { color: var(--muted); font-weight: 650; }
 .status-R { color: var(--status-r-text); }
@@ -740,7 +837,7 @@ thead th.num { text-align: right; }
 .case-evidence > p { margin-block: 6px 10px; color: var(--muted); }
 .case-evidence .variant-cards { grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); }
 .case-evidence .variant-card { padding: 15px; }
-.case-evidence .domain-track-wrapper { max-width: 30rem; }
+.case-evidence .domain-track-wrapper { max-width: 100%; width: 100%; }
 .case-report .coverage-panel { margin-block: 16px; }
 .case-report .coverage-strip .pill-gene { gap: 3px; padding: 8px; }
 .case-report .coverage-strip .pill-wt { border-color: var(--rule); background: var(--tint); color: var(--muted); }
@@ -928,6 +1025,14 @@ thead th.num { text-align: right; }
   padding: 12px 16px;
   border-radius: var(--rounded);
 }
+.alert-critical.alert-epistatic_pump_inactivation {
+  background: #fff7ed;
+  border: 1.5px solid #fed7aa;
+  border-left: 5px solid #ea580c;
+}
+.alert-critical.alert-epistatic_pump_inactivation .alert-badge {
+  background: #ea580c;
+}
 .alert-critical .alert-header {
   display: flex;
   align-items: center;
@@ -1012,10 +1117,481 @@ thead th.num { text-align: right; }
 
 /* Table sorting cursor */
 th[data-sortable] {
+  cursor: pointer;
   user-select: none;
 }
 .sort-indicator {
   font-size: 0.8em;
   opacity: 0.65;
   margin-left: 4px;
+}
+
+/* ==========================================================================
+   Clinical Result Page UI/UX Enhancements (F1/F2)
+   - Calibrated Diagnostic Risk Gauge
+   - Structured 3-Tile Cohort Breakdown
+   - Full-Width Protein Domain Architecture Track
+   ========================================================================== */
+
+/* 1. Score Header & Calibrated Gauge */
+.score-header-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.score-risk-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.score-risk-badge.risk-high {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+.score-risk-badge.risk-low {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+.score-risk-badge.risk-mid {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.calibrated-gauge-container {
+  width: 100%;
+  margin-block: 10px 6px;
+}
+
+.calibrated-gauge-track {
+  position: relative;
+  width: 100%;
+  height: 16px;
+  background: #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+}
+
+.calibrated-gauge-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.calibrated-gauge-fill {
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gauge-scale-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  font-size: 0.74rem;
+  font-weight: 650;
+  color: var(--muted);
+  margin-top: 6px;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.gauge-scale-s { color: #15803d; }
+.gauge-scale-u { color: #b45309; }
+.gauge-scale-r { color: #b91c1c; }
+
+/* Study results intro & 5-card model performance grid */
+.study-intro-banner {
+  margin-bottom: 20px;
+  background: var(--tint);
+  border-left: 4px solid var(--accent);
+  padding: 14px 18px;
+}
+.study-intro-banner strong {
+  color: var(--ink);
+}
+.study-intro-banner p {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.model-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0 0;
+}
+@media (max-width: 1080px) {
+  .model-metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  }
+}
+
+.model-metric-card {
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-top: 3px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  min-width: 0;
+}
+.model-metric-card.model-metric-primary {
+  border-top-color: var(--accent);
+}
+.model-metric-card dt {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+.model-metric-card dd {
+  margin: 0;
+  font-size: clamp(1.55rem, 2.2vw, 2rem);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.model-metric-card .fine {
+  margin: auto 0 0;
+  padding-top: 4px;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+/* 2. Variant Card Header & Badges */
+.variant-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+}
+.variant-card-header h3 {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.frs-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--tint);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 3px 9px;
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+
+/* 3. Structured 3-Tile Cohort Summary Grid */
+.cohort-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+@media (max-width: 720px) {
+  .cohort-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cohort-box {
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.cohort-box-pooled {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.cohort-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.cohort-source-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.cohort-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+.badge-global {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+.badge-referral {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+.badge-pooled {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.cohort-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 2px;
+}
+.cohort-ratio {
+  font-size: 1.25rem;
+  font-weight: 750;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.cohort-pct {
+  font-size: 0.84rem;
+  font-weight: 650;
+  color: var(--muted);
+}
+.cohort-sub {
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+/* 4. Modern Protein Domain Architecture Track */
+.modern-domain-wrapper {
+  margin-top: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+.domain-track-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 10px;
+  font-size: 0.86rem;
+  color: var(--ink);
+}
+.domain-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.domain-source-note {
+  font-size: 0.74rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+.domain-retained-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.domain-retained-pill.pill-trunc {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.domain-retained-pill.pill-mis {
+  background: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+.modern-domain-wrapper svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 110px;
+}
+
+.domain-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.domain-status-grid.domain-grid-2,
+.domain-status-grid.domain-grid-4 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.domain-status-grid.domain-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 640px) {
+  .domain-status-grid,
+  .domain-status-grid.domain-grid-2,
+  .domain-status-grid.domain-grid-3,
+  .domain-status-grid.domain-grid-4 { grid-template-columns: 1fr; }
+}
+.domain-status-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-left: 3px solid #cbd5e1;
+  font-size: 0.75rem;
+}
+.domain-status-chip .chip-name {
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.25;
+  overflow-wrap: break-word;
+}
+.domain-status-chip .chip-state {
+  font-weight: 600;
+  color: var(--muted);
+  line-height: 1.25;
+}
+.domain-status-chip.chip-intact {
+  border-left-color: #16a34a;
+  background: #f0fdf4;
+}
+.domain-status-chip.chip-intact .chip-state { color: #166534; }
+.domain-status-chip.chip-disrupted,
+.domain-status-chip.chip-hit {
+  border-left-color: #d97706;
+  background: #fffbeb;
+}
+.domain-status-chip.chip-disrupted .chip-state,
+.domain-status-chip.chip-hit .chip-state { color: #92400e; }
+.domain-status-chip.chip-lost {
+  border-left-color: #dc2626;
+  background: #fef2f2;
+}
+.domain-status-chip.chip-lost .chip-state { color: #991b1b; }
+
+.lof-badge-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.8rem;
+}
+.lof-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  color: var(--ink);
+}
+.lof-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.lof-badge.lof-type {
+  border-color: #fca5a5;
+  background: #fff1f2;
+  color: #9f1239;
+}
+.lof-badge.lof-region {
+  border-color: #bae6fd;
+  background: #f0f9ff;
+  color: #0369a1;
+}
+.lof-badge.lof-late {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+/* Descriptive evaluation KPI cards (replaces empty Expected/Tolerance table) */
+.eval-metrics-panel {
+  margin-top: 16px;
+  background: #f8fafc;
+}
+.eval-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin: 14px 0 0;
+}
+.eval-metric-card {
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-top: 3px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 13px 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  min-width: 0;
+}
+.eval-metric-card.eval-metric-highlight {
+  border-top-color: var(--accent);
+}
+.eval-metric-card dt {
+  font-size: 0.77rem;
+  font-weight: 680;
+  color: var(--muted);
+  line-height: 1.3;
+}
+.eval-metric-card dd {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 740;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
 }

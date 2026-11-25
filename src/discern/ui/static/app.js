@@ -40,6 +40,31 @@ if (slider) {
         meterEl.value = pAdj;
         meterEl.textContent = pAdj.toString();
       }
+      const gaugeFill = document.getElementById("score-gauge-fill");
+      if (gaugeFill) {
+        const pct = Math.min(100, Math.max(0, pAdj * 100));
+        const zone = pAdj >= 0.80 ? "high" : (pAdj <= 0.05 ? "low" : "mid");
+        if (gaugeFill.tagName.toLowerCase() === "rect") {
+          gaugeFill.setAttribute("width", (pct * 10).toFixed(1));
+          gaugeFill.setAttribute("fill", `url(#gauge-grad-${zone})`);
+        } else {
+          gaugeFill.style.width = pct.toFixed(1) + "%";
+          gaugeFill.className = "calibrated-gauge-fill fill-" + zone;
+        }
+      }
+      const riskBadge = document.querySelector(".score-risk-badge");
+      if (riskBadge) {
+        if (pAdj >= 0.80) {
+          riskBadge.className = "score-risk-badge risk-high";
+          riskBadge.textContent = "High Resistance Probability (\u226580% Cutoff)";
+        } else if (pAdj <= 0.05) {
+          riskBadge.className = "score-risk-badge risk-low";
+          riskBadge.textContent = "Low Resistance Probability (\u22645% Cutoff)";
+        } else {
+          riskBadge.className = "score-risk-badge risk-mid";
+          riskBadge.textContent = "Referral Zone (5%\u201380%)";
+        }
+      }
     }
 
     // Exact Ternary Predictive Values matching prevalence.py:archived_predictive_values

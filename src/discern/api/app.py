@@ -19,6 +19,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from ..decision import GENES, Predictor
 from ..documentation import model_card
+from ..domains import attach_domain_tracks
 from ..grammar import valid_mutation
 from ..importers import detect_and_parse_upload
 from ..label_shift import deduplicate_patient_probabilities, estimate_prevalence_mlls
@@ -515,7 +516,7 @@ def result(
             prevalence = min(0.5, max(0.001, estimated))
         record["probability"] = float(adjust(record["probability_train"], predictor.pi_tr, prevalence))
         ppv, npv = archived_predictive_values(predictor.cat_metrics, prevalence)
-        return render(request, "result", active="home", title="Bedaquiline result", record=record,
+        return render(request, "result", active="home", title="Bedaquiline result", record=attach_domain_tracks(record),
                       prevalence=prevalence, ppv=ppv, npv=npv, upload_quality=upload.quality,
                       prefilled_from_batch=prefilled, batch_id=batch)
 
@@ -526,7 +527,7 @@ def result(
                       detail="Choose an isolate from the replay collection.")
     record["panel_audit"] = audit_sample_panel(data.profile(sample_id), assay)
     ppv, npv = archived_predictive_values(data.reports.observed("catalogue"), prevalence)
-    return render(request, "result", active="home", title="Bedaquiline result", record=record,
+    return render(request, "result", active="home", title="Bedaquiline result", record=attach_domain_tracks(record),
                   prevalence=prevalence, ppv=ppv, npv=npv, replay_assay=assay)
 
 

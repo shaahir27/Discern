@@ -49,7 +49,22 @@
     'NICD_to_CRyPTIC_ece_raw': 'Calibration Error: NICD to CRyPTIC (Raw)',
     'NICD_to_CRyPTIC_ece_adj': 'Calibration Error: NICD to CRyPTIC (Prevalence Adjusted)',
     'NICD_to_CRyPTIC_brier_raw': 'Brier Score: NICD to CRyPTIC (Raw)',
-    'NICD_to_CRyPTIC_brier_adj': 'Brier Score: NICD to CRyPTIC (Prevalence Adjusted)'
+    'NICD_to_CRyPTIC_brier_adj': 'Brier Score: NICD to CRyPTIC (Prevalence Adjusted)',
+    'n_isolates': 'Total Isolates Evaluated',
+    'n_samples': 'Total Samples',
+    'n_resistant': 'Phenotypically Resistant Isolates',
+    'expanded_model_auc': 'Expanded Model ROC AUC',
+    'expanded_model_sens': 'Expanded Model Sensitivity',
+    'expanded_model_spec': 'Expanded Model Specificity',
+    'expanded_sens_at_spec_0.95': 'Expanded Sensitivity @ 95% Specificity',
+    'golden_production_km_auc': 'Production Baseline ROC AUC',
+    'delta_auc_vs_golden_production': 'Delta AUC vs Production Baseline',
+    'auc_region_count': 'Baseline AUC (Region + Count)',
+    'auc_plus_structure': 'AUC + 3D Protein Structure',
+    'auc_plus_biophysics': 'AUC + Exploratory Biophysics',
+    'auc_full_novel': 'AUC (Full Novel Feature Set)',
+    'n_distinct_sets': 'Distinct Variant Sets',
+    'n_distinct_variant_sets': 'Distinct Variant Sets'
 } %}
 {% set catalogue_overview = report == 'catalogue/e03_s1_catalogue_cv' %}
 {% set model_overview = report == 'lr_model/e04_s1_patient_cv' %}
@@ -59,9 +74,9 @@
     <p>See how Discern performed on archived samples, then inspect the measurements behind each result.</p>
   </header>
 
-  <div class="panel" style="margin-bottom: 20px; background: var(--tint); border-left: 4px solid var(--accent); padding: 14px 18px;">
-    <strong style="color: var(--ink);">How to read the Study Results:</strong>
-    <p style="margin: 6px 0 0; font-size: 0.9rem; color: var(--muted); line-height: 1.5;">
+  <div class="panel study-intro-banner">
+    <strong>How to read the Study Results:</strong>
+    <p>
       This page is the <strong>Scientific Evidence Harness</strong> verifying every number in the Discern study.
       Use the dropdown below to switch between the <strong>WHO Catalogue Baseline (Tier A)</strong>, the <strong>Calibrated Machine Learning Model (Tier B)</strong>, <strong>Real-World Clinic Prevalence Shifts</strong>, and <strong>Site Generalization Tests</strong>.
     </p>
@@ -135,53 +150,103 @@
           <h3 id="model-overview-title">Model Performance on Held-Out Patients</h3>
           <p>5-fold patient-grouped cross-validation across 11,868 clinical isolates</p>
         </div>
-        <div class="summary-strip" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin-block: 16px;">
-          <div>
+        <dl class="model-metrics-grid">
+          <div class="model-metric-card model-metric-primary">
             <dt>Discrimination (AUC)</dt>
             <dd>{{ "%.3f"|format(record.observed.auc) }}</dd>
-            <p class="fine" style="margin: 4px 0 0;">High ability to rank resistant above susceptible</p>
+            <p class="fine">High ability to rank resistant above susceptible</p>
           </div>
-          <div>
+          <div class="model-metric-card">
             <dt>Precision (PR AUC)</dt>
             <dd>{{ "%.3f"|format(record.observed.auprc) }}</dd>
-            <p class="fine" style="margin: 4px 0 0;">Accuracy on rare resistant strains</p>
+            <p class="fine">Accuracy on rare resistant strains</p>
           </div>
-          <div>
+          <div class="model-metric-card">
             <dt>Binary Sensitivity</dt>
             <dd>{{ "%.1f"|format(record.observed.binary_sens * 100) }}%</dd>
-            <p class="fine" style="margin: 4px 0 0;">Resistant cases caught at Youden threshold</p>
+            <p class="fine">Resistant cases caught at Youden threshold</p>
           </div>
-          <div>
+          <div class="model-metric-card">
             <dt>Binary Specificity</dt>
             <dd>{{ "%.1f"|format(record.observed.binary_spec * 100) }}%</dd>
-            <p class="fine" style="margin: 4px 0 0;">Susceptible cases correctly confirmed</p>
+            <p class="fine">Susceptible cases correctly confirmed</p>
           </div>
-          <div>
+          <div class="model-metric-card">
             <dt>Sens @ 98% Spec</dt>
             <dd>{{ "%.1f"|format(record.observed['sens_at_spec_0.98'] * 100) }}%</dd>
-            <p class="fine" style="margin: 4px 0 0;">Sensitivity under strict false-alarm budget (&lt;2%)</p>
+            <p class="fine">Sensitivity under strict false-alarm budget (&lt;2%)</p>
           </div>
-        </div>
+        </dl>
       </section>
     {% endif %}
 
+    {% if record.expected or record.tolerance %}
     <details class="report-audit panel" id="observed-title"{% if not catalogue_overview %} open{% endif %}>
       <summary>Observed metrics and acceptance limits</summary>
       <div class="table-scroll" tabindex="0" role="region" aria-label="Observed metrics">
-        <table class="metric-table">
-          <thead><tr><th scope="col">Metric</th><th scope="col" class="num">Observed</th><th scope="col" class="num">Expected</th><th scope="col" class="num">Tolerance</th></tr></thead>
+        <table class="metric-table audit-table">
+          <thead><tr><th scope="col">Metric</th><th scope="col" class="num">Observed</th><th scope="col" class="num">Expected</th><th scope="col" class="num">Tolerance</th><th scope="col">Check</th></tr></thead>
           <tbody>
             {% for metric, value in record.observed.items() %}
               {% if value is not mapping and (value is string or not value is iterable) %}
-                <tr><th scope="row">{{ labels.get(metric, metric|replace('_', ' ')) }}</th><td class="{{ 'num observed-value' if value is number else '' }}">{{ value if value is not none else "—" }}</td><td class="num">{{ record.expected.get(metric, "—") }}</td><td class="num">{{ record.tolerance.get(metric, "—") }}</td></tr>
+                {% set tol_ok = record.within_tol.get(metric) if record.within_tol else none %}
+                <tr>
+                  <th scope="row">{{ labels.get(metric, metric|replace('_', ' ')|capitalize) }}</th>
+                  <td class="{{ 'num observed-value' if value is number else '' }}">
+                    {%- if value is none -%}
+                      —
+                    {%- elif value is float -%}
+                      {{ "%.4f"|format(value) }}
+                    {%- else -%}
+                      {{ value }}
+                    {%- endif -%}
+                  </td>
+                  <td class="num">{{ record.expected.get(metric, "—") }}</td>
+                  <td class="num">{{ ("±" ~ record.tolerance.get(metric)) if metric in record.tolerance else "—" }}</td>
+                  <td>
+                    {% if tol_ok is sameas true %}
+                      <span class="status status-S">Within</span>
+                    {% elif tol_ok is sameas false %}
+                      <span class="status status-R">Outside</span>
+                    {% else %}
+                      <span class="status">Info</span>
+                    {% endif %}
+                  </td>
+                </tr>
               {% endif %}
             {% endfor %}
           </tbody>
         </table>
       </div>
     </details>
+    {% else %}
+    <section class="panel eval-metrics-panel" id="observed-title" aria-labelledby="observed-metrics-heading">
+      <div class="comparison-header">
+        <h3 id="observed-metrics-heading">Observed evaluation metrics</h3>
+        <p class="fine">Descriptive measurements recorded from this experiment (no pre-registered pass/fail tolerance).</p>
+      </div>
+      <dl class="eval-metrics-grid">
+        {% for metric, value in record.observed.items() %}
+          {% if value is not mapping and (value is string or not value is iterable) %}
+            <div class="eval-metric-card{% if 'auc' in metric and 'delta' not in metric %} eval-metric-highlight{% endif %}">
+              <dt>{{ labels.get(metric, metric|replace('_', ' ')|capitalize) }}</dt>
+              <dd>
+                {%- if value is none -%}
+                  —
+                {%- elif value is float -%}
+                  {{ "%.4f"|format(value) }}
+                {%- else -%}
+                  {{ value }}
+                {%- endif -%}
+              </dd>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </dl>
+    </section>
+    {% endif %}
 
-    {% if names and not (catalogue_overview and names == ['metrics.csv']) %}
+    {% if names and not (names == ['metrics.csv'] and rows|length <= 1) %}
       <section class="section" aria-labelledby="table-title">
         <h3 id="table-title">Supporting tables</h3>
         {% if names|length > 1 %}

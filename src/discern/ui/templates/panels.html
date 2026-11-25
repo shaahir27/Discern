@@ -28,8 +28,16 @@
           {% set covered = panel.covered_genes.split(',') %}
           <tr data-assay="{{ key }}">
             <th scope="row"><strong>{{ panel.panel_label }}</strong><span class="cell-detail">{{ panel.platform|capitalize }}</span></th>
-            {% for gene in ['Rv0678', 'atpE', 'pepQ', 'mmpL5', 'mmpS5'] %}<td><span class="coverage-cell {{ 'covered' if gene in covered else 'uncovered' }}">{{ "Covered" if gene in covered else "Outside panel" }}</span></td>{% endfor %}
-            <td class="num">{{ "%.0f"|format(panel.vaf_floor * 100) }}%</td>
+            {% for gene in ['Rv0678', 'atpE', 'pepQ', 'mmpL5', 'mmpS5'] %}
+              <td>
+                {% if gene in covered %}
+                  <span class="coverage-cell covered"><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><polyline points="3.5 8.5 6.5 11.5 12.5 4.5" /></svg> Covered</span>
+                {% else %}
+                  <span class="coverage-cell uncovered">Outside panel</span>
+                {% endif %}
+              </td>
+            {% endfor %}
+            <td class="num"><span class="vaf-pill">&ge; {{ "%.0f"|format(panel.vaf_floor * 100) }}%</span></td>
           </tr>
         {% endfor %}
       </tbody>
