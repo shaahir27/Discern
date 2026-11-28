@@ -13,3 +13,5 @@ scratch/
 *.zip
 *.mp4
 .env
+/graphify-out
+build_discern_demo.py
